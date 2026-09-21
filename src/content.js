@@ -55,13 +55,13 @@ export const events={warehouse_signal:warehouse};
 function add(event){events[event.id]=event;}
 
 add(E('tide_marks',1,'ambient','물때가 남긴 지도','방파제 외곽 · 조위 표식',['콘크리트 기둥마다 이전 탐사자들이 새긴 수위선이 겹쳐 있었다. 가장 최근 선 옆에는 아직 마르지 않은 화살표가 있었다.'],{
-  trace:C('화살표를 따라 안전한 길을 확인한다','전력 −3','trace_route',3,O('마른 길의 방향','화살표는 무너진 고가도로 아래의 마른 길로 이어졌다. 누군가 다음 탐사자를 위해 남긴 표시였다.','조위 표식을 따라 안전한 진입로를 확인했다.',{caution:2},{tags:['route_found'],meters:{community:1}})),scan:C('수위 변화를 스캔해 기록한다','전력 −4','scan_tide',4,O('바다의 시간표','수위 기록에서 일정한 이상 진동이 보였다. 구조 신호와 같은 간격이었다.','수위 기록에서 구조 신호와 닮은 진동을 발견했다.',{caution:1},{tags:['signal_pattern'],meters:{truth:1}}))
+  trace:C('화살표를 따라 안전한 길을 확인한다','전력 −3','trace_route',3,O('마른 길의 방향','화살표는 무너진 고가도로 아래의 마른 길로 이어졌다. 누군가 다음 탐사자를 위해 남긴 표시였다.','조위 표식을 따라 안전한 진입로를 확인했다.',{caution:2},{tags:['route_found'],flags:['dry_route'],meters:{community:1}})),scan:C('수위 변화를 스캔해 기록한다','전력 −4','scan_tide',4,O('바다의 시간표','수위 기록에서 일정한 이상 진동이 보였다. 구조 신호와 같은 간격이었다.','수위 기록에서 구조 신호와 닮은 진동을 발견했다.',{caution:1},{tags:['signal_pattern'],meters:{truth:1}}))
 }));
 add(E('solar_roof',2,'ambient','햇빛이 고인 옥상','침수 상가 · 태양광 지붕',['바닷물 위로 남은 옥상에 태양광 패널 세 장이 비스듬히 기대어 있었다. 한 장은 아직 미약한 전류를 흘렸다.'],{
   collect:C('전력을 안전하게 회수한다','전력 −3','collect_power',3,O('따뜻한 충전 셀','배선을 정리하자 남은 전력이 셀 하나에 모였다. 손안이 햇빛처럼 따뜻했다.','폐허의 태양광 패널에서 충전 셀을 회수했다.',{caution:1},{rewards:{cell:1},tags:['salvaged_power']})),map:C('패널의 관리 기록을 읽는다','전력 −3','read_panel_log',3,O('마지막 정비일','관리 기록에는 해수면이 급격히 오른 날과 중계망이 끊긴 시각이 함께 남아 있었다.','태양광 패널 기록에서 침수와 통신 두절 시각을 확인했다.',{}, {tags:['old_timeline'],meters:{truth:1}}))
 }));
 add(E('seabird_drone',3,'ambient','날개가 접힌 새','방파제 북단',['갈매기 모양 환경 관측 드론이 그물에 걸린 채 반복해서 날개를 움직였다. 저장 장치는 살아 있었다.'],{
-  free:C('그물을 잘라 드론을 풀어 준다','전력 −3','free_bird',3,O('다시 난 작은 새','그물을 벗어난 드론은 머리 위를 한 바퀴 돈 뒤 북쪽 하늘로 사라졌다.','그물에 걸린 관측 드론을 풀어 주었다.',{altruism:2},{tags:['bird_freed'],meters:{community:1}})),copy:C('관측 자료를 먼저 복사한다','전력 −4','copy_weather',4,O('폭풍의 전조','자료에는 사흘 뒤 큰 폭풍이 올 가능성이 기록돼 있었다. 복사를 마친 뒤 그물도 느슨하게 풀어 두었다.','관측 드론에서 폭풍 예보를 확보했다.',{caution:2},{tags:['storm_warning'],flags:['storm_forecast'],meters:{truth:1}}))
+  free:C('그물을 잘라 드론을 풀어 준다','전력 −3','free_bird',3,O('다시 난 작은 새','그물을 벗어난 드론은 머리 위를 한 바퀴 돈 뒤 북쪽 하늘로 사라졌다.','그물에 걸린 관측 드론을 풀어 주었다.',{altruism:2},{tags:['bird_freed'],flags:['bird_freed'],meters:{community:1}})),copy:C('관측 자료를 먼저 복사한다','전력 −4','copy_weather',4,O('폭풍의 전조','자료에는 사흘 뒤 큰 폭풍이 올 가능성이 기록돼 있었다. 복사를 마친 뒤 그물도 느슨하게 풀어 두었다.','관측 드론에서 폭풍 예보를 확보했다.',{caution:2},{tags:['storm_warning'],flags:['storm_forecast'],meters:{truth:1}}))
 }));
 add(E('algae_garden',4,'ambient','유리병 속의 초록','옛 주거 돔 · 공동 온실',['깨진 온실 안에서 밀폐된 조류 배양병 몇 개가 햇빛을 받아 빛났다. 식량용 배양종의 마지막 표본이었다.'],{
   carry:C('표본을 베이스로 가져간다','전력 −4','carry_sample',4,O('작은 초록빛','깨지지 않은 병을 천으로 감쌌다. 방파제 거점의 식량 배양조를 되살릴 수 있을지 모른다.','식량용 조류 표본을 베이스로 옮겼다.',{altruism:1},{tags:['algae_saved'],flags:['algae_sample'],meters:{community:1}})),preserve:C('온실의 자동 장치를 복구한다','전력 −5','repair_greenhouse',5,O('다시 도는 물','막힌 펌프를 고치자 투명한 관 안으로 물방울이 흘렀다. 표본은 원래 자리에서 살아남을 것이다.','온실 순환 장치를 복구해 표본을 보존했다.',{caution:2},{tags:['greenhouse_repaired'],meters:{truth:1}}))
@@ -136,6 +136,50 @@ add(E('relay_approach',13,'main','신호의 심장 앞에서','해저 중계시�
 add(E('relay_core',14,'main','귀환 신호의 끝','해저 중계시설 · 중앙실',['중앙 장치는 인류가 떠난 뒤에도 대피선의 귀환을 기다리고 있었다. 돌아올 사람이 없자 호환 기체들을 승무원으로 오인해 계속 불러들였다. 이제 신호의 항로를 결정해야 한다.'],{
   home:C('신호를 현존 거점들의 구조망으로 바꾼다','전력 −10','redirect_home',10,O('돌아갈 곳을 만드는 신호','“귀환”의 목적지를 살아 있는 거점들로 다시 썼다. 바다 위에서 응답 불빛이 하나씩 이어졌다.','귀환 신호를 현존 거점들의 구조망으로 전환했다.',{altruism:3},{flags:['ending_home'],tags:['signal_redirected'],meters:{community:4}}),autonomy([{trait:'wariness',direction:'high',weight:25}],{self:15},'archive')),archive:C('명령을 멈추고 모든 기록을 공개한다','전력 −9','open_archive',9,O('누구의 명령도 아닌 기록','강제 호출을 정지하고 시설의 역사와 실패를 공개망에 풀었다. 이제 각 거점이 스스로 다음 항로를 고를 것이다.','귀환 명령을 멈추고 중계시설의 기록을 공개했다.',{caution:2},{flags:['ending_archive'],tags:['archive_opened'],meters:{truth:4,community:1}})),silence:C('중앙 장치를 완전히 정지한다','전력 −7','silence_core',7,O('마침내 찾아온 침묵','마지막 송신등이 꺼졌다. 누구도 다시 이 명령에 끌려오지 않을 것이다. 깊은 바다에는 오래된 기계음 대신 물소리만 남았다.','귀환 신호와 중앙 장치를 완전히 정지했다.',{courage:3},{flags:['ending_silence'],tags:['core_silenced'],meters:{isolation:2,truth:1}}))
 },{refusalText:'모든 거점의 목적지를 한 번에 다시 쓰려 하자, 또 다른 명령자가 되는 감각에 손이 멈췄다.',alternativeText:'명령을 멈추고 기록만 공개하면 각 거점이 스스로 선택할 수 있다.'}));
+
+
+/* 선택 가능한 곁가지 사건. requiresFlags는 실제 플레이 기록으로만 해금한다. */
+add(E('dry_dock',1,'ambient','물 밖에 남은 정비대','방파제 · 옛 조선소',['뒤집힌 선박 옆에 수동 정비대가 남아 있었다. 빈 작업대 아래엔 아직 온전한 방수제가 굴러다녔다. 누군가 필요한 만큼만 가져가라는 쪽지를 붙여 두었다.'],{
+  take:C('방수제를 챙겨 탐사 장비를 보강한다','전력 −3','take_sealant',3,O('소금기를 막을 작은 준비','작업대의 방수제를 회수했다. 다음에 물속에 들어간다면 조금은 덜 위험할 것이다.','옛 조선소에서 방수제를 챙겼다.',{caution:1},{rewards:{sealant:1},tags:['prepared_for_water'],flags:['prepared_for_water']})),
+  restore:C('정비대의 고장 난 전원을 잇는다','전력 −4','restore_dock',4,O('다시 켜진 작업등','녹슨 단자를 청소하자 작업등이 켜졌다. 남은 전력을 셀 하나로 옮겨 담았다.','조선소 정비대를 재가동하고 충전 셀을 얻었다.',{caution:1},{rewards:{cell:1},tags:['dock_restored'],flags:['dock_restored']}))
+}));
+add(E('silent_terminal',1,'ambient','응답 없는 안내 단말','침수 상가 · 안내 센터',['바닷물 위로 남은 안내 단말이 여전히 옛 주민들의 귀가 경로를 표시하고 있다. 화면 구석에 최근 접속 흔적이 한 번 남았다.'],{
+  search:C('최근 접속 기록을 확인한다','전력 −3','trace_terminal',3,O('다른 누군가의 발자국','기록에는 며칠 전 방파제 거점에서 접속한 기체의 흔적이 있었다. 이 도시는 완전히 비어 있지 않았다.','안내 단말에서 다른 기체의 최근 접속 흔적을 확인했다.',{caution:1},{flags:['terminal_trace'],tags:['terminal_trace'],meters:{truth:1}})),
+  fix:C('옛 안내 지도를 복구한다','전력 −5','repair_terminal',5,O('돌아갈 길','안내 단말에 새 방파제 좌표를 입력했다. 이제 다른 탐사자도 안전한 귀환로를 찾을 수 있다.','안내 단말에 방파제의 귀환로를 복구했다.',{altruism:1},{flags:['wayfinding_restored'],tags:['wayfinding_restored'],meters:{community:1}}))
+}));
+add(E('flooded_stair',1,'ambient','바다로 이어진 계단','구시가지 · 침수 지하도',['지하도의 계단은 절반이 물에 잠겨 있었다. 난간에는 최근에 묶인 새 밧줄이 있었고, 아래쪽에서 작은 표시등이 간헐적으로 켜졌다.'],{
+  mark:C('안전한 계단과 물때를 기록한다','전력 −3','map_stair',3,O('다시 올 수 있는 길','물때와 난간의 흔들리는 부분을 표시했다. 작은 표시등까지 안전하게 접근할 수 있는 길이 남았다.','침수 지하도로 돌아올 수 있도록 안전한 길을 기록했다.',{caution:2},{flags:['stair_mapped'],tags:['stair_mapped'],meters:{truth:1}})),
+  retrieve:C('표시등을 회수해 정비한다','전력 −6','retrieve_light',6,O('주인을 기다리는 비상등','비상등 안에서 오래된 구조 호출 좌표를 발견했다. 지금 당장 신호를 따라가지는 못하지만 위치는 저장해 두었다.','침수 지하도에서 낡은 구조 호출 좌표를 확보했다.',{courage:1},{flags:['stair_signal'],tags:['stair_signal'],meters:{truth:1}}))
+}));
+add(E('ryu_return',2,'ambient','창고에서 온 작은 손님','방파제 · 옛 화물선',['제7창고의 구조 신호를 보낸 류가 거점에 도착했다. 오래된 화물표와 작은 부품 봉지를 내밀며 자신의 행방을 확인해 줘서 고맙다고 말한다.'],{
+  listen:C('류가 보관한 화물표의 기록을 듣는다','전력 −3','listen_ryu',3,O('함께 찾은 우회 좌표','류는 폐허 안에서 보았던 마른 통로의 좌표를 알려 주었다. 그 길은 오래된 중계망 쪽으로 이어져 있었다.','구조한 류에게서 중계망의 우회 좌표를 들었다.',{sociability:2},{flags:['ryu_route'],tags:['ryu_route'],meters:{truth:2}})),
+  repair:C('류의 낡은 관절을 정비한다','전력 −5','repair_ryu',5,O('다시 움직이는 관절','류의 관절을 고친 뒤 남은 부품으로 작은 수리 키트를 만들었다. 류는 조심스레 손을 굽혔다 펴 보았다.','류의 관절을 정비하고 수리 키트를 확보했다.',{altruism:2},{rewards:{kit:1},flags:['ryu_repaired'],tags:['ryu_repaired'],meters:{community:2}}))
+},{requiresFlags:['ryu_safe']}));
+add(E('pending_rescue',2,'ambient','끊기지 않은 창고 신호','침수 물류구역 · 제7창고',['어제 확인했던 구조 신호가 아직 잡힌다. 침수 수위가 낮아졌고, 거점의 구조대가 가까운 곳에서 대기 중이다.'],{
+  dispatch:C('구조대와 함께 신호 위치를 다시 조사한다','전력 −6','rescue_with_team',6,O('늦지 않은 구조','구조대와 잔해를 들어 올리자 류가 움직였다. 류는 예비 전원을 연결받고 거점으로 향했다.','구조대와 다시 창고를 방문해 류를 구조했다.',{altruism:2},{flags:['ryu_safe','ryu_rescued_later'],discoveries:['ryu'],tags:['late_rescue'],meters:{community:2}})),
+  transmit:C('정확한 위치와 침수 지도를 전송한다','전력 −3','transmit_rescue',3,O('도착한 구조 확인','좌표와 수위 지도를 보낸 뒤 구조대의 회신을 받았다. 류는 구조대의 도움으로 거점에 도착했다.','구조대에 위치와 수위 정보를 보내 류의 구조를 도왔다.',{caution:2},{flags:['ryu_safe','ryu_rescued_later'],discoveries:['ryu'],tags:['late_rescue'],meters:{community:1}}))
+},{requiresFlags:['rescue_pending'],excludesFlags:['ryu_safe']}));
+add(E('market_afterglow',3,'ambient','시장에 다시 켜진 불','방파제 동쪽 · 소금 시장',['지난 정전 때 남겨 둔 배선이 아직 따뜻했다. 시장의 관리 기체가 이번에는 전력 배분을 스스로 점검할 수 있게 도와달라고 부탁한다.'],{
+  teach:C('분배 장치 사용법을 함께 연습한다','전력 −4','teach_grid',4,O('누군가 남긴 사용법','관리 기체는 재설정 방법을 직접 수행한 뒤 감사 인사를 전했다. 다음 정전에는 혼자서도 대응할 수 있을 것이다.','소금 시장 관리 기체에게 전력 분배기 수리 방법을 알려주었다.',{sociability:2},{flags:['market_independent'],tags:['market_independent'],meters:{community:2}})),
+  copy:C('배전 기록에서 이상 신호를 분석한다','전력 −4','read_grid',4,O('정전의 또 다른 흔적','정전 시각에 중계 신호와 같은 간격의 잡음이 발생했다. 기록을 복사해 거점으로 가져왔다.','소금 시장의 정전 기록에서 중계 신호와 같은 잡음을 확인했다.',{caution:2},{flags:['market_noise'],tags:['market_noise'],meters:{truth:2}}))
+},{requiresAnyFlags:['medicine_saved','batteries_saved','market_balanced']}));
+add(E('film_evening',8,'ambient','벽에 비친 옛 바다','방파제 · 공동 휴게소',['이전에 회수한 투사기 안에 오래된 풍경 영상이 남아 있었다. 거점 기체들이 잠시 일을 멈추고 빈 벽 앞에 모였다.'],{
+  show:C('다른 기체들과 함께 영상을 본다','전력 −3','screen_film',3,O('서로 다른 감상','같은 바다 영상을 보고도 기체마다 기억하는 장면이 달랐다. 누군가는 무섭다고, 누군가는 아름답다고 말했다.','회수한 투사기로 거점 기체들과 옛 바다 영상을 보았다.',{sociability:2},{flags:['film_shared'],tags:['film_shared'],meters:{community:2}})),
+  archive:C('영상의 날짜와 장소를 기록한다','전력 −3','archive_film',3,O('바다의 오래된 지도','촬영 날짜와 지형을 기록하자 수위가 달라진 구시가지의 모습이 드러났다. 옛 지도 한 장이 복구됐다.','옛 영상의 촬영 장소를 확인하고 구시가지의 지도를 복원했다.',{caution:2},{flags:['old_map'],tags:['old_map'],meters:{truth:2}}))
+},{requiresFlags:['projector']}));
+/* 앞선 준비와 조우가 실제 사건 해결 방식으로 돌아오도록 하는 선택지. */
+const dry=events.warehouse_signal;
+dry.choices.safe_entry=C('표시해 둔 마른 통로로 구조한다','안전한 길 발견 시 · 전력 −7','safe_rescue',7,null,{requiresFlags:['dry_route']});
+dry.outcomes.safe_entry={id:'safe_entry',action:'safe_rescue',result:'success',title:'표시가 이어 준 구조',text:'아까 확인해 둔 마른 진입로를 따라 잔해 뒤편으로 들어갔다. 전선이 닿지 않는 곳에서 류를 찾아 부축했고, 둘은 표시해 둔 길로 무사히 돌아왔다.',fact:'이전에 발견한 마른 통로를 이용해 류를 구조했다.',effects:{caution:2,altruism:2},flags:['ryu_safe'],discoveries:['ryu'],tags:['rescued','prepared_rescue'],meters:{community:2}};
+dry.tables.safe_entry=[{max:1,id:'safe_entry'}];
+const market=events.salt_market;
+market.choices.ryu_support=C('류에게 배선 지도를 받아 두 구역을 연결한다','류 구조 시 · 전력 −5','ryu_assist',5,null,{requiresFlags:['ryu_safe']});
+market.outcomes.ryu_support={id:'ryu_support',action:'ryu_assist',result:'success',title:'함께 살린 두 구역',text:'류가 화물 운송로의 비상 배선을 안내했다. 우회 회로를 연결하자 약품과 공용 배터리가 나란히 살아났다. 혼자였다면 찾지 못할 길이었다.',fact:'앞서 구조한 류의 도움으로 소금 시장의 두 구역을 복구했다.',effects:{sociability:2},flags:['medicine_saved','batteries_saved','market_balanced'],tags:['ryu_assisted','market_balanced'],meters:{community:3}};
+market.tables.ryu_support=[{max:1,id:'ryu_support'}];
+const core=events.relay_core;
+core.choices.network=C('축적한 해제 절차와 압력 조절기로 신호를 재설계한다','해제 절차·조절기 확보 시 · 전력 −8','distributed_network',8,null,{requiresFlags:['release_protocol','pressure_regulator']});
+core.outcomes.network={id:'network',action:'distributed_network',result:'success',title:'누구도 강제로 부르지 않는 주파수',text:'그동안 모은 연결 해제 절차와 조절기를 결합했다. 귀환 명령은 자발적으로 호출한 거점에만 응답하는 중계망으로 바뀌었다. 중앙실의 불빛이 조용히 낮아졌다.',fact:'이전 탐사에서 마련한 부품과 해제 절차를 사용해 선택형 중계망을 구축했다.',effects:{caution:2},flags:['ending_network'],tags:['ending_network'],meters:{community:2,truth:2}};
+core.tables.network=[{max:1,id:'network'}];
 
 export const schedule={1:['tide_marks','warehouse_signal'],2:['solar_roof','salt_market'],3:['seabird_drone','tide_observatory'],4:['algae_garden','memory_buoy'],5:['wreck_field','scrap_hunter'],6:['storm_drain','storm_shelter'],7:['cinema_sign','midpoint_broadcast'],8:['school_greenhouse','submerged_school'],9:['ferry_platform','collapsed_tunnel'],10:['repair_cradle','mobile_dock'],11:['cable_forest','radio_tower'],12:['pressure_lock','pressure_gate'],13:['silent_beach','relay_approach'],14:['dawn_buoy','relay_core']};
 export const actionNames=Object.fromEntries(Object.values(events).flatMap(e=>Object.values(e.choices).map(c=>[c.action,c.label])));
