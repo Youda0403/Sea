@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createGame,transition,validateSave,validateContent,conflict,currentEvent,departureGate} from '../src/engine.js';
+import {createGame,transition,validateSave,validateContent,conflict,currentEvent,departureGate,availableExplorations,gate} from '../src/engine.js';
 import {events,schedule,people,MAX_DAY} from '../src/content.js';
 const profile={name:'테스트',purpose:'scout',keywords:['timid','kind','careful'],value:'self',past:'flood'};
 function toMain(seed){let s=transition(createGame(profile,seed),{type:'depart'});const id=Object.keys(currentEvent(s).choices)[0];s=transition(s,{type:'choose',id});if(s.phase==='refused')s=transition(s,{type:'alternative'});return transition(s,{type:'continue'});}
@@ -19,7 +19,7 @@ function fullRun(seed=10){let s=createGame(profile,seed);while(s.phase!=='ending
   validateSave(s);
  }return s;
 }
-test('28 authored events form 14 days with one ambient and one required event',()=>{validateContent();assert.equal(Object.keys(events).length,28);assert.equal(Object.keys(schedule).length,MAX_DAY);});
+test('35 authored events retain 14 scheduled days with one ambient and one required event',()=>{validateContent();assert.equal(Object.keys(events).length,35);assert.equal(Object.values(events).filter(e=>e.kind==='main').length,14);assert.equal(Object.keys(schedule).length,MAX_DAY);});
 test('character rejects invalid and duplicate keywords',()=>assert.throws(()=>createGame({...profile,keywords:['kind','kind','kind']})));
 test('same seed and input produce identical outcomes; original state is immutable',()=>{const s=toMain(55),old=structuredClone(s);assert.deepEqual(transition(s,{type:'choose',id:'enter'}),transition(s,{type:'choose',id:'enter'}));assert.deepEqual(s,old);});
 test('personality, value and past affect refusal conflict',()=>{const shy=toMain(1);let brave=createGame({...profile,keywords:['bold','impulsive','social'],value:'truth',past:'blank'},1);brave=transition(brave,{type:'depart'});brave=chooseAffordable(brave);brave=transition(brave,{type:'continue'});assert.ok(conflict(shy,currentEvent(shy).choices.enter)>conflict(brave,currentEvent(brave).choices.enter));});
@@ -30,3 +30,45 @@ test('complete route always reaches an ending on day 14 with 28 memories and 14 
 test('every day and every outcome retains valid save invariants across 200 full runs',()=>{for(let seed=1;seed<=200;seed++)validateSave(fullRun(seed));});
 test('v1 completed save migrates to day 2 and preserves memory/diary',()=>{let old=createGame(profile,1);old.saveVersion=1;old.phase='ended';old.day=1;old.inventory={drone:1,override:1,kit:1};old.resolution={eventInstanceId:'old:warehouse:1',eventId:'warehouse-signal-01',gameDay:1,playerChoiceId:'drone',intendedActionId:'remote_rescue',actualActionId:'remote_rescue',outcomeId:'remote',result:'success',forcedOverrideUsed:false,itemUses:[],outcomeTags:['rescued'],decision:'accept',attempts:[{choiceId:'drone',decision:'accept'}],before:old.character,after:old.character};old.memories=[{id:'m',sourceEventInstanceId:'old:warehouse:1',text:events.warehouse_signal.outcomes.remote.fact,tags:['rescued']}];old.diaries=[{day:1,text:events.warehouse_signal.outcomes.remote.fact,sourceEventInstanceIds:['old:warehouse:1'],templateIds:['remote'],voiceId:'quiet'}];delete old.eventLog;delete old.currentResolution;delete old.discoveries;delete old.meters;delete old.dayEventIndex;delete old.ending;const s=validateSave(old);assert.equal(s.saveVersion,2);assert.equal(s.day,2);assert.equal(s.phase,'hub');assert.equal(s.memories.length,1);assert.equal(s.diaries.length,1);assert.ok(s.discoveries.includes('ryu'));});
 test('corrupt and future saves are rejected',()=>{const s=createGame(profile,1);for(const mutate of [x=>x.saveVersion=99,x=>x.inventory.override=-1,x=>x.rngState=0,x=>x.character.traits.courage=null,x=>x.day=15,x=>x.discoveries.push('unknown')]){const bad=structuredClone(s);mutate(bad);assert.throws(()=>validateSave(bad));}});
+
+test('player can select a first-day expedition and stored selection survives save validation',()=>{
+  let s=createGame(profile,9);
+  assert.ok(availableExplorations(s).some(e=>e.id==='dry_dock'));
+  s=transition(s,{type:'depart',eventId:'dry_dock'});
+  assert.equal(currentEvent(s).id,'dry_dock');
+  assert.equal(s.selectedExploration,'dry_dock');
+  validateSave(s);
+  assert.throws(()=>transition(createGame(profile,9),{type:'depart',eventId:'ryu_return'}));
+});
+test('an earlier exploration opens a materially different rescue route and later NPC help',()=>{
+  let s=transition(createGame(profile,9),{type:'depart',eventId:'tide_marks'});
+  s=transition(s,{type:'choose',id:'trace'});
+  s=transition(s,{type:'continue'});
+  assert.equal(gate(s,'safe_entry'),'');
+  s=transition(s,{type:'choose',id:'safe_entry'});
+  assert.equal(s.currentResolution.actualActionId,'safe_rescue');
+  assert.ok(s.world.ryu_safe);
+  s=transition(transition(s,{type:'continue'}),{type:'endDay'});
+  assert.ok(availableExplorations(s).some(e=>e.id==='ryu_return'));
+  s=transition(s,{type:'depart',eventId:'ryu_return'});
+  s=transition(s,{type:'choose',id:'listen'});
+  s=transition(s,{type:'continue'});
+  assert.equal(gate(s,'ryu_support'),'');
+  s=transition(s,{type:'choose',id:'ryu_support'});
+  assert.ok(s.world.market_balanced);
+  assert.equal(s.currentResolution.actualActionId,'ryu_assist');
+  validateSave(s);
+});
+test('locked preparation routes cannot be chosen without their actual prior event',()=>{
+  let s=transition(createGame(profile,3),{type:'depart',eventId:'dry_dock'});
+  s=transition(s,{type:'choose',id:'take'});
+  s=transition(s,{type:'continue'});
+  assert.match(gate(s,'safe_entry'),/이전 탐사/);
+  assert.throws(()=>transition(s,{type:'choose',id:'safe_entry'}));
+});
+test('earlier forced commands increase subsequent autonomy conflict while diary keeps factual outcomes',()=>{
+  const s=toMain(3);
+  const a=conflict(s,currentEvent(s).choices.enter);
+  const low=structuredClone(s);low.character.stability=40;
+  assert.ok(conflict(low,currentEvent(low).choices.enter)>a);
+});

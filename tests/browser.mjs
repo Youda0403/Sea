@@ -12,11 +12,11 @@ const browser=await chromium.launch({headless:true,executablePath:process.env.CH
 async function saved(){return page.evaluate(async()=>(await import('./src/storage.js')).load());}
 async function seed(n){await page.goto('http://localhost:4173');await page.evaluate(async({profile,n})=>{const e=await import('./src/engine.js'),db=await import('./src/storage.js'),old=await db.load();await db.commit(e.createGame(profile,n),old,{replace:true});},{profile,n});await page.reload();}
 async function click(name){await page.getByRole('button',{name,exact:true}).click();}
-async function firstEvent(){await click('오늘의 탐사 시작');await click('화살표를 따라 안전한 길을 확인한다');}
+async function firstEvent(){await page.getByRole('button',{name:'이곳으로 탐사 떠나기',exact:true}).first().click();await click('화살표를 따라 안전한 길을 확인한다');}
 try{
   await page.goto('http://localhost:4173');
   if(await page.getByRole('button',{name:'기체 활성화',exact:true}).count()){await page.getByLabel('이름',{exact:true}).fill('<테스트>');for(const x of ['소심한','다정한','신중한'])await page.getByText(x,{exact:true}).click();await click('기체 활성화');}
-  assert.equal((await saved()).day,1);await page.getByText('탐사 사건 · 1/2').waitFor();await page.getByText('필수 사건 · 2/2').waitFor();console.log('PASS creator and two-event day plan');
+  assert.equal((await saved()).day,1);await page.getByRole('heading',{name:'오늘 들를 곳을 골라 줘'}).waitFor();await page.getByText('필수 사건 · 2/2').waitFor();console.log('PASS creator, selectable expeditions and scheduled main event');
 
   await seed(refusalSeed);await firstEvent();await page.getByRole('heading',{name:'마른 길의 방향'}).waitFor();assert.equal(await page.getByText('처음 고른 행동').count(),0);assert.equal(await page.getByText('실제로 한 행동').count(),0);assert.equal(await page.getByText(/수용/).count(),0);console.log('PASS result screen starts with narrative and hides diagnostic record');
   await click('다음 필수 사건으로 이동');await click('통로에 직접 들어가 구조한다');await page.getByText('CHOICE REFUSED / 선택 거부').waitFor();await page.getByRole('heading',{name:'몸이 선택을 받아들이지 않았다'}).waitFor();const before=await saved();await page.reload();assert.deepEqual(await saved(),before);await click('대체 행동 · 드론으로 우회로를 찾는다');await page.getByText('조우 기록 추가 · 류').waitFor();await click('베이스');await page.getByRole('heading',{name:'류',exact:true}).waitFor();assert.equal(await page.getByText('물류 운반 기체',{exact:true}).count(),1);console.log('PASS explicit refusal, reload stability, alternative and encounter compendium unlock');
