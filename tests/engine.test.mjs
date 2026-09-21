@@ -19,7 +19,7 @@ function fullRun(seed=10){let s=createGame(profile,seed);while(s.phase!=='ending
   validateSave(s);
  }return s;
 }
-test('28 authored events form 14 days with one ambient and one required event',()=>{validateContent();assert.equal(Object.keys(events).length,35);assert.equal(Object.values(events).filter(e=>e.kind==='main').length,14);assert.equal(Object.keys(schedule).length,MAX_DAY);});
+test('35 authored events retain 14 scheduled days with one ambient and one required event',()=>{validateContent();assert.equal(Object.keys(events).length,35);assert.equal(Object.values(events).filter(e=>e.kind==='main').length,14);assert.equal(Object.keys(schedule).length,MAX_DAY);});
 test('character rejects invalid and duplicate keywords',()=>assert.throws(()=>createGame({...profile,keywords:['kind','kind','kind']})));
 test('same seed and input produce identical outcomes; original state is immutable',()=>{const s=toMain(55),old=structuredClone(s);assert.deepEqual(transition(s,{type:'choose',id:'enter'}),transition(s,{type:'choose',id:'enter'}));assert.deepEqual(s,old);});
 test('personality, value and past affect refusal conflict',()=>{const shy=toMain(1);let brave=createGame({...profile,keywords:['bold','impulsive','social'],value:'truth',past:'blank'},1);brave=transition(brave,{type:'depart'});brave=chooseAffordable(brave);brave=transition(brave,{type:'continue'});assert.ok(conflict(shy,currentEvent(shy).choices.enter)>conflict(brave,currentEvent(brave).choices.enter));});
