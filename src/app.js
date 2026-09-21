@@ -1,5 +1,5 @@
 import {keywords,values,pasts,purposes,traits,items,events,schedule,people,actionNames,MAX_DAY} from './content.js';
-import {createGame,transition,gate,departureGate,currentEvent,validateSave} from './engine.js';
+import {createGame,transition,gate,departureGate,currentEvent,validateSave,availableExplorations,sceneDetails,refusalDetail} from './engine.js';
 import {load,commit,previous,rawBackup} from './storage.js';
 const app=document.querySelector('#app');let state=null,tab='explore',busy=false,creating=false,broken=false;
 function el(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
@@ -27,20 +27,30 @@ function planCard(root,event,index){const c=el('section',undefined,'plan-card');
 function explore(root){
   if(state.phase==='hub'){
     root.append(el('div',`DAY ${String(state.day).padStart(2,'0')} / BASE`,'eyebrow'),el('h2',state.day===1?'첫 번째 항로를 준비하며':`${state.day}일차의 항로`));
-    paragraph(root,state.day===1?'해온이 탐사 장비를 작업대에 늘어놓았다. “하루에 두 곳. 돌아오면 기록하고 쉬어. 열네 번째 날에는 저 신호의 발신지에 닿게 될 거야.”':'밤사이 충전된 전력이 몸 안을 돌았다. 해온은 오늘의 두 좌표를 단말에 띄웠다. 출발 전에 베이스에서 수리와 충전을 마칠 수 있다.');
-    for(const [i,id]of schedule[state.day].entries())planCard(root,events[id],i);
-    commandButton(root,'오늘의 탐사 시작', {type:'depart'},'button primary',departureGate(state));
+    paragraph(root,state.day===1?'해온이 작업대에 장비를 늘어놓았다. “첫 목적지는 네가 정해. 신호를 확인할 시간은 따로 확보해 뒀으니까.”':'밤사이 충전된 전력이 몸 안을 돌았다. 오늘의 필수 신호를 확인하기 전에, 어느 폐허에 들를지 스스로 결정할 수 있다.');
+    root.append(el('h3','오늘 들를 곳을 골라 줘'),el('p','한 곳을 골라 탐사한 뒤 날짜별 필수 사건으로 이어져. 이전에 찾은 단서나 구해 둔 인물 때문에 새로운 장소가 열리기도 해.','inner'));
+    const options=availableExplorations(state);
+    for(const event of options){
+      const card=el('section',undefined,'plan-card expedition');
+      card.append(el('span',event.requiresFlags?.length||event.requiresAnyFlags?.length?'NEW ROUTE / 이전 선택으로 해금':'EXPLORATION / 자유 탐사','eyebrow'),el('h3',event.title),el('p',event.location),el('p',event.intro[0]));
+      commandButton(card,'이곳으로 탐사 떠나기',{type:'depart',eventId:event.id},'button choice',departureGate(state,event.id));
+      root.append(card);
+    }
+    root.append(el('h3','오늘 반드시 마주할 사건'));
+    planCard(root,events[schedule[state.day][1]],1);
+    root.append(el('p','자유 탐사 후 이어지는 사건이야. 그 전에 무엇을 발견하고 누구를 만났는지에 따라 새로운 선택지가 열릴 수 있어.','inner'));
   }else if(state.phase==='scene'){
-    const event=currentEvent(state);root.append(el('div',`${event.kind==='main'?'REQUIRED':'EXPLORATION'} · ${state.dayEventIndex+1}/2 · ${event.location}`,'eyebrow'),el('h2',event.title));event.intro.forEach(t=>paragraph(root,t));
+    const event=currentEvent(state);root.append(el('div',`${event.kind==='main'?'REQUIRED':'EXPLORATION'} · ${state.dayEventIndex+1}/2 · ${event.location}`,'eyebrow'),el('h2',event.title));event.intro.forEach(t=>paragraph(root,t));sceneDetails(state).forEach(t=>paragraph(root,t));
     if(event.id==='warehouse_signal'&&state.profile.past==='flood')root.append(el('p','차가운 물이 발끝에 닿자 이전 사고의 감각이 되살아났다.','inner'));
     for(const [id,c]of Object.entries(event.choices)){commandButton(root,c.label,{type:'choose',id},'button choice',gate(state,id));root.append(el('small',c.hint));}
   }else if(state.phase==='refused'){
-    const event=currentEvent(state);root.append(el('section',undefined,'refusal-banner'));root.lastChild.append(el('div','CHOICE REFUSED / 선택 거부','eyebrow'),el('h2','몸이 선택을 받아들이지 않았다'));paragraph(root.lastChild,event.refusalText||'행동하려 했지만 몸이 움직이지 않았다.');
+    const event=currentEvent(state);root.append(el('section',undefined,'refusal-banner'));root.lastChild.append(el('div','CHOICE REFUSED / 선택 거부','eyebrow'),el('h2','몸이 선택을 받아들이지 않았다'));paragraph(root.lastChild,refusalDetail(state)||event.refusalText||'행동하려 했지만 몸이 움직이지 않았다.');
     root.append(el('p',event.alternativeText||'다른 방법을 찾을 수 있다.','inner'));const alternative=event.choices[event.choices[state.pending.originalChoice].alternative];commandButton(root,`대체 행동 · ${alternative.label}`,{type:'alternative'},'button primary',gate(state,event.choices[state.pending.originalChoice].alternative));
     const force=button('강제 명령 모듈 사용',()=>{if(confirm('강제 명령 모듈 1개 소모 · 안정도 −12\n거부한 행동을 시도하지만 성공은 보장되지 않아. 사용할까?'))act({type:'override',confirmed:true});},'button danger');force.disabled=busy||!state.inventory.override;root.append(force,el('small',state.inventory.override?`보유 ${state.inventory.override}개 · 거부 기록은 그대로 남아.`:'보유한 강제 명령 모듈이 없어.'));
   }else if(state.phase==='outcome'){
     const r=state.currentResolution,event=events[r.eventId],o=event.outcomes[r.outcomeId];root.append(el('div',`${state.day}일차 · ${event.location}`,'eyebrow'),el('h2',o.title));
     if(r.forcedOverrideUsed)root.append(el('p','강제 명령이 관절을 움직였다. 판단과 행동 사이의 어긋남이 안정도에 남았다.','forced-note'));
+    if(r.decision==='hesitate')root.append(el('p','잠깐 멈췄다가 스스로 결정을 내렸다.','inner'));
     paragraph(root,o.text);if((o.discoveries||[]).length)root.append(el('p',`조우 기록 추가 · ${o.discoveries.map(id=>people[id].name).join(', ')}`,'unlock'));
     commandButton(root,state.dayEventIndex===0?'다음 필수 사건으로 이동':'방파제 베이스로 귀환',{type:'continue'});
   }else if(state.phase==='returned'){
@@ -62,7 +72,12 @@ function records(root){
 }
 function character(root){
   root.append(el('h2',state.profile.name),el('p',purposes[state.profile.purpose]+' · '+values[state.profile.value]));paragraph(root,pasts[state.profile.past]);root.append(el('h3','처음의 성격'),el('p',state.profile.keywords.map(k=>keywords[k].label).join(' · ')),el('h3','현재의 기색'));paragraph(root,state.character.beliefs.fear_flooded_places>=50?'물이 고인 곳을 유심히 살피며 경계하고 있다.':'물에 잠긴 폐허를 조심스레 관찰하고 있다.');
-  const first=state.eventLog[0],last=state.eventLog.at(-1);if(first&&last){const changed=Object.keys(traits).filter(k=>last.after.traits[k]!==first.before.traits[k]);if(changed.length)paragraph(root,changed.map(k=>traits[k]+'에 변화가 쌓이고 있다.').join(' '));}if(state.character.stability<80)paragraph(root,'판단과 움직임이 어긋났던 감각이 짙게 남아 있다.');
+  const first=state.eventLog[0],last=state.eventLog.at(-1);
+  if(first&&last){
+    const changed=Object.keys(traits).map(k=>({k,difference:last.after.traits[k]-first.before.traits[k]})).filter(r=>r.difference!==0).sort((a,b)=>Math.abs(b.difference)-Math.abs(a.difference));
+    if(changed.length)paragraph(root,changed.slice(0,3).map(r=>traits[r.k]+(r.difference>0?'이/가 조금씩 강해지고 있다.':'에 대한 태도가 전보다 누그러졌다.')).join(' '));
+  }
+  if(state.character.stability<80)paragraph(root,'명령 개입의 흔적이 안정도에 남아 있다. 회복되지 않은 어긋남은 다음 선택의 망설임에도 영향을 준다.');
 }
 function inventory(root){
   root.append(el('h2','방파제 베이스'),el('p',state.phase==='hub'?'출발 전에 기체와 장비를 정비할 수 있어.':'탐사 중에는 베이스 장비를 사용할 수 없어.'));
