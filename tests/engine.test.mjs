@@ -72,3 +72,22 @@ test('earlier forced commands increase subsequent autonomy conflict while diary 
   const low=structuredClone(s);low.character.stability=40;
   assert.ok(conflict(low,currentEvent(low).choices.enter)>a);
 });
+
+test('a saved first expedition can return to base and select a different location without erasing earlier records',()=>{
+  let s=createGame(profile,19);
+  const beforeEnergy=s.character.energy;
+  s=transition(s,{type:'depart',eventId:'tide_marks'});
+  assert.equal(s.phase,'scene');
+  assert.ok(s.character.energy<beforeEnergy);
+  const reloaded=validateSave(structuredClone(s));
+  const returned=transition(reloaded,{type:'returnHub'});
+  assert.equal(returned.phase,'hub');
+  assert.equal(returned.character.energy,beforeEnergy);
+  assert.equal(returned.eventLog.length,0);
+  assert.equal(returned.selectedExploration,null);
+  assert.equal(availableExplorations(returned).length>=2,true);
+  const other=transition(returned,{type:'depart',eventId:'dry_dock'});
+  assert.equal(currentEvent(other).id,'dry_dock');
+  other.dayEventIndex=1;
+  assert.throws(()=>transition(other,{type:'returnHub'}));
+});
