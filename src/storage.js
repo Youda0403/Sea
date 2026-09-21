@@ -1,4 +1,4 @@
-import {validateSave} from './engine.js';
+import {validateSave} from './engine.js?v=sea-20260921r3';
 let dbPromise;
 function db(){return dbPromise ||= new Promise((resolve,reject)=>{const r=indexedDB.open('sea-first-signal',1);r.onupgradeneeded=()=>r.result.createObjectStore('saves');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
 export async function load(){const d=await db();return new Promise((resolve,reject)=>{const r=d.transaction('saves').objectStore('saves').get('active');r.onsuccess=()=>{try{resolve(r.result?validateSave(r.result):null);}catch(e){reject(e);}};r.onerror=()=>reject(r.error);});}
