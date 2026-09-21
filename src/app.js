@@ -1,92 +1,85 @@
-import {keywords,values,pasts,purposes,traits,items,episode,actionNames} from './content.js';
-import {createGame,transition,gate,validateSave} from './engine.js';
+import {keywords,values,pasts,purposes,traits,items,events,schedule,people,actionNames,MAX_DAY} from './content.js';
+import {createGame,transition,gate,departureGate,currentEvent,validateSave} from './engine.js';
 import {load,commit,previous,rawBackup} from './storage.js';
 const app=document.querySelector('#app');let state=null,tab='explore',busy=false,creating=false,broken=false;
-// All user input is rendered with textContent, never interpolated into markup.
 function el(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
-function add(parent,...children){parent.append(...children);return parent;}
 function button(label,fn,cls='button'){const b=el('button',label,cls);b.type='button';b.onclick=fn;return b;}
-let noticeTimer;
-function notice(t){clearTimeout(noticeTimer);document.querySelector('#notice').textContent=t;noticeTimer=setTimeout(()=>document.querySelector('#notice').textContent='',8000);}
-function download(s){const u=URL.createObjectURL(new Blob([JSON.stringify(s,null,2)],{type:'application/json'}));const a=el('a');a.href=u;a.download='sea-save.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
-async function act(command){if(busy)return;busy=true;render();try{const next=transition(state,command);await commit(next,state);state=next;notice('진행을 저장했어.');}catch(e){notice(e.message);}finally{busy=false;render();}}
-function paragraph(root,text){for(const p of text.split('\n\n'))root.append(el('p',p));}
+let noticeTimer;function notice(t){clearTimeout(noticeTimer);document.querySelector('#notice').textContent=t;noticeTimer=setTimeout(()=>document.querySelector('#notice').textContent='',8000);}
+function download(s){const u=URL.createObjectURL(new Blob([JSON.stringify(s,null,2)],{type:'application/json'}));const a=el('a');a.href=u;a.download=`sea-${s.profile?.name||'save'}-day${s.day}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+async function act(command){if(busy)return;busy=true;render();try{const next=transition(state,command);await commit(next,state);state=next;if(next.lastMessage)notice(next.lastMessage);else notice('진행을 저장했어.');}catch(e){notice(e.message);}finally{busy=false;render();}}
+function paragraph(root,text){for(const p of String(text).split('\n\n'))root.append(el('p',p));}
 function field(label,node){const l=el('label',undefined,'field');l.append(el('span',label),node);return l;}
 function select(options){const s=el('select');for(const [id,label]of Object.entries(options)){const o=el('option',label);o.value=id;s.append(o);}return s;}
 function creator(root){
-  root.append(el('div','CHARACTER / 01','eyebrow'),el('h2','너의 항로를 시작해'));
-  paragraph(root,'바다는 대부분의 이름을 지웠다. 하지만 네 이름은, 네가 정할 수 있다.');
-  const form=el('form'),name=el('input');name.maxLength=30;name.required=true;name.placeholder='기체의 이름';name.autocomplete='off';
-  const purpose=select(purposes),value=select(values),past=select(pasts);
-  form.append(field('이름',name),field('제작 목적',purpose),el('small','의료형은 직접 구조, 정비형은 드론 작업에 소폭 유리해. 제작 목적은 성격을 정하지 않아.'));
-  const box=el('fieldset');box.append(el('legend','성격 · 3개 선택'));const grid=el('div',undefined,'chips');
-  for(const [id,k]of Object.entries(keywords)){const c=el('input');c.type='checkbox';c.value=id;c.name='keyword';const l=el('label',undefined,'chip');l.append(c,el('span',k.label));grid.append(l);}box.append(grid);form.append(box,field('핵심 가치관',value),field('과거',past));
-  const submit=el('button','기체 활성화','button primary');submit.type='submit';form.append(submit);
-  form.onsubmit=async e=>{e.preventDefault();if(busy)return;try{const next=createGame({name:name.value,purpose:purpose.value,value:value.value,past:past.value,keywords:[...form.querySelectorAll('input:checked')].map(x=>x.value)});busy=true;submit.disabled=true;await commit(next,state,{replace:!!state});state=next;creating=false;tab='explore';busy=false;render();notice('캐릭터를 저장했어.');}catch(err){notice(err.message);}finally{busy=false;submit.disabled=false;}};
+  root.append(el('div','CHARACTER / NEW ROUTE','eyebrow'),el('h2','너의 항로를 시작해'));paragraph(root,'바다는 대부분의 이름을 지웠다. 하지만 네 이름은, 네가 정할 수 있다. 이 항로는 열네 번째 날에 반드시 끝난다.');
+  const form=el('form'),name=el('input');name.maxLength=30;name.required=true;name.placeholder='기체의 이름';name.autocomplete='off';const purpose=select(purposes),value=select(values),past=select(pasts);
+  form.append(field('이름',name),field('제작 목적',purpose),el('small','제작 목적은 일부 행동에 작은 보정을 주지만 성격을 정하지 않아.'));
+  const box=el('fieldset');box.append(el('legend','성격 · 3개 선택'));const grid=el('div',undefined,'chips');for(const [id,k]of Object.entries(keywords)){const c=el('input');c.type='checkbox';c.value=id;c.name='keyword';const l=el('label',undefined,'chip');l.append(c,el('span',k.label));grid.append(l);}box.append(grid);form.append(box,field('핵심 가치관',value),field('과거',past));
+  const submit=el('button','기체 활성화','button primary');submit.type='submit';form.append(submit);form.onsubmit=async e=>{e.preventDefault();if(busy)return;try{const next=createGame({name:name.value,purpose:purpose.value,value:value.value,past:past.value,keywords:[...form.querySelectorAll('input:checked')].map(x=>x.value)});busy=true;await commit(next,state,{replace:!!state});state=next;creating=false;tab='explore';busy=false;render();notice('새 항로를 저장했어.');}catch(err){notice(err.message);}finally{busy=false;}};
   root.append(form);if(state)root.append(button('현재 항로로 돌아가기',()=>{creating=false;render();},'text-button'));
 }
-function stats(root){const s=el('div',undefined,'stats');for(const [key,label]of [['energy','전력'],['integrity','기체 상태'],['stability','안정도']]){const cell=el('div');cell.append(el('span',label),el('strong',String(state.character[key])),el('small',' / 100'));const meter=el('progress');meter.max=100;meter.value=state.character[key];meter.setAttribute('aria-label',label);cell.append(meter);s.append(cell);}root.append(s);}
+function stats(root){
+  const day=el('section',undefined,'day-progress');day.append(el('span',`${String(state.day).padStart(2,'0')}일차 / ${MAX_DAY}일`,`day-number`));const p=el('progress');p.max=MAX_DAY;p.value=state.day;p.setAttribute('aria-label','전체 항로 진행');day.append(p);root.append(day);
+  const s=el('div',undefined,'stats');for(const [key,label]of [['energy','전력'],['integrity','기체 상태'],['stability','안정도']]){const cell=el('div');cell.append(el('span',label),el('strong',String(state.character[key])),el('small',' / 100'));const meter=el('progress');meter.max=100;meter.value=state.character[key];meter.setAttribute('aria-label',label);cell.append(meter);s.append(cell);}root.append(s);
+}
 function commandButton(root,label,command,cls='button primary',disabledReason=''){const b=button(label,()=>act(command),cls);b.disabled=busy||!!disabledReason;root.append(b);if(disabledReason)root.append(el('small',disabledReason));}
+function planCard(root,event,index){const c=el('section',undefined,'plan-card');c.append(el('span',index===0?'탐사 사건 · 1/2':'필수 사건 · 2/2','eyebrow'),el('h3',event.title),el('p',event.location));root.append(c);}
 function explore(root){
   if(state.phase==='hub'){
-    root.append(el('div','BREAKWATER / HOME','eyebrow'),el('h2','방파제의 아침'));
-    paragraph(root,'정비사 해온이 충전 케이블을 걷었다. “제7창고에서 신호가 와. 오래된 자동 송신일 수도 있고, 누군가 기다리고 있을 수도 있어.”\n\n드론과 강제 명령 모듈을 챙겼다. 모듈의 봉인에는 작은 경고가 적혀 있었다. ‘판단과 행동 사이의 불일치가 발생할 수 있음.’');
-    commandButton(root,'신호를 따라 출발하기 · 전력 −8',{type:'depart'});
+    root.append(el('div',`DAY ${String(state.day).padStart(2,'0')} / BASE`,'eyebrow'),el('h2',state.day===1?'첫 번째 항로를 준비하며':`${state.day}일차의 항로`));
+    paragraph(root,state.day===1?'해온이 탐사 장비를 작업대에 늘어놓았다. “하루에 두 곳. 돌아오면 기록하고 쉬어. 열네 번째 날에는 저 신호의 발신지에 닿게 될 거야.”':'밤사이 충전된 전력이 몸 안을 돌았다. 해온은 오늘의 두 좌표를 단말에 띄웠다. 출발 전에 베이스에서 수리와 충전을 마칠 수 있다.');
+    for(const [i,id]of schedule[state.day].entries())planCard(root,events[id],i);
+    commandButton(root,'오늘의 탐사 시작', {type:'depart'},'button primary',departureGate(state));
   }else if(state.phase==='scene'){
-    root.append(el('div',episode.location,'eyebrow'),el('h2','물 아래에서 들려온 목소리'));
-    episode.intro.forEach(t=>paragraph(root,t));
-    if(state.profile.past==='flood')root.append(el('p','차가운 물이 발끝에 닿자 이전 사고의 감각이 되살아났다.','inner'));
-    for(const [id,c]of Object.entries(episode.choices)){commandButton(root,c.label,{type:'choose',id},'button choice',gate(state,id));root.append(el('small',c.hint));}
+    const event=currentEvent(state);root.append(el('div',`${event.kind==='main'?'REQUIRED':'EXPLORATION'} · ${state.dayEventIndex+1}/2 · ${event.location}`,'eyebrow'),el('h2',event.title));event.intro.forEach(t=>paragraph(root,t));
+    if(event.id==='warehouse_signal'&&state.profile.past==='flood')root.append(el('p','차가운 물이 발끝에 닿자 이전 사고의 감각이 되살아났다.','inner'));
+    for(const [id,c]of Object.entries(event.choices)){commandButton(root,c.label,{type:'choose',id},'button choice',gate(state,id));root.append(el('small',c.hint));}
   }else if(state.phase==='refused'){
-    root.append(el('div','AUTONOMY / 선택의 틈','eyebrow'),el('h2','몸이 움직이지 않았다'));
-    paragraph(root,state.pending.originalChoice==='enter'?'물에 잠긴 전선을 바라보며 발을 멈췄다. 위험을 무릅쓰려 했지만, 지금은 저 안으로 들어갈 수 없었다.':'아직 응답이 들리고 있었다. 이대로 등을 돌릴 수는 없었다.');
-    root.append(el('p','“드론을 보내면…… 다른 길을 찾을 수 있을지도 몰라.”','inner'));
-    commandButton(root,'대안을 받아들인다 · 드론 투입',{type:'alternative'},'button primary',gate(state,'drone'));
-    if(state.pending.originalChoice==='enter')commandButton(root,'거부를 받아들이고 좌표를 남긴다',{type:'withdraw'},'button');
-    const force=button('강제 명령 모듈 사용',()=>{if(confirm('모듈 1개 소모 · 안정도 −12\n거부한 행동을 시도하지만 성공은 보장되지 않아. 사용할까?'))act({type:'override',confirmed:true});},'button danger');force.disabled=busy||!state.inventory.override;root.append(force,el('small','거부는 저장됐어. 새로고침해도 다시 추첨하지 않아.'));
+    const event=currentEvent(state);root.append(el('section',undefined,'refusal-banner'));root.lastChild.append(el('div','CHOICE REFUSED / 선택 거부','eyebrow'),el('h2','몸이 선택을 받아들이지 않았다'));paragraph(root.lastChild,event.refusalText||'행동하려 했지만 몸이 움직이지 않았다.');
+    root.append(el('p',event.alternativeText||'다른 방법을 찾을 수 있다.','inner'));const alternative=event.choices[event.choices[state.pending.originalChoice].alternative];commandButton(root,`대체 행동 · ${alternative.label}`,{type:'alternative'},'button primary',gate(state,event.choices[state.pending.originalChoice].alternative));
+    const force=button('강제 명령 모듈 사용',()=>{if(confirm('강제 명령 모듈 1개 소모 · 안정도 −12\n거부한 행동을 시도하지만 성공은 보장되지 않아. 사용할까?'))act({type:'override',confirmed:true});},'button danger');force.disabled=busy||!state.inventory.override;root.append(force,el('small',state.inventory.override?`보유 ${state.inventory.override}개 · 거부 기록은 그대로 남아.`:'보유한 강제 명령 모듈이 없어.'));
   }else if(state.phase==='outcome'){
-    const r=state.resolution,o=episode.outcomes[r.outcomeId];root.append(el('div','RESOLUTION / 남겨진 흔적','eyebrow'),el('h2',o.title));
-    if(r.decision==='hesitate')root.append(el('p','잠시 망설였다. 그리고, 움직였다.','inner'));
-    if(r.forcedOverrideUsed)root.append(el('p','명령 모듈이 켜졌다. 결심보다 먼저 관절이 움직였다. 안정도 −12.','inner'));
-    paragraph(root,o.text);record(root);commandButton(root,'방파제 거점으로 돌아가기',{type:'return'});
+    const r=state.currentResolution,event=events[r.eventId],o=event.outcomes[r.outcomeId];root.append(el('div',`${state.day}일차 · ${event.location}`,'eyebrow'),el('h2',o.title));
+    if(r.forcedOverrideUsed)root.append(el('p','강제 명령이 관절을 움직였다. 판단과 행동 사이의 어긋남이 안정도에 남았다.','forced-note'));
+    paragraph(root,o.text);if((o.discoveries||[]).length)root.append(el('p',`조우 기록 추가 · ${o.discoveries.map(id=>people[id].name).join(', ')}`,'unlock'));
+    commandButton(root,state.dayEventIndex===0?'다음 필수 사건으로 이동':'방파제 베이스로 귀환',{type:'continue'});
   }else if(state.phase==='returned'){
-    root.append(el('div','RETURN / 해가 지는 곳','eyebrow'),el('h2','오늘의 항로를 접으며'));
-    paragraph(root,state.world.ryu_safe?'류는 정비대에서 짧게 손을 들었다. 해온이 두 기체 몫의 전원을 연결했다.':'해온은 전송받은 좌표와 기록을 확인했다. “알려 줘서 고마워. 나머지는 우리가 살펴볼게.”');
-    paragraph(root,'바깥의 바다는 어두워지고 있었다. 오늘의 기억을 기록하고 절전 모드에 들어갈 시간이다.');
-    commandButton(root,'하루를 마치고 일기 쓰기',{type:'endDay'});
-  }else{
-    root.append(el('div','EPILOGUE / 첫 번째 신호','eyebrow'),el('h2',episode.outcomes[state.resolution.outcomeId].title));
-    paragraph(root,'신호 하나를 따라갔던 하루가 끝났다. 바다는 여전히 넓고, 이 기억은 이제 네 안에 남아 있다.');
-    root.append(el('p','첫 번째 테스트 에피소드 완료','badge'));
-    root.append(button('오늘의 일기 읽기',()=>{tab='records';render();},'button primary'));
-    paragraph(root,'이 버전은 여기까지야. 다른 성격으로 새 항로를 시작해 볼 수 있어. 현재 기록은 먼저 백업해 줘.');
+    const today=state.eventLog.filter(r=>r.gameDay===state.day);root.append(el('div',`RETURN / DAY ${String(state.day).padStart(2,'0')}`,'eyebrow'),el('h2','불빛이 있는 곳으로'));
+    paragraph(root,`오늘의 탐사 ${today.length}건이 기억 장치에 저장됐다. 해온이 손상과 남은 전력을 확인하고, 베이스의 저녁등을 켰다.`);if(state.day===MAX_DAY)paragraph(root,'중계시설의 신호는 더 이상 같은 방식으로 울리지 않았다. 오늘의 기록을 마치면 이 항로의 결말이 열린다.');
+    commandButton(root,state.day===MAX_DAY?'14일차를 기록하고 엔딩 보기':'하루를 기록하고 다음 날로',{type:'endDay'});
+  }else if(state.phase==='ending'){
+    root.append(el('div','ROUTE COMPLETE / DAY 14','eyebrow'),el('h2',state.ending.title));paragraph(root,state.ending.text);root.append(el('p',`기억 ${state.memories.length}개 · 일기 ${state.diaries.length}일 · 조우 ${state.discoveries.length}/${Object.keys(people).length}`,'badge'));root.append(button('14일의 일기 읽기',()=>{tab='records';render();},'button primary'));paragraph(root,'같은 사건도 다른 성격과 가치관으로 선택과 거부가 달라질 수 있어. 베이스의 초기화 버튼으로 같은 캐릭터의 항로를 빠르게 다시 시작할 수 있다.');
   }
 }
-function record(root){const r=state.resolution;if(!r){paragraph(root,'아직 확정된 사건이 없어.');return;}
-  const box=el('section',undefined,'record');box.append(el('h3','선택과 실제 행동'));
-  for(const [label,text]of [['최초 선택',episode.choices[r.playerChoiceId].label],['실제 행동',actionNames[r.actualActionId]],['결과',episode.outcomes[r.outcomeId].fact]])box.append(el('small',label),el('p',text));
-  const labels={accept:'수용',hesitate:'주저 후 수용',refuse:'거부',alternative:'대체 행동',forced:'강제 명령',accept_refusal:'거부를 받아들임'};
-  box.append(el('small','행동 흐름'),el('p',r.attempts.map(a=>labels[a.decision]||a.decision).join(' → ')));
-  if(r.forcedOverrideUsed)box.append(el('p','강제 명령 모듈 1개 소모 · 안정도 −12','warning'));
-  root.append(box);
+function resolutionCard(root,r){
+  const event=events[r.eventId],o=event.outcomes[r.outcomeId],card=el('article',undefined,'memory-card');const top=el('div',undefined,'memory-head');top.append(el('span',`${String(r.gameDay).padStart(2,'0')}일 · ${event.kind==='main'?'필수':'탐사'}`,'eyebrow'),el('h3',event.title));card.append(top,el('p',o.fact));
+  if(r.decision==='refuse'||r.attempts.some(a=>a.decision==='alternative'||a.decision==='forced'))card.append(el('span',r.forcedOverrideUsed?'선택 거부 · 강제 명령 사용':'선택 거부 · 대체 행동','refusal-tag'));
+  const details=el('details');details.append(el('summary','선택 기록 보기'));const first=event.choices[r.playerChoiceId]?.label||r.playerChoiceId;details.append(el('small','처음 고른 행동'),el('p',first),el('small','실제로 한 행동'),el('p',actionNames[r.actualActionId]||r.actualActionId));card.append(details);root.append(card);
 }
-function records(root){root.append(el('h2','기억과 일기'));record(root);root.append(el('h3','오늘의 기억'));if(state.memories.length)state.memories.forEach(m=>paragraph(root,m.text));else paragraph(root,'하루의 흔적이 이곳에 쌓일 거야.');root.append(el('h3','01일 · 나의 일기'));if(state.diaries.length){const paper=el('article',undefined,'diary');paragraph(paper,state.diaries[0].text);root.append(paper);}else paragraph(root,'거점으로 돌아와 하루를 마치면 일기가 기록돼.');}
-function character(root){root.append(el('h2',state.profile.name),el('p',purposes[state.profile.purpose]+' · '+values[state.profile.value]));paragraph(root,pasts[state.profile.past]);root.append(el('h3','처음의 성격'),el('p',state.profile.keywords.map(k=>keywords[k].label).join(' · ')),el('h3','현재의 기색'));
-  paragraph(root,state.character.beliefs.fear_flooded_places>=50?'물이 고인 곳을 유심히 살피며 경계하고 있다.':'물에 잠긴 폐허를 조심스레 관찰하고 있다.');
-  if(state.resolution){const changes=Object.keys(traits).filter(k=>state.resolution.after.traits[k]!==state.resolution.before.traits[k]);paragraph(root,changes.map(k=>traits[k]+'에 작은 변화가 남았다.').join(' '));}
-  if(state.character.stability<100)paragraph(root,'판단과 움직임이 어긋났던 감각이 남아 있다.');
+function records(root){
+  root.append(el('h2','기억과 일기'));if(!state.eventLog.length)paragraph(root,'탐사에서 확정된 사실이 이곳에 쌓일 거야.');else{root.append(el('h3','사건 기억'));[...state.eventLog].reverse().forEach(r=>resolutionCard(root,r));}
+  root.append(el('h3','날짜별 일기'));if(!state.diaries.length)paragraph(root,'하루의 탐사를 마치면 일기가 기록돼.');else[...state.diaries].reverse().forEach(d=>{const details=el('details',undefined,'diary-entry');const summary=el('summary',`${String(d.day).padStart(2,'0')}일의 일기`);details.append(summary);const paper=el('article',undefined,'diary');paragraph(paper,d.text);details.append(paper);root.append(details);});
 }
-function hub(root){root.append(el('h2','장비와 기록 보관'));for(const [id,item]of Object.entries(items)){const c=el('section',undefined,'record');c.append(el('h3',item.name+' × '+state.inventory[id]),el('p',item.description));root.append(c);}commandButton(root,'응급 수리 키트 사용',{type:'repair'},'button',state.phase!=='hub'?'첫 출발 전 거점에서만 사용 가능':state.character.integrity===100?'기체가 완전한 상태야.':'');settings(root);}
+function character(root){
+  root.append(el('h2',state.profile.name),el('p',purposes[state.profile.purpose]+' · '+values[state.profile.value]));paragraph(root,pasts[state.profile.past]);root.append(el('h3','처음의 성격'),el('p',state.profile.keywords.map(k=>keywords[k].label).join(' · ')),el('h3','현재의 기색'));paragraph(root,state.character.beliefs.fear_flooded_places>=50?'물이 고인 곳을 유심히 살피며 경계하고 있다.':'물에 잠긴 폐허를 조심스레 관찰하고 있다.');
+  const first=state.eventLog[0],last=state.eventLog.at(-1);if(first&&last){const changed=Object.keys(traits).filter(k=>last.after.traits[k]!==first.before.traits[k]);if(changed.length)paragraph(root,changed.map(k=>traits[k]+'에 변화가 쌓이고 있다.').join(' '));}if(state.character.stability<80)paragraph(root,'판단과 움직임이 어긋났던 감각이 짙게 남아 있다.');
+}
+function inventory(root){
+  root.append(el('h2','방파제 베이스'),el('p',state.phase==='hub'?'출발 전에 기체와 장비를 정비할 수 있어.':'탐사 중에는 베이스 장비를 사용할 수 없어.'));
+  root.append(el('h3','장비와 소모품'));for(const [id,item]of Object.entries(items)){const c=el('section',undefined,'item-card');const head=el('div',undefined,'item-head');head.append(el('h3',item.name),el('strong',id==='drone'?'장착':`× ${state.inventory[id]}`));c.append(head,el('p',item.description));if(id==='kit')commandButton(c,'수리 키트 사용',{type:'useItem',id},'button compact',state.phase!=='hub'?'탐사 중 사용 불가':state.character.integrity===100?'기체 상태가 이미 100이야.':!state.inventory.kit?'보유 수량이 없어.':'');if(id==='cell')commandButton(c,'충전 셀 사용',{type:'useItem',id},'button compact',state.phase!=='hub'?'탐사 중 사용 불가':state.character.energy===100?'전력이 이미 100이야.':!state.inventory.cell?'보유 수량이 없어.':'');root.append(c);}
+  root.append(el('h3',`조우 기록 · ${state.discoveries.length}/${Object.keys(people).length}`));const grid=el('div',undefined,'people-grid');for(const [id,p]of Object.entries(people)){const met=state.discoveries.includes(id),c=el('article',undefined,met?'person-card':'person-card locked');c.append(el('span',met?p.type:'미등록 개체','eyebrow'),el('h3',met?p.name:'???'),el('p',met?p.summary:'탐사에서 직접 만나면 기록이 해금된다.'));grid.append(c);}root.append(grid);settings(root);
+}
 function settings(root){
-  root.append(el('h3','저장 및 백업'),el('p','진행은 이 브라우저에 자동 저장돼. 브라우저 데이터를 지우면 사라질 수 있으니 JSON 백업을 보관해 줘. 다른 기기로 자동 동기화되지는 않아.'));
+  root.append(el('h3','저장 및 테스트'),el('p','진행은 이 브라우저에 자동 저장돼. 브라우저 데이터를 지우면 사라질 수 있으니 JSON 백업을 보관해 줘.'));
   root.append(button('JSON 백업 내려받기',async()=>{try{const s=state||await rawBackup();if(s)download(s);else notice('저장된 진행이 없어.');}catch(e){notice(e.message);}}));
-  const input=el('input');input.type='file';input.accept='.json,application/json';input.onchange=async()=>{if(busy||!input.files[0])return;try{const f=input.files[0];if(f.size>1000000)throw Error('저장 파일은 1MB 이하만 읽을 수 있어.');const next=validateSave(JSON.parse(await f.text()));if(!confirm(next.profile.name+' · 1일차 · '+next.phase+'\n이 기록을 불러올까? 현재 진행은 이전 저장으로 보관해.'))return;busy=true;await commit(next,state,{replace:true});state=next;creating=false;tab='explore';busy=false;render();notice('백업을 불러왔어.');}catch(e){notice(e.message);}finally{busy=false;input.value='';}};root.append(field('JSON 백업 불러오기',input));
-  root.append(button('교체 전 저장 복구',async()=>{if(busy)return;try{const next=await previous();if(!next)throw Error('교체 전 저장이 없어.');if(!confirm(next.profile.name+'의 이전 저장으로 돌아갈까?'))return;busy=true;await commit(next,state,{replace:true});state=next;creating=false;tab='explore';busy=false;render();notice('이전 저장을 복구했어.');}catch(e){notice(e.message);}finally{busy=false;}}));
-  if(state)root.append(button('새 캐릭터 만들기',()=>{if(confirm('현재 진행을 백업했어? 새 캐릭터 활성화 시 현재 진행은 이전 저장으로 보관돼.')){creating=true;render();}},'text-button'));
+  const input=el('input');input.type='file';input.accept='.json,application/json';input.onchange=async()=>{if(busy||!input.files[0])return;try{const f=input.files[0];if(f.size>2000000)throw Error('저장 파일은 2MB 이하만 읽을 수 있어.');const next=validateSave(JSON.parse(await f.text()));if(!confirm(`${next.profile.name} · ${next.day}일차\n이 기록을 불러올까? 현재 진행은 이전 저장으로 보관해.`))return;busy=true;await commit(next,state,{replace:true});state=next;creating=false;tab='explore';busy=false;render();notice('백업을 불러왔어.');}catch(e){notice(e.message);}finally{busy=false;input.value='';}};root.append(field('JSON 백업 불러오기',input));
+  root.append(button('교체 전 저장 복구',async()=>{if(busy)return;try{const next=await previous();if(!next)throw Error('교체 전 저장이 없어.');if(!confirm(`${next.profile.name}의 이전 저장으로 돌아갈까?`))return;busy=true;await commit(next,state,{replace:true});state=next;creating=false;tab='explore';busy=false;render();notice('이전 저장을 복구했어.');}catch(e){notice(e.message);}finally{busy=false;}}));
+  if(state){root.append(button('테스트용 · 같은 캐릭터로 1일차 초기화',async()=>{if(busy||!confirm('현재 항로를 1일차로 초기화할까? 현재 저장은 교체 전 저장에 한 번 보관돼.'))return;try{busy=true;const next=createGame(state.profile);await commit(next,state,{replace:true});state=next;tab='explore';busy=false;render();notice('1일차로 초기화했어.');}catch(e){notice(e.message);}finally{busy=false;}},'button danger'));root.append(button('새 캐릭터 만들기',()=>{if(confirm('새 캐릭터를 만들까? 현재 진행은 새 캐릭터 활성화 전까지 유지돼.')){creating=true;render();}},'text-button'));}
 }
-function render(){app.replaceChildren();const shell=el('div',undefined,'shell');const header=el('header');header.append(el('div','SEA / ARCHIVE 001','eyebrow'),el('h1','잔해의 항로'),el('p','인류가 떠난 바다, 남겨진 의지의 기록.','subtitle'));shell.append(header);
-  const main=el('main');main.id='main';if(broken){main.append(el('h2','저장 기록을 확인해 줘'),el('p','저장소를 읽지 못했어. 원본을 보호하기 위해 새 게임은 시작하지 않았어. JSON 백업을 내려받고 새로고침하거나, 저장이 허용된 일반 브라우저에서 다시 열어 줘.'));main.append(button('원본 JSON 백업',async()=>{try{const s=await rawBackup();if(s)download(s);}catch(e){notice(e.message);}}));}
-  else if(!state||creating){creator(main);if(!state)settings(main);}else{stats(main);({explore,records,character,hub}[tab])(main);}
-  shell.append(main);if(state&&!creating&&!broken){const nav=el('nav');nav.setAttribute('aria-label','게임 메뉴');for(const [id,label]of [['explore','탐사'],['hub','거점'],['character','캐릭터'],['records','기록']]){const b=button(label,()=>{tab=id;render();},id===tab?'nav active':'nav');if(id===tab)b.setAttribute('aria-current','page');nav.append(b);}shell.append(nav);}app.append(shell);if(busy)app.querySelectorAll('button').forEach(b=>b.disabled=true);
+function render(){
+  app.replaceChildren();const shell=el('div',undefined,'shell'),header=el('header');header.append(el('div','SEA / ROUTE 014','eyebrow'),el('h1','잔해의 항로'),el('p','인류가 떠난 바다, 남겨진 의지의 기록.','subtitle'));shell.append(header);const main=el('main');main.id='main';
+  if(broken){main.append(el('h2','저장 기록을 확인해 줘'),el('p','저장소를 읽지 못했어. 원본을 보호하기 위해 새 게임은 시작하지 않았어.'));main.append(button('원본 JSON 백업',async()=>{try{const s=await rawBackup();if(s)download(s);}catch(e){notice(e.message);}}));}
+  else if(!state||creating){creator(main);if(!state)settings(main);}else{stats(main);({explore,records,character,base:inventory}[tab])(main);}shell.append(main);
+  if(state&&!creating&&!broken){const nav=el('nav');nav.setAttribute('aria-label','게임 메뉴');for(const [id,label]of [['explore','탐사'],['base','베이스'],['character','캐릭터'],['records','기록']]){const b=button(label,()=>{tab=id;render();},id===tab?'nav active':'nav');if(id===tab)b.setAttribute('aria-current','page');nav.append(b);}shell.append(nav);}app.append(shell);if(busy)app.querySelectorAll('button').forEach(b=>b.disabled=true);
 }
 try{state=await load();}catch(e){broken=true;notice('저장 불러오기 실패: '+e.message);}render();
