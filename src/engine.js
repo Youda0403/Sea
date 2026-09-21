@@ -165,7 +165,7 @@ export function transition(original,command){
     assert(s.phase==='refused'&&command.confirmed===true,'강제 명령 사용 확인이 필요해.');s.attempts.push({choiceId:s.pending.originalChoice,decision:'forced'});finish(s,s.pending.originalChoice,true);
   }else if(command.type==='continue'){
     assert(s.phase==='outcome','아직 결과가 확정되지 않았어.');
-    if(s.dayEventIndex+1<schedule[s.day].length){s.dayEventIndex++;s.currentResolution=null;s.attempts=[];const next=currentEvent(s),needed=minEventCost(next);if(s.character.energy<needed){s.lastMessage='비상 견인 전력을 연결했다. 안정도가 5 낮아졌다.';s.character.energy=needed;s.character.stability=clamp(s.character.stability-5);}s.character.energy=clamp(s.character.energy-next.travelCost);s.phase='scene';}else s.phase='returned';
+    if(s.dayEventIndex+1<schedule[s.day].length){s.dayEventIndex++;s.currentResolution=null;s.attempts=[];const next=currentEvent(s),needed=minimumCost(s,next);if(s.character.energy<needed){s.lastMessage='비상 견인 전력을 연결했다. 안정도가 5 낮아졌다.';s.character.energy=needed;s.character.stability=clamp(s.character.stability-5);}s.character.energy=clamp(s.character.energy-next.travelCost);s.phase='scene';}else s.phase='returned';
   }else if(command.type==='endDay'){
     assert(s.phase==='returned','아직 하루의 탐사가 끝나지 않았어.');assert(!s.diaries.some(d=>d.day===s.day),'이미 기록한 하루야.');s.diaries.push(makeDiary(s));
     if(s.day===MAX_DAY){s.ending=endingFor(s);s.phase='ending';}
