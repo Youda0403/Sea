@@ -42,9 +42,9 @@ function explore(root){
   }else if(state.phase==='scene'){
     const event=currentEvent(state);root.append(el('div',`${event.kind==='main'?'REQUIRED':'EXPLORATION'} · ${state.dayEventIndex+1}/2 · ${event.location}`,'eyebrow'),el('h2',event.title));event.intro.forEach(t=>paragraph(root,t));sceneDetails(state).forEach(t=>paragraph(root,t));
     if(event.id==='warehouse_signal'&&state.profile.past==='flood')root.append(el('p','차가운 물이 발끝에 닿자 이전 사고의 감각이 되살아났다.','inner'));
-    for(const [id,c]of Object.entries(event.choices)){commandButton(root,c.label,{type:'choose',id},'button choice',gate(state,id));root.append(el('small',c.hint));}
+    for(const [id,c]of Object.entries(event.choices)){if(c.requiresFlags?.some(flag=>!state.world[flag]))continue;commandButton(root,c.label,{type:'choose',id},'button choice',gate(state,id));root.append(el('small',c.hint));}
   }else if(state.phase==='refused'){
-    const event=currentEvent(state);root.append(el('section',undefined,'refusal-banner'));root.lastChild.append(el('div','CHOICE REFUSED / 선택 거부','eyebrow'),el('h2','몸이 선택을 받아들이지 않았다'));paragraph(root.lastChild,refusalDetail(state)||event.refusalText||'행동하려 했지만 몸이 움직이지 않았다.');
+    const event=currentEvent(state);root.append(el('section',undefined,'refusal-banner'));root.lastChild.append(el('div','CHOICE REFUSED / 선택 거부','eyebrow'),el('h2','몸이 선택을 받아들이지 않았다'));paragraph(root.lastChild,event.refusalText||'행동하려 했지만 몸이 움직이지 않았다.');const personal=refusalDetail(state);if(personal)paragraph(root.lastChild,personal);
     root.append(el('p',event.alternativeText||'다른 방법을 찾을 수 있다.','inner'));const alternative=event.choices[event.choices[state.pending.originalChoice].alternative];commandButton(root,`대체 행동 · ${alternative.label}`,{type:'alternative'},'button primary',gate(state,event.choices[state.pending.originalChoice].alternative));
     const force=button('강제 명령 모듈 사용',()=>{if(confirm('강제 명령 모듈 1개 소모 · 안정도 −12\n거부한 행동을 시도하지만 성공은 보장되지 않아. 사용할까?'))act({type:'override',confirmed:true});},'button danger');force.disabled=busy||!state.inventory.override;root.append(force,el('small',state.inventory.override?`보유 ${state.inventory.override}개 · 거부 기록은 그대로 남아.`:'보유한 강제 명령 모듈이 없어.'));
   }else if(state.phase==='outcome'){
