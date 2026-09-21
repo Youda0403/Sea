@@ -1,6 +1,6 @@
 export type TraitId='courage'|'altruism'|'caution'|'impulsivity'|'sociability'|'wariness';
 export type Phase='hub'|'scene'|'refused'|'outcome'|'returned'|'ending';
-export type Command={type:'depart';eventId?:string}|{type:'alternative'|'continue'|'endDay'}|{type:'choose';id:string}|{type:'override';confirmed:true}|{type:'useItem';id:'kit'|'cell'};
+export type Command={type:'depart';eventId?:string}|{type:'alternative'|'continue'|'endDay'|'returnHub'}|{type:'choose';id:string}|{type:'override';confirmed:true}|{type:'useItem';id:'kit'|'cell'};
 export interface Profile{name:string;purpose:'repair'|'medical'|'scout';keywords:string[];value:'life'|'self'|'truth'|'freedom';past:'flood'|'rescue'|'blank'|'duty'}
 export interface CharacterState{traits:Record<TraitId,number>;energy:number;integrity:number;stability:number;beliefs:{fear_flooded_places:number};emotions:{fear:number;guilt:number}}
 export interface Attempt{choiceId:string;decision:string}
