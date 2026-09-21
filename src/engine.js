@@ -73,9 +73,9 @@ export function refusalDetail(s){
   const factors=(c.conflicts||[]).map(r=>({trait:r.trait,score:r.weight*(r.direction==='low'?100-s.character.traits[r.trait]:s.character.traits[r.trait])/100,direction:r.direction})).sort((a,b)=>b.score-a.score);
   const key=factors[0]?.trait;
   if(key==='courage'&&factors[0].direction==='low')return '고장 난 관절보다 먼저 겁이 발목을 잡았다. 몸을 내밀려 했지만 위험한 장면이 계속 떠올랐다.';
-  if(key==='altruism')return '타인을 두고 떠나는 계산을 마쳤는데도 발이 움직이지 않았다. 눈앞의 기체를 없는 일처럼 넘길 수 없었다.';
-  if(key==='wariness')return '낯선 상대를 믿으려는 순간 경계 신호가 켜졌다. 그 손에 무엇을 맡겨도 괜찮을지 확신할 수 없었다.';
-  if(key==='caution')return '확인되지 않은 위험을 감수하려던 순간 몸이 멈췄다. 다른 절차가 있는지 먼저 살펴야 했다.';
+  if(key==='altruism')return factors[0].direction==='high'?'타인을 두고 떠나는 계산을 마쳤는데도 발이 움직이지 않았다. 눈앞의 기체를 없는 일처럼 넘길 수 없었다.':'위험을 감수해 남을 돕는 일에 쉽게 손이 가지 않았다. 왜 지금 내 몫까지 내주어야 할지 마음이 정리되지 않았다.';
+  if(key==='wariness')return factors[0].direction==='high'?'낯선 상대를 믿으려는 순간 경계 신호가 켜졌다. 그 손에 무엇을 맡겨도 괜찮을지 확신할 수 없었다.':'상대를 의심하며 등을 돌리려 했지만, 그 판단을 끝내 납득할 수 없었다.';
+  if(key==='caution')return factors[0].direction==='high'?'확인되지 않은 위험을 감수하려던 순간 몸이 멈췄다. 다른 절차가 있는지 먼저 살펴야 했다.':'눈앞의 기회를 분석만 하며 보내고 싶지 않았다. 계산을 계속하라는 판단에 손이 멈췄다.';
   if(s.character.stability<65)return '이전에 강제로 내렸던 명령의 여파가 남아 있다. 의도와 움직임 사이에 잠깐의 공백이 생겼다.';
   return '';
 }
