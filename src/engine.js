@@ -1,4 +1,4 @@
-import {keywords,values,pasts,purposes,events,schedule,traits,people,MAX_DAY} from './content.js';
+import {keywords,values,pasts,purposes,events,schedule,traits,people,MAX_DAY} from './content.js?v=sea-20260921r3';
 const clamp=n=>Math.max(0,Math.min(100,n));
 const copy=x=>structuredClone(x);
 const assert=(ok,message)=>{if(!ok)throw new Error(message);};
@@ -152,7 +152,13 @@ function endingFor(s){
 
 export function transition(original,command){
   const s=copy(original);s.lastMessage='';
-  if(command.type==='depart'){
+  if(command.type==='returnHub'){
+    assert(s.phase==='scene'&&s.dayEventIndex===0,'이미 해결한 사건은 되돌릴 수 없어.');
+    const event=currentEvent(s);
+    s.character.energy=clamp(s.character.energy+event.travelCost);
+    s.phase='hub';s.selectedExploration=null;s.currentResolution=null;s.pending=null;s.attempts=[];
+    s.lastMessage='탐사를 시작하기 전 상태로 돌아왔어. 다른 장소를 골라 줘.';
+  }else if(command.type==='depart'){
     const eventId=command.eventId||schedule[s.day][0];assert(!departureGate(s,eventId),departureGate(s,eventId));s.selectedExploration=eventId;const event=currentEvent(s);s.character.energy=clamp(s.character.energy-event.travelCost);s.phase='scene';
   }else if(command.type==='choose'){
     assert(s.phase==='scene','이미 처리한 선택이야.');assert(!gate(s,command.id),gate(s,command.id));
