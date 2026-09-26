@@ -915,6 +915,11 @@ main.battle.tut { padding-bottom: 13rem; }
 .gloss dt { font-weight: 700; font-size: .9rem; margin-top: .45rem; }
 .gloss dd { margin: 0; font-size: .84rem; line-height: 1.5; color: var(--ink-soft); }
 .sheet-body .gloss { max-height: 60vh; overflow-y: auto; }
+/* v0.25: 모바일에서 누를 때 생기는 파란 터치 효과 없애기, 초기화 */
+* { -webkit-tap-highlight-color: transparent; }
+.reset-panel { display: grid; gap: .5rem; }
+.reset-panel p { margin: 0; }
+.reset-panel .btn { display: grid; gap: .15rem; text-align: left; }
 </style>
 </head>
 <body>
@@ -3855,6 +3860,11 @@ function renderHowTo() {
     </section>
     ${HOWTO.map(([h, t]) => `<section class="panel"><h2>${esc(h)}</h2><p class="small">${esc(t)}</p></section>`).join('')}
     <section class="panel"><h2>용어 사전</h2>${glossaryHtml()}</section>
+    <section class="panel reset-panel"><h2>게임 초기화</h2>
+      <p class="soft small">초기화하면 되돌릴 수 없습니다. 캐릭터를 지키고 싶다면 먼저 로스터에서 캐릭터 코드를 복사해 두세요.</p>
+      <button class="btn${UI.resetAsk === 'progress' ? ' danger' : ''}" data-act="reset-progress">${UI.resetAsk === 'progress' ? '정말 초기화할까요? 한 번 더 누르면 진행이 지워집니다' : '진행만 초기화'}<small>진행 중인 런, 기억 조각, 해금, 유품, 무게, 유대 기록이 지워집니다. 캐릭터와 관계는 남습니다</small></button>
+      <button class="btn${UI.resetAsk === 'all' ? ' danger' : ''}" data-act="reset-all">${UI.resetAsk === 'all' ? '정말 전부 지울까요? 한 번 더 누르면 처음 상태가 됩니다' : '전부 초기화'}<small>캐릭터까지 모두 지우고 처음 켠 상태로 돌아갑니다</small></button>
+    </section>
   </main>`;
 }
 
@@ -4049,11 +4059,21 @@ function onTutAct(act, d) {
     case 'fc-speech': fcSaveName(); UI.fc.speech = d.v; render(); return true;
     case 'fc-make': fcMake(); return true;
     case 'fc-skip': { const m = meta(); m.firstChar = true; saveMeta(); screen = 'base'; render(); window.scrollTo(0, 0); return true; }
+    case 'reset-progress': case 'reset-all': {
+      const kind = act === 'reset-all' ? 'all' : 'progress';
+      if (UI.resetAsk !== kind) { UI.resetAsk = kind; render(); return true; }
+      try {
+        localStorage.removeItem(RUN_KEY); localStorage.removeItem(META_KEY);
+        if (kind === 'all') localStorage.removeItem(ROSTER_KEY);
+        else { ROSTER.bonds = {}; saveRoster(); }
+      } catch (e) { /* 저장 불가 환경 */ }
+      location.reload(); return true;
+    }
     case 'gloss': UI.glossOpen = true; render(); return true;
     case 'gloss-close': UI.glossOpen = false; render(); return true;
     case 'ending-next': if ((UI.endPage || 0) >= endingPages(RUN).length - 1) { screen = 'runend'; render(); window.scrollTo(0, 0); } else { UI.endPage = (UI.endPage || 0) + 1; render(); } return true;
     case 'story-open': UI.storyPage = 0; UI.storyNext = 'howto'; screen = 'story'; render(); window.scrollTo(0, 0); return true;
-    case 'to-howto': UI.howtoBack = d && d.back === 'base' ? 'base' : 'title'; screen = 'howto'; render(); window.scrollTo(0, 0); return true;
+    case 'to-howto': UI.resetAsk = null; UI.howtoBack = d && d.back === 'base' ? 'base' : 'title'; screen = 'howto'; render(); window.scrollTo(0, 0); return true;
     case 'tut-start': { const back = TUT ? TUT.back : screen === 'howto' ? 'howto' : 'base'; startTutorial(back); return true; }
     case 'tut-next': if (TUT) { TUT.step = Math.min(TUT.step + 1, TUT_STEPS.length - 1); resetUI(); tutEnter(); render(); } return true;
     case 'tut-quit': case 'tut-leave': exitTutorial(TUT && TUT.back === 'howto' ? 'howto' : 'base'); return true;
