@@ -966,6 +966,16 @@ main.battle.tut { padding-bottom: 13rem; }
 .av.frame-forest{box-shadow:0 0 0 2px var(--table),0 0 0 4px #80aa8a,0 0 0 5.5px #375b42}
 .av.frame-rose{box-shadow:0 0 0 2px var(--table),0 0 0 4px #dba5b0,0 0 0 5.5px #996371}
 .av.sm.frame-silver,.av.sm.frame-forest,.av.sm.frame-rose{outline:0;box-shadow:0 0 0 1px var(--table),0 0 0 2.5px #95a9b6}.av.sm.frame-forest{box-shadow:0 0 0 1px var(--table),0 0 0 2.5px #80aa8a}.av.sm.frame-rose{box-shadow:0 0 0 1px var(--table),0 0 0 2.5px #dba5b0}
+
+/* 선택한 초상화 테두리를 로스터의 작은 초상화와 동료 카드에도 적용합니다. */
+.rc .av.lg.frame-silver{box-shadow:0 0 0 2px var(--table),0 0 0 4px #cbd8e1,0 0 0 5.5px #738696}
+.rc .av.lg.frame-forest{box-shadow:0 0 0 2px var(--table),0 0 0 4px #80aa8a,0 0 0 5.5px #375b42}
+.rc .av.lg.frame-rose{box-shadow:0 0 0 2px var(--table),0 0 0 4px #dba5b0,0 0 0 5.5px #996371}
+.hcard.comp.framed,.slot.unit.comp.framed{--character-frame:#d9a84e}
+.hcard.comp.frame-silver,.slot.unit.comp.frame-silver{--character-frame:#738696}
+.hcard.comp.frame-forest,.slot.unit.comp.frame-forest{--character-frame:#375b42}
+.hcard.comp.frame-rose,.slot.unit.comp.frame-rose{--character-frame:#996371}
+.hcard.comp:is(.framed,.frame-silver,.frame-forest,.frame-rose),.slot.unit.comp:is(.framed,.frame-silver,.frame-forest,.frame-rose){outline:2px solid var(--character-frame);outline-offset:1px}
 </style>
 </head>
 <body>
@@ -3306,6 +3316,7 @@ function cardHtml(card, opts) {
   if (info.desperate) cls.push('desp');
   if (info.awk) cls.push('awk');
   if (info.fused) cls.push('fused');
+  if (info.comp && charById(info.comp)) cls.push(frameCls().trim());
   if (o.sel) cls.push('sel');
   if (o.dim) cls.push('dim');
   const tag = o.act ? 'button' : 'div';
@@ -3886,7 +3897,7 @@ function renderTitle() {
       <button class="btn big menu-btn${sv ? '' : ' primary'}" data-act="to-base"><b>거점</b><small>기억 조각 ${meta().shards}. 해금, 유품, 출정 준비</small></button>
       <button class="btn big menu-btn" data-act="to-roster"><b>캐릭터 로스터</b></button>
       <button class="btn big menu-btn" data-act="to-howto"><b>게임 방법</b><small>훈련 전투, 규칙, 이야기</small></button>
-      ${/dev/.test(location.search) ? '<button class="btn ghost dev-btn" data-act="to-setup">개발용 전투 시험장</button>' : ''}
+      ${/dev/.test(location.search) ? '<button class="btn ghost dev-btn" data-act="to-setup">개발용 전투 시험장</button><button class="btn ghost dev-btn" data-act="dev-ending">엔딩 미리 보기</button>' : ''}
     </div>
   </main>`;
 }
@@ -3894,6 +3905,14 @@ function renderTitle() {
 /* ---------- 입력 ---------- */
 function onGameAct(act, d) {
   switch (act) {
+    case 'dev-ending': {
+      if (!/dev/.test(location.search)) return true;
+      const sample = (loadRunState() || {}).run || buildRun('test');
+      if (!sample) { flash('미리 볼 캐릭터가 없습니다'); return true; }
+      UI.previewRun = sample;
+      UI.previewBack = screen;
+      UI.endPage = 0; screen = 'ending-preview'; render(); window.scrollTo(0, 0); return true;
+    }
     case 'to-title': screen = 'title'; resetUI(); UI.confirmNew = false; render(); window.scrollTo(0, 0); return true;
     case 'to-prep': screen = 'prep'; UI.confirmNew = false; UI.cinfo = null; render(); window.scrollTo(0, 0); return true;
     case 'to-base': screen = meta().seenPrologue ? 'base' : 'story'; UI.storyPage = 0; UI.storyNext = 'base'; UI.giftConfirm = false; UI.giftCloseConfirm = false; resetUI(); UI.confirmNew = false; UI.cinfo = null; render(); window.scrollTo(0, 0); return true;
@@ -3965,10 +3984,11 @@ function endingPages(run) {
   ];
 }
 function renderEnding() {
-  const pages = endingPages(RUN); const i = Math.min(UI.endPage || 0, pages.length - 1); const pg = pages[i];
+  const preview = screen === 'ending-preview';
+  const pages = endingPages(preview ? UI.previewRun : RUN); const i = Math.min(UI.endPage || 0, pages.length - 1); const pg = pages[i];
   app.innerHTML = `<main class="story-screen ending" data-act="ending-next">
     <div class="story-page" data-pg="${i}"><small>${esc(pg.head)}</small><p>${esc(pg.text)}</p></div>
-    <div class="story-foot"><span class="story-dots">${pages.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span><span class="soft small">${pg.last ? '눌러서 결과 보기' : '눌러서 계속'}</span></div>
+    <div class="story-foot"><span class="story-dots">${pages.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span><span class="soft small">${pg.last ? preview ? '눌러서 돌아가기' : '눌러서 결과 보기' : '눌러서 계속'}</span></div>
   </main>`;
 }
 const EPILOGUE_FINAL = '탑을 넘었습니다. 되찾은 기억은 이제 누구도 다시 빼앗지 못합니다.';
@@ -4297,7 +4317,15 @@ function onTutAct(act, d) {
     }
     case 'gloss': UI.glossOpen = true; render(); return true;
     case 'gloss-close': UI.glossOpen = false; render(); return true;
-    case 'ending-next': if ((UI.endPage || 0) >= endingPages(RUN).length - 1) { screen = 'runend'; render(); window.scrollTo(0, 0); } else { UI.endPage = (UI.endPage || 0) + 1; render(); } return true;
+    case 'ending-next': {
+      const preview = screen === 'ending-preview';
+      if ((UI.endPage || 0) >= endingPages(preview ? UI.previewRun : RUN).length - 1) {
+        screen = preview ? (UI.previewBack || 'title') : 'runend';
+        if (preview) { UI.previewRun = null; UI.previewBack = null; UI.endPage = 0; }
+        render(); window.scrollTo(0, 0);
+      } else { UI.endPage = (UI.endPage || 0) + 1; render(); }
+      return true;
+    }
     case 'story-open': UI.storyPage = 0; UI.storyNext = 'howto'; screen = 'story'; render(); window.scrollTo(0, 0); return true;
     case 'to-howto': UI.resetAsk = null; UI.howtoBack = d && d.back === 'base' ? 'base' : 'title'; screen = 'howto'; render(); window.scrollTo(0, 0); return true;
     case 'tut-start': { const back = TUT ? TUT.back : screen === 'howto' ? 'howto' : 'base'; startTutorial(back); return true; }
@@ -4640,7 +4668,7 @@ function renderEditor() {
       <h2>미리 보기</h2>
       <p class="title-line">성격 칭호 ${titleHtml(d) || '<span class="soft">키워드를 고르면 나타납니다</span>'} <span class="soft small">핵심 키워드와 첫 보조 키워드의 조합으로 정해집니다</span></p>
       <div class="pv-row">
-        <div class="hcard comp pv">${d.portrait ? `<img class="av sm" src="${d.portrait}" alt="">` : ''}<span class="cost">${cost}</span><span class="h-name">${esc(d.name || '이름')}</span><span class="h-sig">${esc(SIGILS[d.sigil].name)}</span><span class="u-stats"><b class="atk">${st.atk}</b><span class="rng">${rangeWord(st.sig, st.atk)}</span><b class="hp">${st.hp}</b></span></div>
+        <div class="hcard comp pv${frameCls()}">${d.portrait ? `<img class="av sm${frameCls()}" src="${d.portrait}" alt="">` : ''}<span class="cost">${cost}</span><span class="h-name">${esc(d.name || '이름')}</span><span class="h-sig">${esc(SIGILS[d.sigil].name)}</span><span class="u-stats"><b class="atk">${st.atk}</b><span class="rng">${rangeWord(st.sig, st.atk)}</span><b class="hp">${st.hp}</b></span></div>
         <ul class="soft small pv-notes">
           <li>동료일 때 주머니에 <b>${EMO[KEYWORDS[d.core].emo]}</b>, <b>${EMO[KEYWORDS[d.aux[0]].emo]}</b> 토큰을 넣습니다.</li>
           <li>주인공일 때 매 턴 <b>${EMO[KEYWORDS[d.core].emo]}</b> 토큰 1개를 확정으로 받습니다.</li>
@@ -4740,6 +4768,7 @@ function renderSetup() {
     <button class="btn primary big" data-act="start-map"${pro ? '' : ' disabled'}>런 시작</button>
     <p class="soft small center">맵을 따라 12층까지 올라가는 런을 시작합니다. 위의 상대, 스트레스, 보급 설정은 아래 "전투만 시험하기"에 쓰이고, 런에서는 스트레스와 보급만 반영됩니다.</p>
     <button class="btn big" data-act="start"${pro ? '' : ' disabled'}>전투만 시험하기</button>
+    ${/dev/.test(location.search) ? '<button class="btn ghost" data-act="dev-ending">엔딩 미리 보기</button>' : ''}
   </main>`;
 }
 
@@ -4974,7 +5003,7 @@ function slotHtml(u, side, lane) {
   }
   if (!u) return `<button class="${cls.join(' ')} empty" data-side="${side}" data-lane="${lane}" aria-label="${lane + 1}번 레인 빈 칸">${rtag}</button>`;
   cls.push('unit');
-  if (u.comp) cls.push('comp');
+  if (u.comp) { cls.push('comp'); if (charById(u.comp)) cls.push(frameCls().trim()); }
   if (u.boss) cls.push('boss-unit');
   else if (u.elite) cls.push('elite-unit');
   const atk = side === 't' ? u.atk : effAtk(u, side, lane);
@@ -4990,7 +5019,7 @@ function slotHtml(u, side, lane) {
   if (side === 'p' && u.comp && canCharge(u)) { cls.push(ultReady(u) ? 'ult-ready' : ''); badges.push(`<em class="res">${[0, 1, 2].map(i => `<i class="${i < (u.resolve || 0) ? 'on' : ''}"></i>`).join('')}</em>`); }
   const pc = u.comp ? charById(u.comp) : null;
   return `<button class="${cls.join(' ')}" data-side="${side}" data-lane="${lane}">
-    ${pc && pc.portrait ? `<img class="av sm corner" src="${pc.portrait}" alt="">` : ''}
+    ${pc && pc.portrait ? `<img class="av sm corner${frameCls()}" src="${pc.portrait}" alt="">` : ''}
     <span class="u-name">${esc(u.name)}</span>
     <span class="u-sig">${esc(sigText(u.sig))}</span>
     <span class="u-badges">${badges.join('')}</span>
@@ -5089,20 +5118,21 @@ function costHtml(cost) {
   return Object.entries(cost).map(([e, n]) => Array.from({ length: n }, () => `<i class="pip t-${e}" title="${EMO[e]}">${EMO[e][0]}</i>`).join('')).join('');
 }
 function handHtml() {
-  const head = `<div class="hand-head"><span>손패 ${S.hand.length}장 <small class="soft">매 턴 1장씩 뽑음</small></span><button class="btn small-btn" data-act="pile-info">덱 ${S.deck.length}장 · 버린 더미 ${S.discard.length}장</button></div>`;
+  const drawHint = S.deck.length ? '턴마다 덱에서 1장 뽑음' : S.discard.length ? '다음 턴 버린 더미를 섞어 1장 뽑음' : '덱과 버린 더미가 비어 추가로 뽑을 카드 없음';
+  const head = `<div class="hand-head"><span>손패 ${S.hand.length}장 <small class="soft">${drawHint}</small></span><button class="btn small-btn" data-act="pile-info">덱 ${S.deck.length}장 · 버린 더미 ${S.discard.length}장</button></div>`;
   if (!S.hand.length) return head + '<section class="hand empty-hand"><span class="soft small">손패가 비었습니다</span></section>';
   return head + `<section class="hand">${S.hand.map((card, i) => {
     const info = cardInfo(card);
     const cls = ['hcard'];
     if (!findPayment(info.cost)) cls.push('dim');
     if (UI.mode === 'play' && UI.sel === i) cls.push('sel');
-    if (info.comp) cls.push('comp');
+    if (info.comp) { cls.push('comp'); if (charById(info.comp)) cls.push(frameCls().trim()); }
     if (info.desperate) cls.push('desp');
     const c = info.comp ? compById(info.comp) : null;
     const pc = info.comp ? charById(info.comp) : null;
     const pl = info.comp ? proLink(info.comp) : null;
     return `<button class="${cls.join(' ')}" data-hand="${i}">
-      ${pc && pc.portrait ? `<img class="av sm corner" src="${pc.portrait}" alt="">` : ''}
+      ${pc && pc.portrait ? `<img class="av sm corner${frameCls()}" src="${pc.portrait}" alt="">` : ''}
       <span class="cost">${costHtml(info.cost)}</span>
       <span class="h-name">${esc(info.name)}</span>
       <span class="h-sig">${esc(sigText(info.sig))}${pl ? ` <em class="bd link">${PRO_LINKS[pl].name}</em>` : ''}${c && c.status === 'saseon' ? ' <em class="bd bad">사선</em>' : ''}${info.desperate ? ' <em class="bd">절박</em>' : ''}</span>
@@ -5258,7 +5288,7 @@ function renderBattle() {
     ${actionsHtml()}
     ${handHtml()}
     ${logHtml()}
-    ${!S.enc.boss && !TUT ? `<p class="reserve-note">증원 포함 최대 ${reinforcementLimit()}명 · 정해진 증원 뒤 예비대 ${S.loopRemaining === undefined ? (S.enc.elite ? 6 : 4) : S.loopRemaining}명 남음${S.loopRemaining === 0 ? ' · 마지막 증원 도착' : ' · 예비대는 2턴에 1명'}</p>` : ''}
+    ${!S.enc.boss && !TUT ? '<p class="reserve-note">새 적은 예고 칸에 먼저 나타납니다. 증원은 무한하지 않아요.</p>' : ''}
     ${retryHtml()}
     ${TUT && S.over ? tutOverlayHtml() : overlayHtml()}
     ${pileSheet()}${glossSheet()}
@@ -5269,7 +5299,7 @@ function renderBattle() {
   if (!TUT) ultNotice();
 }
 
-const SCREENS = { report: () => renderArchivedReport(), firstchar: () => renderFirstChar(), ending: () => renderEnding(), stage: () => renderStage(), title: () => renderTitle(), story: () => renderStory(), howto: () => renderHowTo(), base: () => renderBase(), prep: () => renderPrep(), setup: () => renderSetup(), roster: () => renderRoster(), edit: () => renderEditor(), camp: () => renderCamp(),
+const SCREENS = { report: () => renderArchivedReport(), firstchar: () => renderFirstChar(), ending: () => renderEnding(), 'ending-preview': () => renderEnding(), stage: () => renderStage(), title: () => renderTitle(), story: () => renderStory(), howto: () => renderHowTo(), base: () => renderBase(), prep: () => renderPrep(), setup: () => renderSetup(), roster: () => renderRoster(), edit: () => renderEditor(), camp: () => renderCamp(),
   map: () => renderMap(), event: () => renderEvent(), trade: () => renderTrade(), reward: () => renderReward(), runend: () => renderRunEnd() };
 function render() {
   // 턴 재생 중에는 연출 타이머 등이 결과 화면을 끼워 그리지 않게 막습니다(재생이 끝나면 다시 그림)
@@ -5286,7 +5316,16 @@ function render() {
 function renderSnap(sn) {
   const bak = { p: S.p, e: S.e, tele: S.tele, front: S.front, stress: S.stress, turn: S.turn, enemyRage: S.enemyRage };
   Object.assign(S, sn);
-  try { renderBattle(); } finally { Object.assign(S, bak); }
+  try {
+    const battle = app.querySelector('.battle.playing');
+    const top = battle && battle.querySelector('.top');
+    const board = battle && battle.querySelector('.board');
+    const caption = battle && battle.querySelector('.info-row > div');
+    if (!top || !board || !caption) { renderBattle(); return; }
+    top.innerHTML = frontHtml() + statusHtml();
+    board.outerHTML = boardHtml();
+    caption.innerHTML = hintHtml();
+  } finally { Object.assign(S, bak); }
 }
 const FX_MS = { absorb: 520, hit: 560, front: 560, hold: 520, thorn: 420, die: 440, descend: 480, guard: 440, poison: 480, phase: 1000, joint: 700, grit: 800 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
