@@ -1388,7 +1388,7 @@ const DEFAULT_LINES = {
     collapse: ['더는… 버틸 수 없습니다…', '모든 것이 무너지고 있습니다.'], awaken: ['이상하게 머리가 맑습니다.', '이제야 알겠습니다. 해야 할 일을.'] },
 };
 const ULTS = {
-  atk: { def: '필살 일격', desc: '정면 적에게 공격력 2배 피해(정면이 비어 있으면 그만큼 전선 게이지를 밉니다)' },
+  atk: { def: '필살 일격', desc: '이번 턴 일반 공격 대신 정면 적에게 공격력 2배 피해(정면이 비어 있으면 그만큼 전선을 밉니다)' },
   def: { def: '철벽', desc: '이번 적 턴 동안 모든 아군이 받는 피해 −1' },
   sup: { def: '작은 기도', desc: '스트레스 −10, 모든 아군 최대 체력과 체력 +1' },
 };
@@ -1992,6 +1992,7 @@ function attackPhase(side) {
     if (S.over || S.phaseBreak) return;
     const u = row[lane];
     if (!u || u.hp <= 0) continue;
+    if (side === 'p' && u.ultTurn === S.turn) continue;
     if (side === 'p' && u.sig.includes('coward') && S.stress >= 50) continue;
     const a = effAtk(u, side, lane);
     if (a <= 0) continue;
@@ -2171,7 +2172,7 @@ function useUlt(lane) {
   log(`궁극기 ${name}!`, 'good');
   const set = linesFor(c, 'ult');
   if (set.length) log(`${c.name}: “${set[Math.floor(lrng() * set.length)].replace(/\{궁극기\}/g, name).replace(/\{상대\}/g, S.pro.name)}”`, 'line');
-  if (c.role === 'atk') { strike(u, 'p', lane, lane, effAtk(u, 'p', lane) * 2); cleanup(); UNDO = []; }
+  if (c.role === 'atk') { u.ultTurn = S.turn; strike(u, 'p', lane, lane, effAtk(u, 'p', lane) * 2); cleanup(); UNDO = []; }
   if (c.role === 'def') S.ultShield = true;
   if (c.role === 'sup') { addStress(-10, '궁극기'); S.p.forEach(v => { if (v) { v.maxHp += 1; v.hp += 1; } }); }
   return { ok: true };
