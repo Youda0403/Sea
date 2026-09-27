@@ -965,7 +965,7 @@ main.battle.tut { padding-bottom: 13rem; }
 .editor .portrait-actions .btn,.editor .portrait-actions .ghost{width:100%;min-height:40px;padding:8px 5px;font-size:11px;line-height:1.4;text-align:center;white-space:normal}
 
 /* Gift form and optional portrait borders */
-.gift-recv{display:block}.gift-recv-body{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-top:12px}.gift-recv-body textarea{margin:0;min-height:90px}.gift-recv-submit{display:block;width:100%;min-height:44px;text-align:center;margin:0;padding:12px 16px}.gift-recv-body p{margin:0}
+.gift-recv{display:block}.gift-recv-body{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-top:12px}.gift-recv-body textarea{margin:0;min-height:90px}.gift-recv-submit{display:block;width:100%;min-height:44px;text-align:center;margin:0;padding:12px 16px;box-sizing:border-box}.gift-recv-body p{margin:0}
 .av.frame-silver{box-shadow:0 0 0 2px var(--table),0 0 0 4px #cbd8e1,0 0 0 5.5px #738696}
 .av.frame-forest{box-shadow:0 0 0 2px var(--table),0 0 0 4px #80aa8a,0 0 0 5.5px #375b42}
 .av.frame-rose{box-shadow:0 0 0 2px var(--table),0 0 0 4px #dba5b0,0 0 0 5.5px #996371}
@@ -3696,7 +3696,8 @@ function unlockRowHtml(k) {
   const u = UNLOCKS[k]; const st = unlockState(k);
   const frame = Object.keys(FRAME_STYLES).find(x => FRAME_STYLES[x].unlock === k);
   const selected = frame && meta().frameOn && meta().frameStyle === frame;
-  const btn = st === 'owned' ? (frame ? `<button class="btn small-btn" data-act="frame-select" data-k="${frame}"${selected ? ' disabled' : ''}>${selected ? '사용 중' : '적용'}</button>` : '<span class="bd good">해금됨</span>')
+  // v0.28: 테두리 적용/해제를 버튼 하나로 토글(다시 누르면 해제)
+  const btn = st === 'owned' ? (frame ? `<button class="btn small-btn${selected ? ' primary' : ''}" data-act="frame-select" data-k="${selected ? 'none' : frame}">${selected ? '사용 중 (끄기)' : '적용'}</button>` : '<span class="bd good">해금됨</span>')
     : st === 'locked' ? '<span class="soft small">앞 단계 먼저</span>'
     : `<button class="btn small-btn${st === 'ready' ? ' primary' : ''}" data-act="unlock" data-k="${k}"${st === 'ready' ? '' : ' disabled'}>조각 ${u.cost}</button>`;
   return `<li class="ul-row ${st}"><div><b>${esc(u.name)}</b><small>${esc(u.desc)}</small></div>${btn}</li>`;
@@ -3716,7 +3717,7 @@ function renderBase() {
   const recv = `<details class="gift-recv"${UI.giftOpen ? ' open' : ''}><summary>받은 유품 코드 넣기</summary>
       <div class="gift-recv-body"><textarea rows="3" data-gift aria-label="받은 유품 코드" placeholder="RLG1:로 시작하는 코드"></textarea>
       ${lg ? '<p class="soft small">받으면 지금 남아 있는 유품과 바뀝니다.</p>' : ''}
-      <button class="btn primary gift-recv-submit" data-act="gift-recv">유품 받기</button></div></details>`;
+      <button class="btn gift-recv-submit" data-act="gift-recv">유품 받기</button></div></details>`;
   const legacyAll = legacy + recv;
   app.innerHTML = `<main class="setup base">
     <div class="nav"><button class="btn ghost" data-act="to-title">타이틀로</button><button class="btn ghost" data-act="to-roster">캐릭터 로스터</button><button class="btn ghost" data-act="to-howto" data-back="base">게임 방법</button></div>
@@ -3733,7 +3734,8 @@ function renderBase() {
     </section>
     ${!m.runs && !m.shards && !m.legacy && !m.sentCode ? `<section class="panel"><p class="soft small">런을 한 번 마치면 여기에 해금과 유품이 나타납니다. 먼저 출정 준비에서 탑에 올라 보세요.</p>${recv}</section>` : `<section class="panel"><h2>해금</h2><p class="soft small">보급·야영 해금은 다음 출정부터 적용됩니다. 초상화 테두리는 하나를 골라 바로 적용할 수 있습니다.</p><ul class="ul-list">${Object.keys(UNLOCKS).map(unlockRowHtml).join('')}
       <li class="ul-row ${m.frame ? 'owned' : 'locked'}"><div><b>초상화 금테</b><small>캐릭터 초상화에 금테를 두릅니다. 보스를 처음 쓰러뜨리면 열립니다</small></div>${m.frame
-        ? `<button class="btn small-btn" data-act="frame-select" data-k="gold">${m.frameOn && (m.frameStyle || 'gold') === 'gold' ? '금테 사용 중' : '금테 적용'}</button>` : '<span class="soft small">보스 첫 처치</span>'}</li></ul><button class="btn ghost small-btn" data-act="frame-select" data-k="none">테두리 없이 보기</button></section>
+        ? (() => { const goldOn = m.frameOn && (m.frameStyle || 'gold') === 'gold'; return `<button class="btn small-btn${goldOn ? ' primary' : ''}" data-act="frame-select" data-k="${goldOn ? 'none' : 'gold'}">${goldOn ? '사용 중 (끄기)' : '적용'}</button>`; })()
+        : '<span class="soft small">보스 첫 처치</span>'}</li></ul></section>
     <section class="panel"><h2>유품</h2>${legacyAll}</section>`}
     <button class="btn primary big" data-act="to-prep">출정 준비</button>
   </main>`;
