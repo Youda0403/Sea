@@ -3980,14 +3980,15 @@ function endingPages(run) {
     { head: '되찾은 것', text: '빛 하나를 쥐자 누군가의 웃음소리가 들립니다. 이름이, 얼굴이, 함께 걷던 거리가 돌아옵니다.' },
     third,
     { head: '탑이 가라앉다', text: '탑이 천천히 가라앉습니다. 도시 곳곳에서 사람들이 고개를 들고, 잊었던 이름을 부르는 소리가 들려옵니다.' },
-    { head: '돌아오는 길', text: '탑을 내려와 거점으로 향합니다. 뒤돌아보면, 탑이 있던 자리에는 빈 하늘이 보입니다. 당신은 기억해 낸 이름들을 마음속으로 하나씩 불러 봅니다. 그리고 다시 걸음을 옮깁니다. 그 모든 이름들을 품에 안은 채.', last: true },
+    { head: '돌아오는 길', text: '탑을 내려와 거점으로 향합니다.\n뒤돌아보면, 탑이 있던 자리에는 빈 하늘이 보입니다.' },
+    { head: '끝, 그리고', text: '당신은 기억해 낸 이름들을 마음속으로 하나씩 불러 봅니다. 그리고 다시 걸음을 옮깁니다. 기나긴 여정의 끝으로.', last: true },
   ];
 }
 function renderEnding() {
   const preview = screen === 'ending-preview';
   const pages = endingPages(preview ? UI.previewRun : RUN); const i = Math.min(UI.endPage || 0, pages.length - 1); const pg = pages[i];
   app.innerHTML = `<main class="story-screen ending" data-act="ending-next">
-    <div class="story-page" data-pg="${i}"><small>${esc(pg.head)}</small><p>${esc(pg.text)}</p></div>
+    <div class="story-page" data-pg="${i}"><small>${esc(pg.head)}</small><p>${esc(pg.text).replace(/\n/g, '<br>')}</p></div>
     <div class="story-foot"><span class="story-dots">${pages.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span><span class="soft small">${pg.last ? preview ? '눌러서 돌아가기' : '눌러서 결과 보기' : '눌러서 계속'}</span></div>
   </main>`;
 }
