@@ -927,6 +927,17 @@ main.battle.tut { padding-bottom: 13rem; }
 .legacy-box + .btn { display: block; width: 100%; margin-top: .9rem; }
 .gift-recv textarea, .gift-code textarea { display: block; width: 100%; max-width: 100%; box-sizing: border-box; }
 @media (pointer: coarse) { .gift-recv textarea, .gift-code textarea { font-size: 16px; } }
+
+/* 원정 기록 */
+.retry-bar{display:flex;flex-direction:column;align-items:center;gap:8px;margin:18px 0 10px;padding:12px;border-top:1px solid var(--line);text-align:center}
+.retry-bar small{font-size:11px}.retry-sheet{z-index:120}.retry-cost{font-size:19px}
+.expedition-report{background:#f4f1e9;color:#353b43;border:1px solid #d3c6a8;border-radius:6px;margin:22px 0;padding:30px 26px;line-height:1.8;overflow-wrap:anywhere}
+.expedition-report .soft{color:#69717a}.report-heading{border-top:3px solid #92763f;border-bottom:1px solid #d3c6a8;padding:20px 0;margin-bottom:24px}
+.report-heading>span{font-size:10px;letter-spacing:1.7px;color:#82672f}.report-heading h2{font-family:'Gowun Batang',serif;font-size:28px;margin:8px 0;color:#202731}.report-heading p{font-size:12px}
+.expedition-report section{margin:24px 0}.expedition-report h3{font-size:16px;color:#82672f;margin:0 0 12px}.report-type h3{font-size:23px;color:#202731;line-height:1.6}.expedition-report small{font-size:11px}.report-type ul{padding-left:20px;font-size:12px}.expedition-report p{margin:8px 0;font-size:13px}.report-type{border-bottom:1px solid #d3c6a8;padding-bottom:22px}
+.report-award{border-left:3px solid #92763f;padding:10px 15px;margin:10px 0;background:#eae3d2}.report-award b{color:#725723}.report-stats{margin:0}.report-stats>div{display:grid;grid-template-columns:100px 1fr;gap:8px;padding:10px 0;border-bottom:1px solid #ddd5c4;font-size:12px}.report-stats dt{color:#69717a}.report-stats dd{margin:0}.report-party{margin:16px 0}.report-party small{display:block;color:#69717a}.expedition-report footer{border-top:1px solid #d3c6a8;padding-top:18px}.report-save-status{display:block;margin-top:8px}.expedition-report details{font-size:12px}.expedition-report summary{cursor:pointer}.report-notice{color:#8c583e}
+@media(max-width:480px){.expedition-report{padding:22px 16px}.report-type h3{font-size:20px}.report-stats>div{grid-template-columns:76px 1fr}.report-heading h2{font-size:25px}.retry-sheet .res-btns{flex-direction:column}}
+.retry-sheet .sheet-body{max-height:90dvh;overflow-y:auto}.expedition-report footer .btn{max-width:100%;white-space:normal}
 </style>
 </head>
 <body>
@@ -934,8 +945,16 @@ main.battle.tut { padding-bottom: 13rem; }
 <script>
 'use strict';
 /* ================= 유틸 ================= */
-let rng = Math.random;
-function setRng(f) { rng = f; }
+let rngOverride = null;
+function setRng(f) { rngOverride = f; }
+function rng() {
+  if (rngOverride) return rngOverride();
+  if (!S || typeof S.rngState !== 'number') return Math.random();
+  S.rngState = (S.rngState + 0x6D2B79F5) >>> 0;
+  let t = S.rngState; t = Math.imul(t ^ t >>> 15, t | 1);
+  t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+  return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
 function rint(n) { return Math.floor(rng() * n); }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rint(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function jo(w, a, b) {
@@ -1546,6 +1565,7 @@ function newBattle(cfg) {
   _uid = 0; UNDO = [];
   const enc = ENCOUNTERS[cfg.enc];
   S = {
+    rngState: cfg.seed, stats: { extra: 0, bursts: 0, commands: 0, deaths: 0, downs: 0, maxStress: cfg.stress || 0, minFront: 0 },
     screen: 'battle', pro: { ...cfg.pro, aux: cfg.pro.aux.slice() },
     comps: cfg.comps.map(c => ({ ...c, aux: c.aux.slice() })),
     enc, encKey: cfg.enc, phase: 1, waves: [], loop: enc.loop, waveIdx: 0, variant: 0,
@@ -1628,6 +1648,7 @@ function extraDraw() {
   UNDO = [];
   const t = S.bag.pop();
   S.extraCount++;
+  if (S.stats) S.stats.extra++;
   if (t === 'fear') {
     if (partyHas('naive') && S.extraCount === 1) { log('공포가 나왔지만 천진 덕분에 그 토큰만 버립니다', 'good'); return { ok: true, fear: true, saved: true }; }
     if (S.effects.bustImmune && !S.bustImmuneUsed) { S.bustImmuneUsed = true; log('공포가 나왔지만 각성 효과로 버스트를 면합니다', 'good'); return { ok: true, fear: true, saved: true }; }
@@ -1639,6 +1660,7 @@ function extraDraw() {
     if (lost.includes(S.keepMark)) S.keepMark = null;
     if (lost.includes(S.keepMark2)) S.keepMark2 = null;
     S.extraCount = 3;
+    if (S.stats) S.stats.bursts++;
     log(`버스트! 추가로 뽑은 토큰 ${lost.length}개를 잃었습니다${keepId ? '(냉철로 1개 보존)' : ''}`, 'bad');
     addStress((hasRelic('handmirror') ? 2 : 5) + (partyHas('hot') ? 3 : 0), '버스트');
     return { ok: true, fear: true, bust: true };
@@ -1822,6 +1844,7 @@ function hitFront(side, a, aLane, name, att) {
   } else {
     if (S.holdFront) { log(`버티기로 전선 피해 ${jo(a, '을', '를')} 막았습니다`, 'good'); rec('hold', { side, a, aLane, name }); return; }
     S.front -= a;
+    if (S.stats) S.stats.minFront = Math.min(S.stats.minFront, S.front);
     log(`전선 −${a} → ${S.front > 0 ? '+' : ''}${S.front}`, 'bad');
     rec('front', { side, a, aLane, name });
     const st = a * RULE.frontStress + (att && att.sig.includes('threat') ? RULE.threatStress : 0);
@@ -1938,6 +1961,7 @@ function companionDown(u) {
   const c = compById(u.comp);
   if (u.saseonAtPlay) { companionDie(c); return; }
   c.status = 'saseon';
+  if (S.stats) S.stats.downs++;
   say(c, 'down');
   crushRageFor(c);
   log(`${jo(c.name, '이', '가')} 사선에 섰습니다. 한 번 더 쓰러지면 사망합니다`, 'bad');
@@ -1966,6 +1990,7 @@ function companionDie(c) {
   if (c.status === 'dead') return;
   const lvl = bondLevel(c);
   c.status = 'dead';
+  if (S.stats) S.stats.deaths++;
   say(c, 'death');
   const wit = S.comps.filter(o => o.status !== 'dead' && !o.merc);
   if (wit.length) say(wit[Math.floor(lrng() * wit.length)], 'witness', undefined, c.name);
@@ -1988,6 +2013,7 @@ function addStress(n, why) {
   if (!n) return;
   const before = S.stress;
   S.stress = Math.max(0, Math.min(100, S.stress + n));
+  if (S.stats) S.stats.maxStress = Math.max(S.stats.maxStress, S.stress);
   const d = S.stress - before;
   if (d) log(`스트레스 ${d > 0 ? '+' : ''}${d}(${why}) → ${S.stress}`, d > 0 ? 'bad' : 'good');
   if (S.stress >= 100 && !S.over) {
@@ -2019,6 +2045,7 @@ function useCommand(tg) {
   const r = commandApply(tg);
   refreshMend();
   if (!r.ok) UNDO.pop();
+  else if (S.stats) S.stats.commands++;
   return r;
 }
 function commandApply(tg) {
@@ -2222,6 +2249,7 @@ const FUSE_COST = 1;
 
 function newRun(cfg) {
   return {
+    journal: freshJournal(cfg),
     pro: { ...cfg.pro, aux: cfg.pro.aux.slice(), lines: { ...(cfg.pro.lines || {}) } },
     comps: cfg.comps.map(c => ({ ...c, aux: c.aux.slice(), lines: { ...(c.lines || {}) } })),
     stress: cfg.stress || 0, supply: cfg.supply === undefined ? 8 : cfg.supply,
@@ -2258,6 +2286,13 @@ function battleCfgFromRun(run, enc) {
     deck: run.deck.map(c => ({ ...c })), relics: run.relics.slice(), floor: run.floor || 1, diff: run.diff || 0 };
 }
 function syncRunFromBattle(run, B) {
+  if (B.reportSynced) return;
+  B.reportSynced = true;
+  const j = journalOf(run);
+  if (!B.stats) j.complete = false;
+  j.battles.push({ ...(B.stats || {}), turns: B.turn, result: B.over, name: B.enc.name, elite: !!B.enc.elite, boss: !!B.enc.boss });
+  j.maxStress = Math.max(j.maxStress, B.stats ? B.stats.maxStress : B.stress);
+  delete run.battleRetry;
   run.stress = B.stress; run.supply = B.supply; run.brokeOnce = B.brokeOnce; run.effects = { ...B.effects };
   run.comps = B.comps.map(c => ({ ...c, aux: c.aux.slice() }));
   run.battles++;
@@ -2306,6 +2341,7 @@ function campRest(run) {
   if (run.supply < CAMP_COST) return { ok: false, msg: '보급이 부족합니다' };
   const b = run.stress;
   run.supply -= CAMP_COST; run.stress = Math.max(0, run.stress - restAmount(run)); run.camped = true;
+  journalOf(run).rests++;
   run.lastCamp = { kind: 'rest', text: `불 곁에서 푹 쉬었습니다. 스트레스 ${b} → ${run.stress}, 보급 −${CAMP_COST}` };
   return { ok: true };
 }
@@ -2316,6 +2352,7 @@ function campHeal(run, id) {
   if (!c || c.status !== 'saseon') return { ok: false, msg: '사선 상태인 동료가 아닙니다' };
   if (run.supply < CAMP_COST) return { ok: false, msg: '보급이 부족합니다' };
   run.supply -= CAMP_COST; c.status = 'ok'; run.camped = true;
+  journalOf(run).heals++;
   run.lastCamp = { kind: 'heal', id, text: `${jo(c.name, '을', '를')} 치료했습니다. 사선 상태가 풀렸습니다. 보급 −${CAMP_COST}` };
   return { ok: true };
 }
@@ -2337,6 +2374,7 @@ function campTalk(run, id) {
   text = text.replace(`${c.name}와(과)`, jo(c.name, '과', '와'));
   if (r.after > r.before) text += `. 유대 ${r.after}단계 달성!`;
   if (chat) text += `. 수다 덕분에 스트레스 −5${chatTxt ? `. ${chatTxt}` : ''}`;
+  journalOf(run).talks++;
   run.lastCamp = { kind: 'talk', id, lines, text, why: [g.why, g.half && g.base > 0 ? '무심: 유대 점수가 절반만 반영됩니다' : ''].filter(Boolean).join(' / ') };
   return { ok: true };
 }
@@ -2388,7 +2426,7 @@ function campFuse(run, cidA, cidB) {
   const card = { cid: newCard('x').cid, key: a.key, custom, xp: Math.max(a.xp || 0, b.xp || 0), awk: !!(a.awk || b.awk) };
   run.deck = run.deck.filter(c => c !== a && c !== b);
   run.deck.push(card);
-  run.supply -= FUSE_COST; run.fused = true;
+  run.supply -= FUSE_COST; run.fused = true; journalOf(run).fuses++;
   run.lastFuse = fixJosa(`${cardInfo(a).name}와(과) ${cardInfo(b).name}을(를) 엮어 ${cardInfo(card).name}을(를) 만들었습니다. 보급 −${FUSE_COST}`);
   return { ok: true, card };
 }
@@ -2396,6 +2434,7 @@ function campFuse(run, cidA, cidB) {
 /* ================= 스트레스(런 단계) ================= */
 function runAddStress(run, n) {
   run.stress = Math.max(0, Math.min(100, run.stress + n));
+  journalOf(run).maxStress = Math.max(journalOf(run).maxStress, run.stress);
   if (run.stress >= 100) {
     if (!run.brokeOnce) {
       run.brokeOnce = true;
@@ -2458,7 +2497,7 @@ function moveTo(run, id) {
   const cost = 1 + (runHas(run, 'optim') && n.floor % 3 === 0 ? 1 : 0);
   let msg = '';
   if (run.supply >= cost) run.supply -= cost;
-  else { run.supply = 0; msg = `보급이 떨어져 굶주렸습니다. 스트레스 +8`; const b = runAddStress(run, 8); if (b) msg += `. ${b}`; }
+  else { journalOf(run).starvations++; run.supply = 0; msg = `보급이 떨어져 굶주렸습니다. 스트레스 +8`; const b = runAddStress(run, 8); if (b) msg += `. ${b}`; }
   run.pos = id; run.floor = n.floor; (run.path = run.path || []).push(id);
   const tr = run.relics.includes('compass') ? 1 : TRAVEL_STRESS;
   if (!run.over) { const t = runAddStress(run, tr); msg = [msg, `이동 피로 스트레스 +${tr}`, t].filter(Boolean).join('. '); }
@@ -2752,9 +2791,92 @@ function chooseEvent(run, i) {
   if (!run.event || run.event.done) return { ok: false };
   const ch = eventDef(run).choices[i]; if (!ch) return { ok: false };
   if (ch.req && !ch.req(run)) return { ok: false, msg: ch.reqText };
+  const beforeDead = run.comps.filter(c => c.status === 'dead').length;
   const text = ch.run(run);
+  const j = journalOf(run); j.events++;
+  j.eventDeaths += Math.max(0, run.comps.filter(c => c.status === 'dead').length - beforeDead);
+  j.maxStress = Math.max(j.maxStress, run.stress);
   run.event.done = true; run.event.result = fixJosa(text);
   return { ok: true };
+}
+
+/* ================= 원정 기록과 전투 재도전 ================= */
+function freshJournal(cfg) {
+  return { v: 1, complete: true, retries: 0, battles: [], rests: 0, heals: 0, talks: 0, fuses: 0,
+    events: 0, eventDeaths: 0, starvations: 0, maxStress: cfg.stress || 0,
+    initial: cfg.comps.map(c => ({ id: c.id, name: c.name })) };
+}
+function journalOf(run) {
+  if (!run.journal) { run.journal = freshJournal(run); run.journal.complete = false; }
+  return run.journal;
+}
+function captureBattleStart(run) {
+  const { enc, events, ...state } = S;
+  run.battleRetry = { state: structuredClone(state), uid: _uid, used: false };
+}
+function retryReason(run) {
+  if (!run || !S || S.over || S.synced) return '전투가 끝난 뒤에는 재도전할 수 없습니다';
+  if (!run.battleRetry || run.battleRetry.state.encKey !== S.encKey) return '이전 저장 전투입니다. 다음 전투부터 사용할 수 있습니다';
+  if (run.battleRetry.used) return '이번 전투의 재도전을 이미 사용했습니다';
+  if (S.supply < 2) return '현재 보급이 2 이상이어야 합니다';
+  return '';
+}
+function retryBattle(run) {
+  const reason = retryReason(run); if (reason) return { ok: false, msg: reason };
+  const supply = S.supply - 2, checkpoint = run.battleRetry;
+  S = structuredClone(checkpoint.state); S.enc = ENCOUNTERS[S.encKey]; S.events = []; S.recording = false;
+  S.supply = supply; S.synced = false; UNDO = []; _uid = checkpoint.uid;
+  checkpoint.used = true; journalOf(run).retries++;
+  log(`전투 재도전. 현재 보급에서 2를 사용했습니다. 이번 원정의 특별칭호는 획득할 수 없습니다`, 'sys');
+  return { ok: true };
+}
+const REPORT_STYLES = [
+  { key: 'bond', name: '인연의 기록자', text: '불가에서 나눈 대화를 전진할 힘으로 삼았습니다.', evidence: s => `야영 대화 ${s.talks}회`, score: s => s.talks / 3 },
+  { key: 'heal', name: '상처의 파수꾼', text: '귀한 보급과 쉴 기회를 동료의 치료에 썼습니다.', evidence: s => `동료 치료 ${s.heals}회`, score: s => s.heals / 2 },
+  { key: 'risk', name: '공포의 승부사', text: '공포가 섞인 주머니에도 손을 뻗어 더 많은 가능성을 구했습니다.', evidence: s => `추가 뽑기 ${s.extra}회 · 버스트 ${s.bursts}회`, score: s => s.extra / Math.max(1, s.turns) / 0.7 },
+  { key: 'command', name: '전선의 지휘자', text: '직접 내린 지휘로 전투의 흐름을 바꾸었습니다.', evidence: s => `지휘 ${s.commands}회`, score: s => s.commands / Math.max(1, s.turns) / 0.28 },
+  { key: 'craft', name: '운명의 직조자', text: '서로 다른 카드를 엮어 자신만의 덱을 만들었습니다.', evidence: s => `카드 엮기 ${s.fuses}회`, score: s => s.fuses / 2 },
+  { key: 'hunt', name: '강적의 추적자', text: '험한 길에서 만난 정예들을 쓰러뜨리며 올라갔습니다.', evidence: s => `엘리트 격파 ${s.elites}회`, score: s => s.elites / Math.max(1, s.wins) / 0.25 },
+  { key: 'memory', name: '잊힌 이야기의 수집가', text: '전투 사이의 사건들을 지나며 탑의 흔적을 모았습니다.', evidence: s => `이벤트 선택 ${s.events}회`, score: s => s.events / 7 },
+  { key: 'steady', name: '긴 길의 여행자', text: '어느 한 방식에 치우치기보다 여러 수단을 고루 사용했습니다.', evidence: s => `전투 승리 ${s.wins}회 · 야영 휴식 ${s.rests}회`, score: () => 0.65 },
+];
+const REPORT_JOURNEYS = [
+  { name: '다시 길을 고른', text: '한 번 내린 판단을 돌아보고, 보급을 대가로 다른 길을 시험했습니다.' },
+  { name: '빈자리를 안고 간', text: '돌아오지 못한 동료의 빈자리도 이 원정의 기록에 남았습니다.' },
+  { name: '한계를 지나온', text: '정신력의 한계를 경험한 뒤에도 원정의 끝을 마주했습니다.' },
+  { name: '마음을 지켜온', text: '다시 시작하거나 동료를 잃는 일 없이, 정신력의 한계 안에서 여정을 마쳤습니다.' },
+];
+function buildRunReport(run) {
+  const j = journalOf(run), bs = j.battles;
+  const sum = k => bs.reduce((n, b) => n + (b[k] || 0), 0);
+  const deadNow = run.comps.filter(c => c.status === 'dead').length;
+  const s = { retries: j.retries, turns: sum('turns'), extra: sum('extra'), bursts: sum('bursts'), commands: sum('commands'),
+    deaths: Math.max(deadNow, sum('deaths') + j.eventDeaths), downs: sum('downs'), maxStress: Math.max(j.maxStress, run.stress),
+    retreats: bs.filter(b => b.result === 'retreated').length, rests: j.rests, heals: j.heals, talks: j.talks, fuses: j.fuses,
+    events: j.events, starvations: j.starvations, wins: run.wins, elites: run.eliteWins || 0, bosses: run.bossWins || 0,
+    comebacks: bs.filter(b => b.result === 'win' && b.minFront <= -3).length };
+  const ranked = REPORT_STYLES.map((x, i) => ({ ...x, i, value: x.score(s) })).sort((a,b) => b.value - a.value || a.i - b.i);
+  const style = ranked[0], journey = s.retries ? 0 : s.deaths ? 1 : run.brokeOnce ? 2 : 3;
+  const qualified = !!(run.cleared && j.complete && run.diff >= 3 && s.bosses >= MAX_STAGE && !s.retries && !s.retreats);
+  const allHome = j.initial.length >= 2 && !s.deaths && j.initial.every(c => run.comps.some(x => x.id === c.id && x.status !== 'dead'));
+  const awards = [
+    { name: '모두를 데려온 사람', rule: '출발 동료 2명 이상 · 출발 동료 전원 생존·동행 · 동료 사망 0 · 엘리트 4회 이상 격파', ok: allHome && s.elites >= 4 },
+    { name: '흔들리지 않는 등불', rule: '정신력 한계 0 · 최고 스트레스 70 미만 · 엘리트 4회 이상 격파', ok: !run.brokeOnce && s.maxStress < 70 && s.elites >= 4 },
+    { name: '탑의 역린을 꺾은 자', rule: '무게 4 이상 · 엘리트 6회 이상 격파', ok: run.diff >= 4 && s.elites >= 6 },
+    { name: '가장 무거운 귀환', rule: '무게 5 · 동료 사망 0 · 정신력 한계 0 · 엘리트 4회 이상 격파', ok: run.diff >= 5 && !s.deaths && !run.brokeOnce && s.elites >= 4 },
+  ].map(a => ({ name: a.name, rule: a.rule, earned: qualified && a.ok }));
+  const party = run.comps.map(c => {
+    const gain = c.merc ? 0 : Math.max(0, (c.bondPts || 0) - ((run.bondStart || {})[c.id] || 0));
+    const status = c.status === 'dead' ? '사망' : c.status === 'saseon' ? '사선' : '생존';
+    const line = c.status === 'dead' ? '함께 걷던 발자국은 이 기록에 남았습니다.' : c.status === 'saseon' ? '상처를 안은 채 마지막 기록에 이름을 남겼습니다.' : gain >= 4 ? '출발할 때보다 가까운 사이가 되었습니다.' : '같은 길을 걸었던 기억을 간직했습니다.';
+    return { name: c.name, status, gain, merc: !!c.merc, line };
+  });
+  return { v: 1, date: new Date().toISOString(), pro: run.pro.name, cleared: !!run.cleared, diff: run.diff || 0,
+    floor: totalFloor(run), complete: j.complete, typeId: style.i * 4 + journey,
+    type: `${REPORT_JOURNEYS[journey].name} ${style.name}`, description: `${style.text} ${REPORT_JOURNEYS[journey].text}`,
+    evidence: [style.evidence(s), ranked[1].evidence(s), `재도전 ${s.retries}회 · 동료 사망 ${s.deaths}명 · 정신력 한계 ${run.brokeOnce ? '경험' : '없음'}`],
+    stats: s, awards, party, broken: !!run.brokeOnce,
+    titleNote: !j.complete ? '업데이트 전부터 진행한 원정은 일부 기록이 없어 특별칭호를 판정하지 않습니다.' : s.retries ? '재도전을 사용해 이번 원정의 특별칭호 자격을 잃었습니다.' : '공통 조건: 탑 돌파 · 무게 3 이상 · 보스 3회 격파 · 재도전 0 · 후퇴 0.' };
 }
 
 if (typeof module !== 'undefined') {
@@ -3325,6 +3447,7 @@ function renderRunEnd() {
     <h1>${title}</h1>
     ${r.fromPrep ? `<p class="story-line">${esc(r.cleared ? EPILOGUE_FINAL : EPILOGUE_FAIL)}</p>` : ''}
     <section class="panel"><p>${lines.join('<br>')}</p><p class="soft small">${cs}</p></section>
+    ${reportHtml(ensureRunReport(r))}
     ${shard}
     ${br ? `<section class="panel"><h2>남은 유대</h2><ul class="bond-list">${br}</ul><p class="soft small">런에서 쌓은 유대의 절반이 다음 런으로 이어집니다.</p></section>` : ''}
     ${legacy}
@@ -3382,6 +3505,7 @@ function startMapRun() {
 
 /* ---------- 입력 ---------- */
 function onRunAct(act, d) {
+  if (onReportAct(act)) return true;
   switch (act) {
     case 'start-map': startMapRun(); return true;
     case 'new-map-run': if (RUN && RUN.fromPrep) startGameRun(); else startMapRun(); return true;
@@ -3452,7 +3576,7 @@ function onRunAct(act, d) {
 /* ================= 게임 화면: 타이틀, 출정 준비, 이어하기 ================= */
 const GAME_TITLE = '탑으로 가는 길';
 const RUN_KEY = 'rl_run_v1';
-const RESUME_SCREENS = ['map', 'event', 'trade', 'reward', 'camp', 'battle', 'stage'];
+const RESUME_SCREENS = ['map', 'event', 'trade', 'reward', 'camp', 'battle', 'stage', 'ending'];
 const PREP = { pro: '', c1: '', c2: '', init: false, diff: null, opts: null, optDiff: null, picks: [] };
 
 /* ---------- 저장 ---------- */
@@ -3464,7 +3588,7 @@ function saveRunState() {
   if (!RUN || !RUN.fromPrep || RUN.bondSaved || RUN.over && screen !== 'battle') return;
   if (!RESUME_SCREENS.includes(screen) || UI.playing) return;
   try {
-    const snap = { v: 1, screen, run: RUN, uidSeq: _uid };
+    const snap = { v: 1, screen, run: RUN, uidSeq: _uid, endPage: UI.endPage || 0 };
     if (screen === 'battle' && S) { const { enc, events, ...rest } = S; snap.battle = rest; }
     localStorage.setItem(RUN_KEY, JSON.stringify(snap));
   } catch (e) { /* 저장 불가 환경: 조용히 넘어감 */ }
@@ -3472,7 +3596,7 @@ function saveRunState() {
 function resumeRun() {
   const d = loadRunState();
   if (!d) { flash('이어할 런이 없습니다'); return; }
-  RUN = d.run;
+  RUN = d.run; UI.endPage = d.endPage || 0;
   resetUI();
   UI.deckOpen = false; UI.picking = null; UI.cinfo = null; UI.revealQ = []; UI.mapScrolled = false; UI.pileOpen = false;
   if (d.screen === 'battle' && d.battle && ENCOUNTERS[d.battle.encKey]) {
@@ -3512,6 +3636,7 @@ function renderBase() {
   app.innerHTML = `<main class="setup base">
     <div class="nav"><button class="btn ghost" data-act="to-title">타이틀로</button><button class="btn ghost" data-act="to-roster">캐릭터 로스터</button><button class="btn ghost" data-act="to-howto" data-back="base">게임 방법</button></div>
     <h1>거점</h1>
+    ${m.lastReport ? '<button class="btn" data-act="report-open">지난 원정 보고서</button>' : ''}
     <p class="story-line">아직 잊지 않은 사람들이 모인 곳. 탑에서 되찾아 온 기억이 여기 쌓입니다.</p>
     ${!m.tutorialDone && !m.runs ? `<section class="panel tut-offer"><h2>처음이신가요?</h2><p class="small">훈련 전투에서 전선, 감정 토큰, 동료 카드를 한 단계씩 따라 해 볼 수 있습니다. 3분쯤 걸립니다.</p>
       <div class="res-btns"><button class="btn primary" data-act="tut-start">훈련 전투 시작</button><button class="btn ghost" data-act="tut-dismiss">바로 시작할게요</button></div></section>` : tipHtml('base')}
@@ -4099,6 +4224,124 @@ function onTutAct(act, d) {
   return false;
 }
 'use strict';
+/* ================= 재도전 확인과 저장 가능한 원정 보고서 ================= */
+function retryHtml() {
+  if (TUT || !RUN || S.over) return '';
+  const reason = retryReason(RUN), disabled = UI.playing || !!reason;
+  const button = `<div class="retry-bar"><button class="btn small-btn" data-act="retry-ask"${disabled ? ' disabled' : ''}>이번 전투 다시하기 · 보급 2</button><small class="soft">${esc(reason || '전투당 한 번 · 사용 시 이번 원정 특별칭호 제외')}</small></div>`;
+  if (!UI.retryAsk || disabled) return button;
+  const cs = RUN.battleRetry.state.comps.map(c => `${c.name}: ${{ok:'정상', saseon:'사선', dead:'사망'}[c.status] || '정상'}`).join(' / ');
+  return button + `<div class="sheet retry-sheet" role="dialog" aria-modal="true" aria-labelledby="retry-title"><div class="sheet-body"><h2 id="retry-title">이번 전투를 다시 시작할까요?</h2>
+    <p class="retry-cost">현재 보급 <b>${S.supply} → ${S.supply - 2}</b></p>
+    <p>이미 쓴 보급은 돌아오지 않습니다. 그 밖의 상태는 전투 시작 시점으로 돌아갑니다. 시작 손패·적 배치·주머니도 같습니다.</p>
+    <p class="soft small">복원할 동료 상태: ${esc(cs || '동료 없음')}</p>
+    <p class="note">이번 원정에서는 특별칭호를 받을 수 없습니다. 플레이 유형과 보고서, 일반 보상은 그대로 받을 수 있습니다.</p>
+    <div class="res-btns"><button class="btn" data-act="retry-cancel">계속 싸운다</button><button class="btn danger" data-act="retry-confirm">보급 2를 쓰고 재도전</button></div></div></div>`;
+}
+function ensureRunReport(run) {
+  if (!run.report) {
+    run.report = buildRunReport(run);
+    if (run.fromPrep) { meta().lastReport = run.report; saveMeta(); }
+  }
+  return run.report;
+}
+function activeReport() { return screen === 'report' ? meta().lastReport : RUN && RUN.report; }
+function reportRows(r) {
+  const s = r.stats;
+  return [['전투', `${s.wins}승 · 엘리트 ${s.elites} · 보스 ${s.bosses}`], ['전투 턴', `${s.turns}턴 · 불리한 전선에서 승리 ${s.comebacks}회`],
+    ['감정 주머니', `추가 뽑기 ${s.extra}회 · 버스트 ${s.bursts}회`], ['동료와 야영', `사선 발생 ${s.downs}회 · 치료 ${s.heals} · 대화 ${s.talks} · 휴식 ${s.rests}`],
+    ['정신력', `최고 스트레스 ${s.maxStress} · 한계 ${r.broken ? '경험' : '없음'}`], ['길 위의 선택', `이벤트 ${s.events} · 카드 엮기 ${s.fuses} · 굶주림 ${s.starvations}`],
+    ['다시 고른 길', `재도전 ${s.retries}회 · 후퇴 ${s.retreats}회`]];
+}
+function reportHtml(r) {
+  const earned = r.awards.filter(a => a.earned);
+  return `<article class="expedition-report" aria-label="원정 결과 보고서">
+    <header class="report-heading"><span>EXPEDITION RECORD · ${esc(r.date.slice(0,10))}</span><h2>원정 결과 보고서</h2><p>${esc(r.pro)}의 원정 · ${r.cleared ? '탑 돌파' : '여정 종료'} · 무게 ${r.diff} · ${esc(floorText(r.floor))}</p></header>
+    ${!r.complete ? '<p class="report-notice">일부 기록만 남은 원정입니다. 유형 분석은 업데이트 이후의 기록에 기반합니다.</p>' : ''}
+    <section class="report-type"><small>이번 여정에 남은 모습 · ${String(r.typeId+1).padStart(2,'0')} / 32</small><h3>${esc(r.type)}</h3><p>${esc(r.description)}</p><ul>${r.evidence.map(x => `<li>${esc(x)}</li>`).join('')}</ul><small>이번 플레이의 기록을 해석한 유형이며, 점수나 성격 진단이 아닙니다.</small></section>
+    <section><h3>특별칭호</h3>${earned.length ? earned.map(a => `<div class="report-award"><b>${esc(a.name)}</b><p>${esc(a.rule)}</p></div>`).join('') : '<p class="soft">이번 원정에서 획득한 특별칭호는 없습니다.</p>'}<p class="small">${esc(r.titleNote)}</p>
+    <details><summary>특별칭호 달성 조건</summary><p class="small">모든 칭호 공통: 탑 돌파, 무게 3 이상, 보스 3회 격파, 재도전·후퇴 없음, 출발부터 온전한 기록.</p>${r.awards.map(a => `<p class="small"><b>${esc(a.name)}</b><br>${esc(a.rule)}</p>`).join('')}</details></section>
+    <section><h3>원정 기록</h3><dl class="report-stats">${reportRows(r).map(([k,v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl><p class="small soft">재도전으로 되돌린 시도의 전투 기록은 제외합니다. 재도전 횟수는 남습니다.</p></section>
+    <section><h3>함께 걸었던 사람들</h3>${r.party.length ? r.party.map(c => `<div class="report-party"><b>${esc(c.name)}</b><small>${c.status}${c.merc ? ' · 용병' : ` · 이번 원정 유대 +${c.gain}`}</small><p>${esc(c.line)}</p></div>`).join('') : '<p>동료 없이 홀로 걸었던 길입니다.</p>'}</section>
+    <footer><p>탑으로 가는 길 · 끝에 남은 것은, 걸어온 방식.</p><button class="btn primary" data-act="report-save">보고서 이미지 저장 · PNG</button><small class="report-save-status" role="status"></small></footer>
+  </article>`;
+}
+function renderArchivedReport() {
+  const r = meta().lastReport;
+  app.innerHTML = `<main class="setup"><button class="btn" data-act="to-base">거점으로</button>${r ? reportHtml(r) : '<p>아직 보관된 보고서가 없습니다.</p>'}</main>`;
+}
+function onReportAct(act) {
+  if (act === 'report-open') { screen = 'report'; render(); window.scrollTo(0,0); return true; }
+  if (act === 'report-save') { const r = activeReport(); if (r) saveReportImage(r); return true; }
+  if (!['retry-ask', 'retry-cancel', 'retry-confirm'].includes(act)) return false;
+  if (screen !== 'battle' || UI.playing || TUT) return true;
+  if (act === 'retry-cancel') { UI.retryAsk = false; render(); return true; }
+  const reason = retryReason(RUN); if (reason) { UI.retryAsk = false; flash(reason); return true; }
+  if (act === 'retry-ask') { UI.retryAsk = true; render(); return true; }
+  if (!UI.retryAsk) return true;
+  const result = retryBattle(RUN); resetUI();
+  if (result.ok) { UI.bossSeen = true; UI.phase2Seen = false; UI.pileOpen = false; UI.fx = null; UI.castTarget = null; clearTimeout(UI.castTargetTimer); Object.values(FXT).forEach(clearTimeout); fxLayer.innerHTML = ''; render(); window.scrollTo(0,0); }
+  else flash(result.msg);
+  return true;
+}
+async function saveReportImage(r) {
+  if (UI.reportSaving) return;
+  UI.reportSaving = true;
+  const status = app.querySelector('.report-save-status');
+  const setStatus = t => { if (status) status.textContent = t; };
+  setStatus('이미지를 만들고 있습니다…');
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas');
+    const commands = [], width = 1000, margin = 64; let y = 64;
+    function block(text, size = 23, color = '#353b43', weight = '400', gap = 18) {
+      ctx.font = `${weight} ${size}px "IBM Plex Sans KR", sans-serif`;
+      const lines = []; let line = '';
+      for (const ch of String(text)) {
+        if (ch === '\n' || (line && ctx.measureText(line + ch).width > width - margin * 2)) { lines.push(line); line = ch === '\n' ? '' : ch; }
+        else line += ch;
+      }
+      lines.push(line);
+      for (const t of lines) { commands.push({ t, size, color, weight, y }); y += size * 1.65; }
+      y += gap;
+    }
+    function heading(t) { y += 16; block(t, 27, '#82672f', '600', 12); }
+    block('탑으로 가는 길  /  EXPEDITION RECORD', 18, '#82672f', '600');
+    block('원정 결과 보고서', 44, '#202731', '600', 14);
+    block(`${r.pro} · ${r.cleared ? '탑 돌파' : '여정 종료'} · 무게 ${r.diff} · ${floorText(r.floor)} · ${r.date.slice(0,10)}`, 21);
+    if (!r.complete) block('일부 기록만 남은 원정 · 업데이트 이후의 기록으로 분석', 21, '#8c583e');
+    heading(`이번 여정에 남은 모습  ${String(r.typeId+1).padStart(2,'0')} / 32`);
+    block(r.type, 33, '#202731', '600'); block(r.description);
+    r.evidence.forEach(t => block(`• ${t}`, 22, '#535d69', '400', 3));
+    block('이번 플레이의 기록을 해석한 유형이며, 점수나 성격 진단이 아닙니다.', 18, '#68717d');
+    heading('특별칭호');
+    const earned = r.awards.filter(a => a.earned);
+    if (!earned.length) block('이번 원정에서 획득한 특별칭호는 없습니다.');
+    earned.forEach(a => { block(a.name, 28, '#82672f', '600', 2); block(a.rule, 20); });
+    block(r.titleNote, 20);
+    heading('원정 기록');
+    reportRows(r).forEach(([k,v]) => { block(k, 20, '#68717d', '600', 0); block(v, 23, '#353b43', '400', 12); });
+    block('재도전으로 되돌린 시도의 전투 기록은 제외합니다. 재도전 횟수는 남습니다.', 18, '#68717d');
+    heading('함께 걸었던 사람들');
+    if (!r.party.length) block('동료 없이 홀로 걸었던 길입니다.');
+    r.party.forEach(c => { block(`${c.name} · ${c.status}${c.merc ? ' · 용병' : ` · 이번 원정 유대 +${c.gain}`}`, 24, '#202731', '600', 3); block(c.line, 22); });
+    y += 20; block('끝에 남은 것은, 걸어온 방식.', 21, '#82672f');
+    canvas.width = width; canvas.height = Math.ceil(y + 40);
+    ctx.fillStyle = '#f4f1e9'; ctx.fillRect(0,0,width,canvas.height);
+    ctx.fillStyle = '#82672f'; ctx.fillRect(margin,30,width-margin*2,3);
+    ctx.textBaseline = 'top';
+    for (const c of commands) { ctx.font = `${c.weight} ${c.size}px "IBM Plex Sans KR", sans-serif`; ctx.fillStyle = c.color; ctx.fillText(c.t,margin,c.y); }
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('blob');
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = `탑으로가는길_원정보고서_${r.date.slice(0,10)}.png`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    setStatus('PNG 저장을 요청했습니다. 다운로드 목록을 확인해 주세요.');
+  } catch(e) { setStatus('이미지를 저장하지 못했습니다. 다시 시도해 주세요.'); }
+  finally { UI.reportSaving = false; }
+}
+'use strict';
 const app = document.getElementById('app');
 const UI = { mode: null, sel: null, from: null, exTok: null, info: null, toast: null, toastTimer: null,
   playing: false, skip: false, fx: null, caption: null, logOpen: false, focus: null };
@@ -4162,7 +4405,7 @@ function fadeReveal(fn) {
   el.classList.add('leaving');
   setTimeout(fn, 300);
 }
-function resetUI() { UI.mode = null; UI.sel = null; UI.from = null; UI.exTok = null; UI.info = null; UI.focus = null; }
+function resetUI() { UI.retryAsk = false; UI.mode = null; UI.sel = null; UI.from = null; UI.exTok = null; UI.info = null; UI.focus = null; }
 function flash(msg) {
   showFx('toast', `<div class="toast-float" role="status">${esc(msg)}</div>`, 2200);
   render();
@@ -4383,7 +4626,8 @@ function startBattle() {
 let RUN = null;
 function startRunBattle(enc) {
   UI.bossSeen = false; UI.phase2Seen = false;
-  newBattle(battleCfgFromRun(RUN, enc));
+  newBattle({ ...battleCfgFromRun(RUN, enc), seed: Math.floor(Math.random() * 4294967296) });
+  captureBattleStart(RUN);
   S.synced = false;
   screen = 'battle'; resetUI(); render(); window.scrollTo(0, 0);
 }
@@ -4890,6 +5134,7 @@ function renderBattle() {
     ${actionsHtml()}
     ${handHtml()}
     ${logHtml()}
+    ${retryHtml()}
     ${TUT && S.over ? tutOverlayHtml() : overlayHtml()}
     ${pileSheet()}${glossSheet()}
   </main>`;
@@ -4899,7 +5144,7 @@ function renderBattle() {
   if (!TUT) ultNotice();
 }
 
-const SCREENS = { firstchar: () => renderFirstChar(), ending: () => renderEnding(), stage: () => renderStage(), title: () => renderTitle(), story: () => renderStory(), howto: () => renderHowTo(), base: () => renderBase(), prep: () => renderPrep(), setup: () => renderSetup(), roster: () => renderRoster(), edit: () => renderEditor(), camp: () => renderCamp(),
+const SCREENS = { report: () => renderArchivedReport(), firstchar: () => renderFirstChar(), ending: () => renderEnding(), stage: () => renderStage(), title: () => renderTitle(), story: () => renderStory(), howto: () => renderHowTo(), base: () => renderBase(), prep: () => renderPrep(), setup: () => renderSetup(), roster: () => renderRoster(), edit: () => renderEditor(), camp: () => renderCamp(),
   map: () => renderMap(), event: () => renderEvent(), trade: () => renderTrade(), reward: () => renderReward(), runend: () => renderRunEnd() };
 function render() {
   // 턴 재생 중에는 연출 타이머 등이 결과 화면을 끼워 그리지 않게 막습니다(재생이 끝나면 다시 그림)
@@ -4988,6 +5233,7 @@ function onTok(id) {
 app.addEventListener('click', e => {
   const el = e.target.closest('[data-act],[data-hand],[data-side],[data-tok],[data-emo],[data-sac]');
   if (el && !el.disabled && !tutAllow(el)) return;
+  if (UI.retryAsk && el && !['retry-confirm', 'retry-cancel'].includes(el.dataset.act)) return;
   if (el && el.dataset.act && !el.disabled && (onGameAct(el.dataset.act, el.dataset) || onRunAct(el.dataset.act, el.dataset) || onMenuAct(el.dataset.act, el.dataset))) return;
   if (!el || el.disabled) return;
   const d = el.dataset;
