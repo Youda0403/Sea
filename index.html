@@ -4566,7 +4566,7 @@ async function saveReportImage(r) {
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('blob');
     const url = URL.createObjectURL(blob), a = document.createElement('a');
-    a.href = url; a.download = `탑으로가는길_원정보고서_${r.date.slice(0,10)}.png`; document.body.appendChild(a); a.click(); a.remove();
+    a.href = url; a.download = `탑으로부터_원정보고서_${r.date.slice(0,10)}.png`; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     setStatus('PNG 저장을 요청했습니다. 다운로드 목록을 확인해 주세요.');
   } catch(e) { setStatus('이미지를 저장하지 못했습니다. 다시 시도해 주세요.'); }
