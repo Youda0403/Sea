@@ -1009,7 +1009,7 @@ const uid = () => ++_uid;
 /* ================= 데이터 ================= */
 const EMO = { anger: '분노', calm: '냉정', hope: '희망', fear: '공포', bond: '유대', mourn: '추모' };
 const BASIC = ['anger', 'calm', 'hope'];
-const RULE = { battleSupply: 1, eliteSupply: 3, frontMax: 6, frontPush: 3, randomDraw: 3, frontStress: 2, threatStress: 4, baseFear: 1, cardLossStress: 2, winRelief: 3 };
+const RULE = { battleSupply: 1, eliteSupply: 3, frontMax: 6, frontPush: 3, randomDraw: 3, minHand: 3, frontStress: 2, threatStress: 4, baseFear: 1, cardLossStress: 2, winRelief: 3 };
 
 const SIGILS = {
   fly: { name: '비행', desc: '앞 카드를 넘어가 그 공격력만큼 전선 게이지를 바로 밉니다.' },
@@ -1610,7 +1610,7 @@ function newBattle(cfg) {
     stress: cfg.stress || 0, supply: cfg.supply === undefined ? 8 : cfg.supply,
     brokeOnce: !!cfg.brokeOnce, effects: { ...(cfg.effects || {}) },
     floor: cfg.floor || 1, front: 0, frontMax: enc.front || RULE.frontMax, frontPush: Math.floor((enc.front || RULE.frontMax) / 2), turn: 0, p: [null, null, null, null], e: [null, null, null, null], tele: [null, null, null, null],
-    deck: [], hand: [], discard: [], master: [], tokens: [], kept: [], keepMark: null, bag: [],
+    deck: [], hand: [], discard: [], master: [], tokens: [], kept: [], keepMark: null, bag: [], fallenThisTurn: 0,
     mournCount: 0, bossFear: 0, kills: {}, cmdCd: 0, crisisUsed: false, bustImmuneUsed: false,
     extraCount: 0, extraIds: [], actionTaken: false, exchangeUsed: false,
     momentum: false, counterBuff: false, holdFront: false, phaseBreak: false,
@@ -1678,6 +1678,12 @@ function startTurn() {
   S.kept.forEach(t => S.tokens.push(mkTok(t)));
   S.kept = [];
   drawCard();
+  const fallen = S.fallenThisTurn || 0;
+  S.fallenThisTurn = 0;
+  const target = fallen >= 2 ? 4 : RULE.minHand;
+  let filled = 0;
+  while (!S.over && S.hand.length < target && drawCard()) filled++;
+  if (filled) log(fallen >= 2 ? `아군 ${fallen}장이 쓰러져 손패를 ${S.hand.length}장까지 보충했습니다` : `손패가 부족해 ${S.hand.length}장까지 보충했습니다`, 'sys');
 }
 
 function canExtra() { return !S.over && !S.actionTaken && S.extraCount < 3 && S.bag.length > 0; }
@@ -2246,8 +2252,10 @@ function endTurnInner() {
   S.phaseBreak = false;
   if (S.over) return;
   S.counterBuff = false; S.momentum = false;
+  const alliesBeforeEnemy = S.p.filter(Boolean).length;
   enemyTurn();
   if (S.over) return;
+  S.fallenThisTurn = Math.max(0, alliesBeforeEnemy - S.p.filter(Boolean).length);
   if (resolveFront()) return;
   startTurn();
 }
@@ -4207,7 +4215,7 @@ const TUT_STEPS = [
   { title: '턴 종료', tap: () => '[data-act=end]', allowEnd: true, done: () => S.turn >= 2,
     text: () => '턴 종료를 누르면 우리 카드가 왼쪽부터 공격하고, 적이 반격한 뒤, 예고 줄의 적이 내려옵니다. 눌러서 지켜보세요.' },
   { title: '한 턴이 지났습니다', focus: '.front', next: true,
-    text: () => `전선이 ${S.front > 0 ? `+${S.front}로 밀렸습니다` : '움직였습니다'}. 적을 막는 카드와 빈 줄로 전선을 미는 카드를 섞어 내는 것이 기본입니다. 새 턴이 되면 토큰을 다시 받고 카드를 1장 뽑습니다. 보관한 토큰도 돌아왔어요.` },
+    text: () => `전선이 ${S.front > 0 ? `+${S.front}로 밀렸습니다` : '움직였습니다'}. 적을 막는 카드와 빈 줄로 전선을 미는 카드를 섞어 내는 것이 기본입니다. 새 턴이 되면 토큰을 다시 받고 카드를 1장 뽑으며, 손패가 3장 미만이면 보충합니다. 보관한 토큰도 돌아왔어요.` },
   { title: '동료 카드', tap: () => playTap(isComp, firstEmpty), done: () => S.p.some(u => u && u.comp),
     enter: () => {
       let c = S.hand.find(x => x.comp && compById(x.comp).status !== 'dead');
@@ -4540,7 +4548,7 @@ function pileSheet() {
   const gone = S.comps.filter(c => !S.deck.some(x => x.comp === c.id) && !S.hand.some(x => x.comp === c.id) && !S.p.some(u => u && u.comp === c.id) && !S.discard.some(x => x.comp === c.id));
   return `<div class="sheet top"><div class="sheet-body pile-sheet">
     <h2>덱과 버린 더미</h2>
-    <p class="soft small">카드에는 대기 시간이 없습니다. 매 턴 덱에서 1장씩 뽑고, 쓰러진 무명 카드는 버린 더미로 갑니다. 덱이 비면 버린 더미를 섞어 다시 덱으로 만들고, 이때 스트레스가 3 오릅니다. 쓰러진 동료 카드는 사선이 되어 이번 전투에서 빠집니다.</p>
+    <p class="soft small">매 턴 카드를 1장 뽑고 손패가 3장 미만이면 3장까지 보충합니다. 한 턴에 아군 카드가 2장 이상 쓰러지면 다음 턴에는 4장까지 보충합니다. 쓰러진 무명 카드는 버린 더미로 가며, 덱이 비면 버린 더미를 섞어 다시 덱으로 만들고 스트레스가 3 오릅니다. 쓰러진 동료 카드는 사선이 되어 이번 전투에서 빠집니다.</p>
     <div class="pile-cols">
       <div><h3>덱 ${S.deck.length}장 <small class="soft">(뽑는 순서는 비밀)</small></h3><ul>${byName(S.deck)}</ul></div>
       <div><h3>버린 더미 ${S.discard.length}장</h3><ul>${byName(S.discard)}</ul></div>
@@ -5119,7 +5127,7 @@ function costHtml(cost) {
   return Object.entries(cost).map(([e, n]) => Array.from({ length: n }, () => `<i class="pip t-${e}" title="${EMO[e]}">${EMO[e][0]}</i>`).join('')).join('');
 }
 function handHtml() {
-  const drawHint = S.deck.length ? '턴마다 덱에서 1장 뽑음' : S.discard.length ? '다음 턴 버린 더미를 섞어 1장 뽑음' : '덱과 버린 더미가 비어 추가로 뽑을 카드 없음';
+  const drawHint = S.deck.length || S.discard.length ? '다음 턴 1장 · 손패 3장 미만이면 보충' : '덱과 버린 더미가 비어 추가로 뽑을 카드 없음';
   const head = `<div class="hand-head"><span>손패 ${S.hand.length}장 <small class="soft">${drawHint}</small></span><button class="btn small-btn" data-act="pile-info">덱 ${S.deck.length}장 · 버린 더미 ${S.discard.length}장</button></div>`;
   if (!S.hand.length) return head + '<section class="hand empty-hand"><span class="soft small">손패가 비었습니다</span></section>';
   return head + `<section class="hand">${S.hand.map((card, i) => {
