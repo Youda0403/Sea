@@ -786,8 +786,8 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 .n-legacy { background: #f3e2a8; border-color: var(--brass); color: #6b4a0e; }
 .runend .card-row.wrap { margin: .6rem 0; }
 .runend .shard-panel h2, .runend h2 { margin-bottom: .3rem; }
-.av.framed, .rc .av.framed, .camp-row .av.framed, .pick .av.framed { box-shadow: 0 0 0 3px #b28736; }
-.av.sm.framed { box-shadow: 0 0 0 2px #b28736; }
+.av.framed, .rc .av.framed, .camp-row .av.framed, .pick .av.framed { box-shadow: 0 0 0 2px var(--table), 0 0 0 4px #d9a84e, 0 0 0 5.5px #8a6420; }
+.av.sm.framed { box-shadow: 0 0 0 1px var(--table), 0 0 0 2.5px #d9a84e; }
 
 /* ================= v0.17: 세계관, 튜토리얼, 도움말 ================= */
 .tagline { font-family: "Gowun Batang", serif; font-size: 1.02rem !important; color: var(--ink); }
@@ -962,18 +962,20 @@ main.battle.tut { padding-bottom: 13rem; }
 
 /* Gift form and optional portrait borders */
 .gift-recv{display:block}.gift-recv-body{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-top:12px}.gift-recv-body textarea{margin:0;min-height:90px}.gift-recv-submit{display:block;width:100%;min-height:44px;text-align:center;margin:0;padding:12px 16px;box-sizing:border-box}.gift-recv-body p{margin:0}
-.av.frame-silver{box-shadow:0 0 0 3px #738696}
-.av.frame-forest{box-shadow:0 0 0 3px #568462}
-.av.frame-rose{box-shadow:0 0 0 3px #a76c7f}
-.av.sm.frame-silver{box-shadow:0 0 0 2px #738696}
-.av.sm.frame-forest{box-shadow:0 0 0 2px #568462}
-.av.sm.frame-rose{box-shadow:0 0 0 2px #a76c7f}
+.av.frame-silver{box-shadow:0 0 0 2px var(--table),0 0 0 4px #cbd8e1,0 0 0 5.5px #738696}
+.av.frame-forest{box-shadow:0 0 0 2px var(--table),0 0 0 4px #80aa8a,0 0 0 5.5px #375b42}
+.av.frame-rose{box-shadow:0 0 0 2px var(--table),0 0 0 4px #dba5b0,0 0 0 5.5px #996371}
+.av.sm.frame-silver,.av.sm.frame-forest,.av.sm.frame-rose{outline:0;box-shadow:0 0 0 1px var(--table),0 0 0 2.5px #95a9b6}.av.sm.frame-forest{box-shadow:0 0 0 1px var(--table),0 0 0 2.5px #80aa8a}.av.sm.frame-rose{box-shadow:0 0 0 1px var(--table),0 0 0 2.5px #dba5b0}
 
-/* 구매한 테두리는 카드 바깥이 아니라 카드 속 둥근 초상화에만 둘러줍니다. */
-.av.sm.corner:is(.framed,.frame-silver,.frame-forest,.frame-rose),.av.ph:is(.framed,.frame-silver,.frame-forest,.frame-rose){border:0}
-.rc .av.lg.frame-silver{box-shadow:0 0 0 3px #738696}
-.rc .av.lg.frame-forest{box-shadow:0 0 0 3px #568462}
-.rc .av.lg.frame-rose{box-shadow:0 0 0 3px #a76c7f}
+/* 카드 안의 작은 얼굴만 회색 고리 없이 얇은 색 테두리로 표시합니다. */
+.hcard .av.sm:is(.framed,.frame-silver,.frame-forest,.frame-rose),.slot.unit .av.sm:is(.framed,.frame-silver,.frame-forest,.frame-rose){border:0}
+.hcard .av.sm.framed,.slot.unit .av.sm.framed{box-shadow:0 0 0 1.5px #d9a84e}
+.hcard .av.sm.frame-silver,.slot.unit .av.sm.frame-silver{box-shadow:0 0 0 1.5px #95a9b6}
+.hcard .av.sm.frame-forest,.slot.unit .av.sm.frame-forest{box-shadow:0 0 0 1.5px #80aa8a}
+.hcard .av.sm.frame-rose,.slot.unit .av.sm.frame-rose{box-shadow:0 0 0 1.5px #dba5b0}
+.rc .av.lg.frame-silver{box-shadow:0 0 0 2px var(--table),0 0 0 4px #cbd8e1,0 0 0 5.5px #738696}
+.rc .av.lg.frame-forest{box-shadow:0 0 0 2px var(--table),0 0 0 4px #80aa8a,0 0 0 5.5px #375b42}
+.rc .av.lg.frame-rose{box-shadow:0 0 0 2px var(--table),0 0 0 4px #dba5b0,0 0 0 5.5px #996371}
 </style>
 </head>
 <body>
