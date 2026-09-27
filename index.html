@@ -895,10 +895,6 @@ main.battle.tut { padding-bottom: 13rem; }
 /* v0.22: 궁극기 바로 쓰기 버튼 */
 .actions .ult-quick { margin-top: .5rem; }
 @media (prefers-reduced-motion: no-preference) { .actions .ult-quick { animation: ult-glow 1.6s ease-in-out infinite; } @keyframes ult-glow { 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass) 45%, transparent); } } }
-/* v0.23: 엔딩 */
-.ending .the-end { display: block; margin-top: 1.4rem; font-family: "Gowun Batang", serif; font-size: 1.6rem; color: var(--brass); letter-spacing: .3em; }
-/* v0.23: 엔딩 */
-.ending .the-end { display: block; margin-top: 1.4rem; font-family: "Gowun Batang", serif; font-size: 1.6rem; color: var(--brass); letter-spacing: .3em; }
 /* v0.24: 첫 캐릭터, 용어 사전 */
 .fc-name { width: 100%; font-size: 16px; padding: .6rem .7rem; border-radius: var(--r); border: 1px solid var(--line); background: var(--table-2); color: var(--ink); }
 .fc-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
@@ -3530,6 +3526,7 @@ function renderRunEnd() {
     <h1>${title}</h1>
     ${r.fromPrep ? `<p class="story-line">${esc(r.cleared ? EPILOGUE_FINAL : EPILOGUE_FAIL)}</p>` : ''}
     <section class="panel"><p>${lines.join('<br>')}</p><p class="soft small">${cs}</p></section>
+    ${r.fromPrep && r.cleared ? '<p class="soft small">다음 원정에서는 거점의 출정 준비에서 탑의 무게를 고를 수 있습니다.</p>' : ''}
     ${reportHtml(ensureRunReport(r))}
     ${shard}
     ${br ? `<section class="panel"><h2>남은 유대</h2><ul class="bond-list">${br}</ul><p class="soft small">런에서 쌓은 유대의 절반이 다음 런으로 이어집니다.</p></section>` : ''}
@@ -3964,13 +3961,13 @@ function endingPages(run) {
     { head: '되찾은 것', text: '빛 하나를 쥐자 누군가의 웃음소리가 들립니다. 이름이, 얼굴이, 함께 걷던 거리가 돌아옵니다.' },
     third,
     { head: '탑이 가라앉다', text: '탑이 천천히 가라앉습니다. 도시 곳곳에서 사람들이 고개를 들고, 잊었던 이름을 부르는 소리가 들려옵니다.' },
-    { head: '끝, 그리고', text: '거점으로 돌아가는 길은 올라올 때보다 훨씬 짧게 느껴집니다. 탑의 무게를 올려 다시 오를 수도 있습니다.', last: true },
+    { head: '돌아오는 길', text: '탑을 내려와 거점으로 향합니다. 뒤돌아보면, 탑이 있던 자리에는 빈 하늘이 보입니다. 당신은 기억해 낸 이름들을 마음속으로 하나씩 불러 봅니다. 그리고 다시 걸음을 옮깁니다. 그 모든 이름들을 품에 안은 채.', last: true },
   ];
 }
 function renderEnding() {
   const pages = endingPages(RUN); const i = Math.min(UI.endPage || 0, pages.length - 1); const pg = pages[i];
   app.innerHTML = `<main class="story-screen ending" data-act="ending-next">
-    <div class="story-page" data-pg="${i}"><small>${esc(pg.head)}</small><p>${esc(pg.text)}</p>${pg.last ? '<b class="the-end">끝</b>' : ''}</div>
+    <div class="story-page" data-pg="${i}"><small>${esc(pg.head)}</small><p>${esc(pg.text)}</p></div>
     <div class="story-foot"><span class="story-dots">${pages.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span><span class="soft small">${pg.last ? '눌러서 결과 보기' : '눌러서 계속'}</span></div>
   </main>`;
 }
