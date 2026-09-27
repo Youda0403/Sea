@@ -786,8 +786,8 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 .n-legacy { background: #f3e2a8; border-color: var(--brass); color: #6b4a0e; }
 .runend .card-row.wrap { margin: .6rem 0; }
 .runend .shard-panel h2, .runend h2 { margin-bottom: .3rem; }
-.av.framed, .rc .av.framed, .camp-row .av.framed, .pick .av.framed { box-shadow: 0 0 0 2px var(--table), 0 0 0 4px #d9a84e, 0 0 0 5.5px #8a6420; }
-.av.sm.framed { box-shadow: 0 0 0 1px var(--table), 0 0 0 2.5px #d9a84e; }
+.av.framed, .rc .av.framed, .camp-row .av.framed, .pick .av.framed { box-shadow: 0 0 0 3px #b28736; }
+.av.sm.framed { box-shadow: 0 0 0 2px #b28736; }
 
 /* ================= v0.17: 세계관, 튜토리얼, 도움말 ================= */
 .tagline { font-family: "Gowun Batang", serif; font-size: 1.02rem !important; color: var(--ink); }
@@ -962,20 +962,18 @@ main.battle.tut { padding-bottom: 13rem; }
 
 /* Gift form and optional portrait borders */
 .gift-recv{display:block}.gift-recv-body{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-top:12px}.gift-recv-body textarea{margin:0;min-height:90px}.gift-recv-submit{display:block;width:100%;min-height:44px;text-align:center;margin:0;padding:12px 16px;box-sizing:border-box}.gift-recv-body p{margin:0}
-.av.frame-silver{box-shadow:0 0 0 2px var(--table),0 0 0 4px #cbd8e1,0 0 0 5.5px #738696}
-.av.frame-forest{box-shadow:0 0 0 2px var(--table),0 0 0 4px #80aa8a,0 0 0 5.5px #375b42}
-.av.frame-rose{box-shadow:0 0 0 2px var(--table),0 0 0 4px #dba5b0,0 0 0 5.5px #996371}
-.av.sm.frame-silver,.av.sm.frame-forest,.av.sm.frame-rose{outline:0;box-shadow:0 0 0 1px var(--table),0 0 0 2.5px #95a9b6}.av.sm.frame-forest{box-shadow:0 0 0 1px var(--table),0 0 0 2.5px #80aa8a}.av.sm.frame-rose{box-shadow:0 0 0 1px var(--table),0 0 0 2.5px #dba5b0}
+.av.frame-silver{box-shadow:0 0 0 3px #738696}
+.av.frame-forest{box-shadow:0 0 0 3px #568462}
+.av.frame-rose{box-shadow:0 0 0 3px #a76c7f}
+.av.sm.frame-silver{box-shadow:0 0 0 2px #738696}
+.av.sm.frame-forest{box-shadow:0 0 0 2px #568462}
+.av.sm.frame-rose{box-shadow:0 0 0 2px #a76c7f}
 
-/* 선택한 초상화 테두리를 로스터의 작은 초상화와 동료 카드에도 적용합니다. */
-.rc .av.lg.frame-silver{box-shadow:0 0 0 2px var(--table),0 0 0 4px #cbd8e1,0 0 0 5.5px #738696}
-.rc .av.lg.frame-forest{box-shadow:0 0 0 2px var(--table),0 0 0 4px #80aa8a,0 0 0 5.5px #375b42}
-.rc .av.lg.frame-rose{box-shadow:0 0 0 2px var(--table),0 0 0 4px #dba5b0,0 0 0 5.5px #996371}
-.hcard.comp.framed,.slot.unit.comp.framed{--character-frame:#d9a84e}
-.hcard.comp.frame-silver,.slot.unit.comp.frame-silver{--character-frame:#738696}
-.hcard.comp.frame-forest,.slot.unit.comp.frame-forest{--character-frame:#375b42}
-.hcard.comp.frame-rose,.slot.unit.comp.frame-rose{--character-frame:#996371}
-.hcard.comp:is(.framed,.frame-silver,.frame-forest,.frame-rose),.slot.unit.comp:is(.framed,.frame-silver,.frame-forest,.frame-rose){outline:2px solid var(--character-frame);outline-offset:1px}
+/* 구매한 테두리는 카드 바깥이 아니라 카드 속 둥근 초상화에만 둘러줍니다. */
+.av.sm.corner:is(.framed,.frame-silver,.frame-forest,.frame-rose){border:0}
+.rc .av.lg.frame-silver{box-shadow:0 0 0 3px #738696}
+.rc .av.lg.frame-forest{box-shadow:0 0 0 3px #568462}
+.rc .av.lg.frame-rose{box-shadow:0 0 0 3px #a76c7f}
 </style>
 </head>
 <body>
@@ -3316,13 +3314,13 @@ function cardHtml(card, opts) {
   if (info.desperate) cls.push('desp');
   if (info.awk) cls.push('awk');
   if (info.fused) cls.push('fused');
-  if (info.comp && charById(info.comp)) cls.push(frameCls().trim());
   if (o.sel) cls.push('sel');
   if (o.dim) cls.push('dim');
   const tag = o.act ? 'button' : 'div';
   const attrs = o.act ? ` data-act="${o.act}"${o.data || ''}` : '';
   const xp = !info.awk && card.cid ? `<span class="xp" title="처치 ${info.xp}회 · 각성까지 총 3회">${[0, 1, 2].map(i => `<i class="${i < info.xp ? 'on' : ''}"></i>`).join('')}</span>` : '';
   return `<${tag} class="${cls.join(' ')}"${attrs}>
+    ${info.comp && charById(info.comp)?.portrait ? `<img class="av sm corner${frameCls()}" src="${charById(info.comp).portrait}" alt="">` : ''}
     <span class="cost">${costHtml(info.cost)}</span>
     <span class="h-name">${esc(info.name)}</span>
     <span class="h-sig">${esc(sigText(info.sig))}${info.fused ? ' <em class="bd">엮임</em>' : ''}${info.awk ? ' <em class="bd good">각성</em>' : ''}</span>
@@ -4669,7 +4667,7 @@ function renderEditor() {
       <h2>미리 보기</h2>
       <p class="title-line">성격 칭호 ${titleHtml(d) || '<span class="soft">키워드를 고르면 나타납니다</span>'} <span class="soft small">핵심 키워드와 첫 보조 키워드의 조합으로 정해집니다</span></p>
       <div class="pv-row">
-        <div class="hcard comp pv${frameCls()}">${d.portrait ? `<img class="av sm${frameCls()}" src="${d.portrait}" alt="">` : ''}<span class="cost">${cost}</span><span class="h-name">${esc(d.name || '이름')}</span><span class="h-sig">${esc(SIGILS[d.sigil].name)}</span><span class="u-stats"><b class="atk">${st.atk}</b><span class="rng">${rangeWord(st.sig, st.atk)}</span><b class="hp">${st.hp}</b></span></div>
+        <div class="hcard comp pv">${d.portrait ? `<img class="av sm${frameCls()}" src="${d.portrait}" alt="">` : ''}<span class="cost">${cost}</span><span class="h-name">${esc(d.name || '이름')}</span><span class="h-sig">${esc(SIGILS[d.sigil].name)}</span><span class="u-stats"><b class="atk">${st.atk}</b><span class="rng">${rangeWord(st.sig, st.atk)}</span><b class="hp">${st.hp}</b></span></div>
         <ul class="soft small pv-notes">
           <li>동료일 때 주머니에 <b>${EMO[KEYWORDS[d.core].emo]}</b>, <b>${EMO[KEYWORDS[d.aux[0]].emo]}</b> 토큰을 넣습니다.</li>
           <li>주인공일 때 매 턴 <b>${EMO[KEYWORDS[d.core].emo]}</b> 토큰 1개를 확정으로 받습니다.</li>
@@ -5004,7 +5002,7 @@ function slotHtml(u, side, lane) {
   }
   if (!u) return `<button class="${cls.join(' ')} empty" data-side="${side}" data-lane="${lane}" aria-label="${lane + 1}번 레인 빈 칸">${rtag}</button>`;
   cls.push('unit');
-  if (u.comp) { cls.push('comp'); if (charById(u.comp)) cls.push(frameCls().trim()); }
+  if (u.comp) cls.push('comp');
   if (u.boss) cls.push('boss-unit');
   else if (u.elite) cls.push('elite-unit');
   const atk = side === 't' ? u.atk : effAtk(u, side, lane);
@@ -5127,7 +5125,7 @@ function handHtml() {
     const cls = ['hcard'];
     if (!findPayment(info.cost)) cls.push('dim');
     if (UI.mode === 'play' && UI.sel === i) cls.push('sel');
-    if (info.comp) { cls.push('comp'); if (charById(info.comp)) cls.push(frameCls().trim()); }
+    if (info.comp) cls.push('comp');
     if (info.desperate) cls.push('desp');
     const c = info.comp ? compById(info.comp) : null;
     const pc = info.comp ? charById(info.comp) : null;
