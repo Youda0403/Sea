@@ -2462,7 +2462,7 @@ function campRest(run) {
   run.lastCamp = { kind: 'rest', text: `불 곁에서 푹 쉬었습니다. 스트레스 ${b} → ${run.stress}, 보급 −${CAMP_COST}` };
   return { ok: true };
 }
-function restAmount(run) { return (run.relics.includes('herbs') ? 35 : 25) - ((run.diff || 0) >= 2 ? 10 : 0) + (run.perks && run.perks.campComfort ? 5 : 0); }
+function restAmount(run) { return (run.relics.includes('herbs') ? 35 : 25) - ((run.diff || 0) >= 2 ? 5 : 0) + (run.perks && run.perks.campComfort ? 5 : 0); }
 function campHeal(run, id) {
   if (run.camped) return { ok: false, msg: '이번 야영에서는 이미 한 가지를 했습니다' };
   const c = run.comps.find(x => x.id === id);
@@ -2631,14 +2631,14 @@ function encFor(node, stage) {
 const STAGES = { 1: { name: '스테이지 1', sub: '무너진 거리' }, 2: { name: '스테이지 2', sub: '잊힌 방들', desc: '탑 안쪽은 적이 더 단단하고, 새 엘리트와 보스가 기다립니다.' }, 3: { name: '스테이지 3', sub: '망각의 꼭대기', desc: '탑의 꼭대기입니다. 빼앗긴 기억이 모두 이곳에 있고, 마지막 보스가 기다립니다.' } };
 const MAX_STAGE = 3;
 function stageLabel(run) { const s = STAGES[run.stage || 1]; return `${s.name} · ${s.sub}`; }
+function stageSupplyAmount(run) { return (run.perks && run.perks.stairCache ? 3 : 2) - ((run.weightRulesVersion || 1) >= 2 && (run.diff || 0) >= 1 ? 1 : 0); }
 function advanceStage(run) {
   if (!run.stageDone || (run.stage || 1) >= MAX_STAGE) return { ok: false };
   run.stage = (run.stage || 1) + 1; run.stageDone = false;
   run.map = genMap(run.stage); run.pos = null; run.floor = 0; run.path = [];
   run.camped = false; run.fused = false; run.reward = null; run.event = null; run.shop = null;
   const b = run.stress; run.stress = Math.min(50, Math.max(0, b - 25));
-  const stageSupply = (run.perks && run.perks.stairCache ? 3 : 2) - ((run.weightRulesVersion || 1) >= 2 && (run.diff || 0) >= 1 ? 1 : 0);
-  const g = gainSupply(run, stageSupply);
+  const g = gainSupply(run, stageSupplyAmount(run));
   const healed = run.comps.filter(c => c.status === 'saseon');
   healed.forEach(c => { c.status = 'ok'; });
   return { ok: true, text: `계단참에서 숨을 골랐습니다. 스트레스 ${b} → ${run.stress}, 보급 +${g}${healed.length ? `. ${healed.map(c => c.name).join(', ')} 사선 치료` : ''}` };
@@ -3293,7 +3293,7 @@ function selectSkin(group, style) {
 const DIFFS = [
   { name: '무게 0', desc: '기본 난이도', bonus: 0 },
   { name: '무게 1', desc: '시작 보급 −2 · 스테이지 이동 보급 −1', bonus: 0.2 },
-  { name: '무게 2', desc: '야영 휴식 회복 −10', bonus: 0.4 },
+  { name: '무게 2', desc: '야영 휴식 회복 −5', bonus: 0.4 },
   { name: '무게 3', desc: '주머니의 공포 토큰 +1', bonus: 0.6 },
   { name: '무게 4', desc: '엘리트 체력 +2, 보스 체력 +3', bonus: 0.8 },
   { name: '무게 5', desc: '6층부터 모든 적 체력 +1', bonus: 1 },
@@ -3560,7 +3560,7 @@ function renderStage() {
     ${runHead()}
     <section class="panel"><h2>다음: ${esc(next.name)} · ${esc(next.sub)}</h2>
       <p class="small">${esc(next.desc || '')} 계단참에서 잠시 쉬고 올라갑니다.</p>
-      <p class="soft small">스트레스 ${r.stress} → ${Math.min(50, Math.max(0, r.stress - 25))}: 25 회복 후에도 50을 넘으면 50까지 낮춥니다. 보급 +${r.perks && r.perks.stairCache ? 3 : 2}, 사선 동료는 모두 치료합니다. 사망한 동료는 돌아오지 않으며, 정신력 한계 기록과 붕괴·각성 효과는 유지됩니다.</p></section>
+      <p class="soft small">스트레스 ${r.stress} → ${Math.min(50, Math.max(0, r.stress - 25))}: 25 회복 후에도 50을 넘으면 50까지 낮춥니다. 보급 +${stageSupplyAmount(r)}, 사선 동료는 모두 치료합니다. 사망한 동료는 돌아오지 않으며, 정신력 한계 기록과 붕괴·각성 효과는 유지됩니다.</p></section>
     <button class="btn primary big" data-act="next-stage">계단을 오른다</button>
     ${deckOverlay()}${cardSheet()}
   </main>`;
