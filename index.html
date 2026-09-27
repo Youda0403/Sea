@@ -1537,7 +1537,7 @@ function mkUnit(card, info, bonus) {
 function snapUnit(u) { return u ? { ...u, sig: u.sig.slice() } : null; }
 function rec(type, data) {
   if (!S.recording) return;
-  S.events.push({ type, ...data, snap: { p: S.p.map(snapUnit), e: S.e.map(snapUnit), tele: S.tele.map(snapUnit), front: S.front, stress: S.stress, turn: S.turn } });
+  S.events.push({ type, ...data, snap: { p: S.p.map(snapUnit), e: S.e.map(snapUnit), tele: S.tele.map(snapUnit), front: S.front, stress: S.stress, turn: S.turn, enemyRage: !!S.enemyRage } });
 }
 function mkTok(t, extra) { return { id: uid(), t, extra: !!extra }; }
 
@@ -1941,7 +1941,7 @@ function companionDown(u) {
   say(c, 'down');
   crushRageFor(c);
   log(`${jo(c.name, '이', '가')} 사선에 섰습니다. 한 번 더 쓰러지면 사망합니다`, 'bad');
-  addStress((c.merc ? 5 : kwsOf(c).includes('timid') ? 5 : 10) + (kwsOf(c).includes('perfect') ? 5 : 0) + (kwsOf(c).includes('chatty') ? 5 : 0), '동료 사선');
+  addStress((c.merc ? 5 : kwsOf(c).includes('timid') ? 2 : 5) + (kwsOf(c).includes('perfect') ? 5 : 0) + (kwsOf(c).includes('chatty') ? 5 : 0), '동료 사선');
 }
 
 function crushRageFor(c) {
@@ -1977,7 +1977,7 @@ function companionDie(c) {
   S.deck = S.deck.filter(x => x.comp !== c.id);
   S.discard = S.discard.filter(x => x.comp !== c.id);
   for (let l = 0; l < 4; l++) if (S.p[l] && S.p[l].comp === c.id) S.p[l] = null;
-  let s = c.merc ? 10 : lvl >= 3 ? 30 : 20;
+  let s = c.merc ? 10 : lvl >= 3 ? 20 : 15;
   if (kwsOf(c).includes('indiff') || kwsOf(S.pro).includes('indiff')) s = Math.floor(s / 2);
   if (partyHas('kind')) s += 5;
   if (hasRelic('ring')) s = Math.max(0, s - 10);
@@ -2480,8 +2480,10 @@ function advanceStage(run) {
   run.stage = (run.stage || 1) + 1; run.stageDone = false;
   run.map = genMap(run.stage); run.pos = null; run.floor = 0; run.path = [];
   run.camped = false; run.fused = false; run.reward = null; run.event = null; run.shop = null;
-  const b = run.stress; runAddStress(run, -20); const g = gainSupply(run, 2);
-  return { ok: true, text: `계단참에서 숨을 골랐습니다. 스트레스 ${b} → ${run.stress}, 보급 +${g}` };
+  const b = run.stress; run.stress = Math.min(50, Math.max(0, b - 25)); const g = gainSupply(run, 2);
+  const healed = run.comps.filter(c => c.status === 'saseon');
+  healed.forEach(c => { c.status = 'ok'; });
+  return { ok: true, text: `계단참에서 숨을 골랐습니다. 스트레스 ${b} → ${run.stress}, 보급 +${g}${healed.length ? `. ${healed.map(c => c.name).join(', ')} 사선 치료` : ''}` };
 }
 
 /* ================= 보상 ================= */
@@ -3280,7 +3282,7 @@ function renderStage() {
     ${runHead()}
     <section class="panel"><h2>다음: ${esc(next.name)} · ${esc(next.sub)}</h2>
       <p class="small">${esc(next.desc || '')} 계단참에서 잠시 쉬고 올라갑니다.</p>
-      <p class="soft small">스트레스 −20, 보급 +2. 덱, 유물, 동료 상태와 유대는 그대로 이어집니다.</p></section>
+      <p class="soft small">스트레스 ${r.stress} → ${Math.min(50, Math.max(0, r.stress - 25))}: 25 회복 후에도 50을 넘으면 50까지 낮춥니다. 보급 +2, 사선 동료는 모두 치료합니다. 사망한 동료는 돌아오지 않으며, 정신력 한계 기록과 붕괴·각성 효과는 유지됩니다.</p></section>
     <button class="btn primary big" data-act="next-stage">계단을 오른다</button>
     ${deckOverlay()}${cardSheet()}
   </main>`;
@@ -4912,7 +4914,7 @@ function render() {
 }
 
 function renderSnap(sn) {
-  const bak = { p: S.p, e: S.e, tele: S.tele, front: S.front, stress: S.stress, turn: S.turn };
+  const bak = { p: S.p, e: S.e, tele: S.tele, front: S.front, stress: S.stress, turn: S.turn, enemyRage: S.enemyRage };
   Object.assign(S, sn);
   try { renderBattle(); } finally { Object.assign(S, bak); }
 }
