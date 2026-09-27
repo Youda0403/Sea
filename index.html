@@ -976,6 +976,42 @@ main.battle.tut { padding-bottom: 13rem; }
 .rc .av.lg.frame-silver{box-shadow:0 0 0 2px var(--table),0 0 0 4px #cbd8e1,0 0 0 5.5px #738696}
 .rc .av.lg.frame-forest{box-shadow:0 0 0 2px var(--table),0 0 0 4px #80aa8a,0 0 0 5.5px #375b42}
 .rc .av.lg.frame-rose{box-shadow:0 0 0 2px var(--table),0 0 0 4px #dba5b0,0 0 0 5.5px #996371}
+
+/* 기억 조각 꾸미기: 기본 화면과 감정/대상 표식은 유지합니다. */
+.unlock-group-title{font-size:.9rem;margin:1rem 0 .3rem;color:var(--ink-soft)}
+.ul-row .unlock-copy{display:flex;align-items:center;gap:.65rem;min-width:0}
+.ul-row .unlock-copy>span:last-child{display:grid;gap:.1rem;min-width:0}
+.skin-swatch{display:grid;place-items:center;flex:0 0 2.2rem;width:2.2rem;height:2.7rem;border:1px solid;border-radius:8px;font-size:1.1rem;box-shadow:inset 0 0 0 3px rgba(255,255,255,.55)}
+.skin-swatch-petal{background:linear-gradient(145deg,#fff9f4,#efd5e2);border-color:#c592ad;color:#a35580}
+.skin-swatch-starlight{background:linear-gradient(145deg,#f8f4ff,#ddd9f0);border-color:#8e82b5;color:#6b5b9d}
+.skin-swatch-storybook{background:radial-gradient(circle at 6px 6px,#e8b3c5 1px,transparent 2px) 0 0/11px 11px,#fff4eb;border-color:#d4a9b4;color:#ac648a}
+
+:root[data-card-skin="petal"] .hcard,:root[data-card-skin="petal"] .row-wrap.p .slot.unit{
+  background:radial-gradient(circle at 90% 14%,rgba(215,142,174,.35) 0 2px,transparent 2.5px),radial-gradient(circle at 78% 80%,rgba(215,142,174,.22) 0 3px,transparent 3.5px),linear-gradient(155deg,#fffaf4 10%,#f3dce6 100%);
+  border-color:#c592ad;border-radius:11px
+}
+:root[data-card-skin="petal"] .hcard::before,:root[data-card-skin="petal"] .row-wrap.p .slot.unit::before{border-color:rgba(173,97,136,.36);border-radius:8px}
+:root[data-card-skin="starlight"] .hcard,:root[data-card-skin="starlight"] .row-wrap.p .slot.unit{
+  background:radial-gradient(circle at 78% 18%,rgba(248,224,152,.86) 0 1px,transparent 2px),radial-gradient(circle at 20% 72%,rgba(151,137,194,.35) 0 1.5px,transparent 2.5px),linear-gradient(150deg,#fcf9f3,#e4e1f1);
+  border-color:#8e82b5;border-radius:10px
+}
+:root[data-card-skin="starlight"] .hcard::before,:root[data-card-skin="starlight"] .row-wrap.p .slot.unit::before{border-color:rgba(105,87,157,.4);border-radius:7px}
+:root[data-card-skin] .hcard.comp{border-bottom-color:#a8466f}
+:root[data-card-skin] .hcard.desp{background:linear-gradient(180deg,#efe6f0,#e2d6e6)}
+:root[data-card-skin] .hcard.fused{background:linear-gradient(135deg,#f6efdc,#e8ddc2 50%,#f1e6cb)}
+
+:root[data-page-skin="storybook"]{
+  --table:#fff5ee;--table-2:#f2e3e2;--ink:#3e3039;--ink-soft:#745b67;--line:#ceadb5;
+  --mat:#a1ad98;--mat-2:#839585;--mat-line:rgba(255,255,255,.6);
+  --own:#536e94;--foe:#9b5058;--good:#486e55;--bad:#a54051;--brass:#a65d82;
+  --r:11px;color-scheme:light
+}
+:root[data-page-skin="storybook"] body{
+  background:radial-gradient(circle at 6px 6px,rgba(182,119,145,.11) 1px,transparent 1.7px) 0 0/25px 25px,linear-gradient(145deg,#fff9f0,#f5e6e9)
+}
+:root[data-page-skin="storybook"] .panel{border-top-style:dotted}
+:root[data-page-skin="storybook"] .btn{border-radius:13px}
+:root[data-page-skin="storybook"] .btn.primary{box-shadow:0 2px 0 rgba(96,61,80,.2)}
 </style>
 </head>
 <body>
@@ -2339,7 +2375,7 @@ function newRun(cfg) {
     mode: cfg.mode || 'test', deck: (cfg.deck || START_DECK).map(k => newCard(k)), relics: [], notes: [],
     bench: (cfg.bench || []).map(c => ({ ...c, aux: c.aux.slice(), lines: { ...(c.lines || {}) } })),
     map: null, pos: null, floor: 0, usedEvents: [], recruited: false, reward: null, event: null, shop: null, cleared: false,
-    stage: 1, diff: cfg.diff || 0, bossWins: 0, stageDone: false,
+    stage: 1, diff: cfg.diff || 0, weightRulesVersion: 2, bossWins: 0, stageDone: false,
   };
 }
 /* 배치 고르기: 같은 상대의 배치(좌우 반전 포함)를 한 바퀴 다 만날 때까지 겹치지 않게 돌립니다 */
@@ -2599,7 +2635,9 @@ function advanceStage(run) {
   run.stage = (run.stage || 1) + 1; run.stageDone = false;
   run.map = genMap(run.stage); run.pos = null; run.floor = 0; run.path = [];
   run.camped = false; run.fused = false; run.reward = null; run.event = null; run.shop = null;
-  const b = run.stress; run.stress = Math.min(50, Math.max(0, b - 25)); const g = gainSupply(run, run.perks && run.perks.stairCache ? 3 : 2);
+  const b = run.stress; run.stress = Math.min(50, Math.max(0, b - 25));
+  const stageSupply = (run.perks && run.perks.stairCache ? 3 : 2) - ((run.weightRulesVersion || 1) >= 2 && (run.diff || 0) >= 1 ? 1 : 0);
+  const g = gainSupply(run, stageSupply);
   const healed = run.comps.filter(c => c.status === 'saseon');
   healed.forEach(c => { c.status = 'ok'; });
   return { ok: true, text: `계단참에서 숨을 골랐습니다. 스트레스 ${b} → ${run.stress}, 보급 +${g}${healed.length ? `. ${healed.map(c => c.name).join(', ')} 사선 치료` : ''}` };
@@ -3102,13 +3140,18 @@ const UNLOCKS = {
   frameForest: { name: '숲빛 테두리', desc: '초상화에 깊은 초록색 테두리를 두릅니다', cost: 30 },
   frameRose: { name: '장밋빛 테두리', desc: '초상화에 부드러운 장밋빛 테두리를 두릅니다', cost: 30 },
   slots12: { name: '로스터 슬롯 +2', desc: '캐릭터를 12명까지 만들 수 있습니다', cost: 35, req: 'slots10' },
+  cardPetal: { name: '꽃잎 카드', desc: '아군 카드와 손패에 분홍빛 종이 무늬를 입힙니다', cost: 30 },
+  cardStarlight: { name: '별빛 카드', desc: '아군 카드와 손패에 연보라색 별무늬를 입힙니다', cost: 40 },
+  pageStorybook: { name: '꽃빛 그림책', desc: '거점과 전투 화면을 포근한 분홍빛으로 꾸밉니다', cost: 55 },
 };
 const FRAME_STYLES = { silver: { name: '달빛 은테', unlock: 'frameSilver' }, forest: { name: '숲빛 테두리', unlock: 'frameForest' }, rose: { name: '장밋빛 테두리', unlock: 'frameRose' } };
+const CARD_SKINS = { petal: { unlock: 'cardPetal' }, starlight: { unlock: 'cardStarlight' } };
+const PAGE_SKINS = { storybook: { unlock: 'pageStorybook' } };
 const ROLE_EXTRA_SIGIL = { atk: 'execute', def: 'armor', sup: 'mend' };
 const SHARD_RULE = { floor: 1, elite: 2, boss: 10 };
 let META = null;
 
-function metaDefault() { return { v: 1, shards: 0, earned: 0, unlocks: [], legacy: null, runs: 0, clears: 0, best: 0, frame: false, frameOn: true, frameStyle: 'gold', seenPrologue: false, tutorialDone: false, tips: {}, tipsOn: true, maxDiff: 0, lastDiff: 0, gifts: [] }; }
+function metaDefault() { return { v: 1, shards: 0, earned: 0, unlocks: [], legacy: null, runs: 0, clears: 0, best: 0, frame: false, frameOn: true, frameStyle: 'gold', cardSkin: 'none', pageSkin: 'none', seenPrologue: false, tutorialDone: false, tips: {}, tipsOn: true, maxDiff: 0, lastDiff: 0, gifts: [] }; }
 function loadMeta() {
   try {
     const raw = localStorage.getItem(META_KEY); const d = raw ? JSON.parse(raw) : null;
@@ -3136,11 +3179,14 @@ function buyUnlock(k) {
   if (st === 'owned') return { ok: false, msg: '이미 해금했습니다' };
   if (st === 'locked') return { ok: false, msg: `먼저 ${UNLOCKS[u.req].name}(${UNLOCKS[u.req].cost})을 해금하세요` };
   if (st === 'short') return { ok: false, msg: '기억 조각이 부족합니다' };
-  META.shards -= u.cost; META.unlocks.push(k); saveMeta();
+  META.shards -= u.cost; META.unlocks.push(k);
+  for (const [skin, spec] of Object.entries(CARD_SKINS)) if (spec.unlock === k) META.cardSkin = skin;
+  for (const [skin, spec] of Object.entries(PAGE_SKINS)) if (spec.unlock === k) META.pageSkin = skin;
+  saveMeta();
   return { ok: true };
 }
 function rosterSlots() { return ROSTER_SLOTS + ['slots8', 'slots10', 'slots12'].filter(metaHas).length * 2; }
-function startSupply(diff) { return BASE_SUPPLY + (metaHas('supply') ? 1 : 0) + (metaHas('supply2') ? 1 : 0) - ((diff || 0) >= 1 ? 1 : 0); }
+function startSupply(diff) { return BASE_SUPPLY + (metaHas('supply') ? 1 : 0) + (metaHas('supply2') ? 1 : 0) - ((diff || 0) >= 1 ? 2 : 0); }
 function cardPool() { const open = metaHas('cards'); return Object.keys(CARDS).filter(k => !CARDS[k].meta || open); }
 /* all: 캐릭터 코드 검증용. 다른 사람이 만든 캐릭터는 해금과 무관하게 불러올 수 있게 둡니다 */
 function roleSigils(role, all) {
@@ -3230,11 +3276,22 @@ function selectFrame(style) {
   const m = meta(); m.frameOn = style !== 'none'; if (m.frameOn) m.frameStyle = style;
   saveMeta(); return true;
 }
+function selectedSkin(group, key) {
+  const own = group === 'card' ? CARD_SKINS : PAGE_SKINS;
+  const choice = meta()[group === 'card' ? 'cardSkin' : 'pageSkin'];
+  return choice && own[choice] && metaHas(own[choice].unlock) ? choice : 'none';
+}
+function selectSkin(group, style) {
+  const own = group === 'card' ? CARD_SKINS : group === 'page' ? PAGE_SKINS : null;
+  if (!own || (style !== 'none' && (!own[style] || !metaHas(own[style].unlock)))) return false;
+  const m = meta(); m[group === 'card' ? 'cardSkin' : 'pageSkin'] = style;
+  saveMeta(); return true;
+}
 
 /* ---------- 난이도: 탑의 무게 ---------- */
 const DIFFS = [
   { name: '무게 0', desc: '기본 난이도', bonus: 0 },
-  { name: '무게 1', desc: '시작 보급 −1', bonus: 0.2 },
+  { name: '무게 1', desc: '시작 보급 −2 · 스테이지 이동 보급 −1', bonus: 0.2 },
   { name: '무게 2', desc: '야영 휴식 회복 −10', bonus: 0.4 },
   { name: '무게 3', desc: '주머니의 공포 토큰 +1', bonus: 0.6 },
   { name: '무게 4', desc: '엘리트 체력 +2, 보스 체력 +3', bonus: 0.8 },
@@ -3711,15 +3768,21 @@ function resumeRun() {
 function unlockRowHtml(k) {
   const u = UNLOCKS[k]; const st = unlockState(k);
   const frame = Object.keys(FRAME_STYLES).find(x => FRAME_STYLES[x].unlock === k);
-  const selected = frame && meta().frameOn && meta().frameStyle === frame;
+  const cardSkin = Object.keys(CARD_SKINS).find(x => CARD_SKINS[x].unlock === k);
+  const pageSkin = Object.keys(PAGE_SKINS).find(x => PAGE_SKINS[x].unlock === k);
+  const selected = frame ? meta().frameOn && meta().frameStyle === frame
+    : cardSkin ? selectedSkin('card') === cardSkin : pageSkin ? selectedSkin('page') === pageSkin : false;
+  const skin = cardSkin || pageSkin;
   // v0.28: 테두리 적용/해제를 버튼 하나로 토글(다시 누르면 해제)
-  const btn = st === 'owned' ? (frame ? `<button class="btn small-btn${selected ? ' primary' : ''}" data-act="frame-select" data-k="${selected ? 'none' : frame}">${selected ? '사용 중 (끄기)' : '적용'}</button>` : '<span class="bd good">해금됨</span>')
+  const btn = st === 'owned' ? (frame || skin ? `<button class="btn small-btn${selected ? ' primary' : ''}" data-act="${frame ? 'frame-select' : 'skin-select'}" ${skin ? `data-group="${cardSkin ? 'card' : 'page'}"` : ''} data-k="${selected ? 'none' : frame || skin}">${selected ? '사용 중 (끄기)' : '적용'}</button>` : '<span class="bd good">해금됨</span>')
     : st === 'locked' ? '<span class="soft small">앞 단계 먼저</span>'
     : `<button class="btn small-btn${st === 'ready' ? ' primary' : ''}" data-act="unlock" data-k="${k}"${st === 'ready' ? '' : ' disabled'}>조각 ${u.cost}</button>`;
-  return `<li class="ul-row ${st}"><div><b>${esc(u.name)}</b><small>${esc(u.desc)}</small></div>${btn}</li>`;
+  const preview = skin ? `<span class="skin-swatch skin-swatch-${skin}" aria-hidden="true">${cardSkin ? cardSkin === 'petal' ? '✿' : '✦' : '♥'}</span>` : '';
+  return `<li class="ul-row ${st}"><div class="unlock-copy">${preview}<span><b>${esc(u.name)}</b><small>${esc(u.desc)}</small></span></div>${btn}</li>`;
 }
 function renderBase() {
   const m = meta();
+  const decor = ['frameSilver', 'frameForest', 'frameRose', 'cardPetal', 'cardStarlight', 'pageStorybook'];
   const lg = m.legacy;
   const legacy = (lg ? `<div class="legacy-box">${cardHtml({ key: lg.card.key, custom: lg.card.custom, awk: lg.card.awk })}
       <p class="small">${esc(fixJosa(lg.gift ? `${lg.from}이(가) 보내 준 ${lg.name}` : `${lg.from}이(가) ${legacyWhere(lg)}에 남긴 ${lg.name}`))}</p>
@@ -3748,7 +3811,7 @@ function renderBase() {
       <p class="soft small">열린 무게: ${m.maxDiff ? `0~${m.maxDiff}. 출정 준비에서 고를 수 있습니다` : '없음. 스테이지 1의 보스를 쓰러뜨리면 탑의 무게(난이도)가 열립니다'}</p>
       <p class="soft small">런이 끝나면 도달한 층마다 ${SHARD_RULE.floor}개, 엘리트를 쓰러뜨릴 때마다 ${SHARD_RULE.elite}개, 보스를 쓰러뜨리면 ${SHARD_RULE.boss}개를 얻습니다.</p>
     </section>
-    ${!m.runs && !m.shards && !m.legacy && !m.sentCode ? `<section class="panel"><p class="soft small">런을 한 번 마치면 여기에 해금과 유품이 나타납니다. 먼저 출정 준비에서 탑에 올라 보세요.</p>${recv}</section>` : `<section class="panel"><h2>해금</h2><p class="soft small">보급·야영 해금은 다음 출정부터 적용됩니다. 초상화 테두리는 하나를 골라 바로 적용할 수 있습니다.</p><ul class="ul-list">${Object.keys(UNLOCKS).map(unlockRowHtml).join('')}
+    ${!m.runs && !m.shards && !m.legacy && !m.sentCode ? `<section class="panel"><p class="soft small">런을 한 번 마치면 여기에 해금과 유품이 나타납니다. 먼저 출정 준비에서 탑에 올라 보세요.</p>${recv}</section>` : `<section class="panel"><h2>해금</h2><p class="soft small">원정 해금은 다음 출정부터, 꾸미기 해금은 바로 적용됩니다. 적용 버튼으로 바꾸거나 끌 수 있어요.</p><h3 class="unlock-group-title">원정과 로스터</h3><ul class="ul-list">${Object.keys(UNLOCKS).filter(k => !decor.includes(k)).map(unlockRowHtml).join('')}</ul><h3 class="unlock-group-title">꾸미기</h3><ul class="ul-list">${decor.map(unlockRowHtml).join('')}
       <li class="ul-row ${m.frame ? 'owned' : 'locked'}"><div><b>초상화 금테</b><small>캐릭터 초상화에 금테를 두릅니다. 보스를 처음 쓰러뜨리면 열립니다</small></div>${m.frame
         ? (() => { const goldOn = m.frameOn && (m.frameStyle || 'gold') === 'gold'; return `<button class="btn small-btn${goldOn ? ' primary' : ''}" data-act="frame-select" data-k="${goldOn ? 'none' : 'gold'}">${goldOn ? '사용 중 (끄기)' : '적용'}</button>`; })()
         : '<span class="soft small">보스 첫 처치</span>'}</li></ul></section>
@@ -3948,6 +4011,7 @@ function onGameAct(act, d) {
       flash(fixJosa(`${r.name}을(를) 유품으로 받았습니다`)); render(); return true;
     }
     case 'frame-select': if (selectFrame(d.k)) render(); return true;
+    case 'skin-select': if (selectSkin(d.group, d.k)) render(); return true;
     case 'frame-toggle': META.frameOn = !META.frameOn; saveMeta(); render(); return true;
     case 'continue': resumeRun(); return true;
     case 'depart-run':
@@ -4069,7 +4133,7 @@ const GLOSSARY = [
   ['스트레스', '주인공의 체력 대신인 수치. 처음 100에 닿으면 붕괴하거나 각성하고, 두 번째로 닿으면 런이 끝납니다.'],
   ['지휘 · 위기 스킬', '주인공의 능력. 지휘는 몇 턴마다 한 번, 위기는 전선이 크게 밀렸을 때 전투당 한 번 쓸 수 있습니다.'],
   ['보급', '이동할 때 먹는 식량이자 돈. 층을 오를 때마다 1씩 줄고, 휴식과 거래에도 씁니다. 0이면 굶주려 스트레스가 오릅니다.'],
-  ['기억 조각 · 유품', '런이 끝나면 받는 보상. 기억 조각으로 거점에서 해금을 사고, 유품으로 남긴 카드는 다음 런에서 다시 찾을 수 있습니다.'],
+  ['기억 조각 · 유품', '런이 끝나면 받는 보상. 기억 조각으로 거점에서 원정 해금과 카드·화면 꾸미기를 사고, 유품으로 남긴 카드는 다음 런에서 다시 찾을 수 있습니다.'],
   ['탑의 무게', '난이도. 스테이지 1 보스를 쓰러뜨리면 한 단계씩 열리고, 무거울수록 어렵지만 보상과 시작 덱 선택이 늘어납니다.'],
 ];
 function glossaryHtml() { return `<dl class="gloss">${GLOSSARY.map(([t, d]) => `<dt>${esc(t)}</dt><dd>${esc(d)}</dd>`).join('')}</dl>`; }
@@ -4102,7 +4166,7 @@ const HOWTO = [
   ['스트레스', '주인공은 체력 대신 스트레스를 가집니다. 전선이 밀리거나 아군이 쓰러지면 오르고, 승리와 휴식으로 내려갑니다. 처음 100에 닿으면 붕괴하거나 각성하고, 두 번째로 닿으면 런이 끝납니다.'],
   ['맵과 보급', '층마다 전투, 이벤트, 거래, 야영, 엘리트 중 하나를 고릅니다. 이동할 때마다 보급 1을 먹고, 보급은 휴식과 거래에도 씁니다. 전투에서 이기면 보급과 카드를 얻습니다.'],
   ['거점', '런이 끝나면 오른 층과 쓰러뜨린 엘리트, 보스만큼 기억 조각을 얻어 해금에 씁니다. 덱의 카드 1장을 유품으로 남기면 다음 런에서 그 근처 층에서 다시 찾을 수 있고, 코드로 만들어 다른 사람에게 보낼 수도 있습니다.'],
-  ['탑의 무게', '스테이지 1의 보스를 쓰러뜨리면 한 단계 더 무거운 탑(난이도)이 열립니다. 무거울수록 적이 강해지지만 기억 조각을 더 받고, 무게만큼(최대 3장) 시작 덱의 카드를 셋 중에서 고를 수 있습니다.'],
+  ['탑의 무게', '스테이지 1의 보스를 쓰러뜨리면 한 단계 더 무거운 탑(난이도)이 열립니다. 무거울수록 보급과 회복이 줄거나 적이 강해지지만 기억 조각을 더 받고, 무게만큼(최대 3장) 시작 덱의 카드를 셋 중에서 고를 수 있습니다.'],
 ];
 function renderHowTo() {
   app.innerHTML = `<main class="setup howto">
@@ -5313,6 +5377,10 @@ const SCREENS = { report: () => renderArchivedReport(), firstchar: () => renderF
 function render() {
   // 턴 재생 중에는 연출 타이머 등이 결과 화면을 끼워 그리지 않게 막습니다(재생이 끝나면 다시 그림)
   if (UI.playing && screen === 'battle') return;
+  if (document.documentElement) {
+    document.documentElement.dataset.cardSkin = selectedSkin('card');
+    document.documentElement.dataset.pageSkin = selectedSkin('page');
+  }
   (SCREENS[screen] || renderBattle)();
   saveRunState();
   if (UI.lastScreen !== screen) {
