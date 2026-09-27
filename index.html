@@ -4706,10 +4706,9 @@ function renderEditor() {
   const rels = others.length ? others.map(o => `<label class="inline rel">${avatar(o)} ${esc(o.name)}
       <select data-rel="${o.id}">${opt('', '관계 없음', UI.draftRels[o.id] || '')}${Object.entries(REL_TYPES).map(([k, v]) => opt(k, v, UI.draftRels[o.id] || '')).join('')}</select></label>`).join('')
     : '<p class="soft small">로스터에 다른 캐릭터가 생기면 관계를 정할 수 있습니다.</p>';
-  const lineBox = Object.entries(SITUATIONS).map(([k, label]) => {
-    const later = k === 'joint';
+  const lineBox = Object.entries(SITUATIONS).filter(([k]) => k !== 'joint').map(([k, label]) => {
     const def = (DEFAULT_LINES[d.speech][k] || []).join(' / ');
-    return `<label class="line-f"><span>${label}${later ? ' <em class="bd">다음 단계에서 사용</em>' : ''}</span>
+    return `<label class="line-f"><span>${label}</span>
       <textarea data-line="${k}" rows="2" placeholder="${esc(def ? '기본: ' + def : '아직 기본 대사가 없습니다')}">${esc(d.lines[k] || '')}</textarea></label>`;
   }).join('');
   app.innerHTML = `<main class="setup editor">
