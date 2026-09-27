@@ -3731,7 +3731,7 @@ function onRunAct(act, d) {
 }
 'use strict';
 /* ================= 게임 화면: 타이틀, 출정 준비, 이어하기 ================= */
-const GAME_TITLE = '탑으로 가는 길';
+const GAME_TITLE = '탑으로부터';
 const RUN_KEY = 'rl_run_v1';
 const RESUME_SCREENS = ['map', 'event', 'trade', 'reward', 'camp', 'battle', 'stage', 'ending'];
 const PREP = { pro: '', c1: '', c2: '', init: false, diff: null, opts: null, optDiff: null, picks: [] };
@@ -4025,7 +4025,7 @@ function onGameAct(act, d) {
 /* ================= 3단계: 세계관, 튜토리얼, 도움말 ================= */
 
 /* ---------- 세계관 ---------- */
-const TAGLINE = '잊히기 전에, 탑에 오른다.';
+const TAGLINE = '—되찾아야 할 것들이 있다.';
 const PROLOGUE = [
   { head: '그날 밤', text: '도시 한가운데에 탑이 솟았습니다. 아무도 그것이 언제부터 그곳에 있었는지 기억하지 못했습니다.' },
   { head: '잊히는 것들', text: '탑이 솟은 뒤로 사람들은 조금씩 잊어버리기 시작했습니다. 이름을, 얼굴을, 함께 웃었던 날을. 잊힌 것들은 모두 탑으로 빨려 들어갔습니다.' },
@@ -4462,7 +4462,7 @@ function reportView(r) {
 function reportHtml(r) {
   const v = reportView(r);
   return `<article class="expedition-report" aria-label="원정 결과 보고서">
-    <header class="report-heading"><span>탑으로 가는 길 · EXPEDITION RECORD</span><h2>원정 결과 보고서</h2><p>${esc(r.pro)}의 원정</p><div class="report-tags"><b>${r.cleared?'탑 돌파':'여정 종료'}</b><span>무게 ${r.diff}</span><span>${esc(floorText(r.floor))}</span><span>${esc(r.date.slice(0,10))}</span></div></header>
+    <header class="report-heading"><span>탑으로부터 · EXPEDITION RECORD</span><h2>원정 결과 보고서</h2><p>${esc(r.pro)}의 원정</p><div class="report-tags"><b>${r.cleared?'탑 돌파':'여정 종료'}</b><span>무게 ${r.diff}</span><span>${esc(floorText(r.floor))}</span><span>${esc(r.date.slice(0,10))}</span></div></header>
     <section class="report-type"><small>이번 여정에 남은 모습 · ${String(r.typeId+1).padStart(2,'0')} / 32</small><p class="report-journey">${esc(v.journey)}</p><h3>${esc(v.role)}</h3><p>${esc(r.description)}</p><div class="report-evidence">${r.evidence.map((x,i)=>`<div><b>0${i+1}</b><span>${esc(x)}</span></div>`).join('')}</div></section>
     <div class="report-highlights">${v.highlights.map(([k,n,t])=>`<div><small>${k}</small><strong>${esc(n)}</strong><span>${esc(t)}</span></div>`).join('')}</div>
     <section class="report-honors"><h3>01 / 특별칭호</h3>${v.earned.length?v.earned.map(a=>`<div class="report-award"><b>✦ ${esc(a.name)}</b><p>${esc(a.rule)}</p></div>`).join(''):`<p class="report-empty">이번 여정은 기록으로 남았습니다.</p>`}<p class="report-footnote">${esc(v.note)}</p><details><summary>칭호 ${v.earned.length?'달성 조건 보기':'도전 조건 보기'}</summary><p>공통: 탑 돌파 · 보스 3회 격파 · 재도전·후퇴 없음 · 출발부터 온전한 기록. 무게 제한은 각 칭호에 따릅니다.</p>${r.awards.map(a=>`<p><b>${esc(a.name)}</b><br>${esc(a.rule)}</p>`).join('')}</details></section>
@@ -4489,7 +4489,7 @@ function drawReportCanvas(canvas, r) {
   function section(t){y+=22;y+=text(t,M,y,inner,23,C.accent,true)+14;}
   // Dark masthead, ample space for custom character names.
   const top=y;
-  y+=text('탑으로 가는 길  /  EXPEDITION RECORD',M+30,y,inner-60,18,'#d3c39c',true)+14;
+  y+=text('탑으로부터  /  EXPEDITION RECORD',M+30,y,inner-60,18,'#d3c39c',true)+14;
   y+=text('원정 결과 보고서',M+30,y,inner-60,43,'#ffffff',true)+10;
   y+=text(r.pro+'의 원정',M+30,y,inner-60,24,'#ffffff')+16;
   y+=text(`${r.cleared?'탑 돌파':'여정 종료'}   /   무게 ${r.diff}   /   ${floorText(r.floor)}   /   ${r.date.slice(0,10)}`,M+30,y,inner-60,19,'#d9e2db')+28;
