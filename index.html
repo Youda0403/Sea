@@ -938,6 +938,16 @@ main.battle.tut { padding-bottom: 13rem; }
 .report-award{border-left:3px solid #92763f;padding:10px 15px;margin:10px 0;background:#eae3d2}.report-award b{color:#725723}.report-stats{margin:0}.report-stats>div{display:grid;grid-template-columns:100px 1fr;gap:8px;padding:10px 0;border-bottom:1px solid #ddd5c4;font-size:12px}.report-stats dt{color:#69717a}.report-stats dd{margin:0}.report-party{margin:16px 0}.report-party small{display:block;color:#69717a}.expedition-report footer{border-top:1px solid #d3c6a8;padding-top:18px}.report-save-status{display:block;margin-top:8px}.expedition-report details{font-size:12px}.expedition-report summary{cursor:pointer}.report-notice{color:#8c583e}
 @media(max-width:480px){.expedition-report{padding:22px 16px}.report-type h3{font-size:20px}.report-stats>div{grid-template-columns:76px 1fr}.report-heading h2{font-size:25px}.retry-sheet .res-btns{flex-direction:column}}
 .retry-sheet .sheet-body{max-height:90dvh;overflow-y:auto}.expedition-report footer .btn{max-width:100%;white-space:normal}
+/* Report v2: consistent visual hierarchy in screen and PNG. */
+.reserve-note{font-size:11px;color:var(--ink-soft);text-align:center;margin:10px 0}
+.expedition-report{padding:20px;background:#f2efe7;border-color:#d8ded5;color:#243a39;line-height:1.65}
+.report-heading{margin:0 0 18px;padding:24px 20px;background:#243a39;border:0;color:#fff}.report-heading>span{color:#d3c39c;font-size:9px;letter-spacing:1px}.report-heading h2{color:#fff;font-size:26px}.report-heading p{color:#fff;font-size:16px}.report-tags{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11px;color:#d9e2db}.report-tags b{color:#e5d29d}
+.expedition-report .report-type{padding:20px;background:#e1e9de;border:0;margin:0 0 16px}.report-type>small{color:#626d68}.report-type .report-journey{margin:14px 0 0;font-size:15px;color:#626d68}.report-type h3{font-size:25px;margin:2px 0 12px;color:#243a39;line-height:1.3}.report-type>p{font-size:13px}.report-evidence{margin-top:18px;display:grid;gap:9px}.report-evidence>div{display:grid;grid-template-columns:25px 1fr;gap:7px;font-size:12px}.report-evidence b{color:#8a6b35}
+.report-highlights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.report-highlights>div{background:#fffdf8;padding:13px 10px;display:flex;flex-direction:column;gap:4px}.report-highlights strong{font-size:26px;line-height:1.3}.report-highlights small{font-size:10px;color:#626d68}.report-highlights span{font-size:9px;color:#626d68}
+.expedition-report section>h3{font-size:14px;letter-spacing:.5px}.expedition-report .report-type>h3{font-size:25px;letter-spacing:0}.report-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.report-data-card{padding:15px 12px;background:#fffdf8}.report-data-card h4{font-size:13px;margin:0 0 14px}.report-data-card dl{margin:0}.report-data-card dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:9px 0;font-size:11px}.report-data-card dt{color:#626d68}.report-data-card dd{margin:0;white-space:nowrap;font-weight:600}
+.expedition-report .report-empty{font-weight:600}.expedition-report .report-footnote{font-size:10px;color:#626d68;line-height:1.7}.report-party{display:grid;grid-template-columns:38px 1fr;gap:12px;border-bottom:1px solid #d8ded5;padding:0 0 15px}.report-initial{height:38px;display:grid;place-items:center;background:#e1e9de;font-family:'Gowun Batang',serif;font-weight:700}.report-party-head{display:flex;align-items:center;flex-wrap:wrap;gap:9px}.report-party-head b{font-size:14px}.report-status{font-size:10px;background:#e1e9de;color:#3c6456;padding:1px 7px;border-radius:3px}.report-status.hurt{background:#f0e5cd;color:#805d23}.report-status.lost{background:#ebdddd;color:#875150}.report-party p{font-size:12px}.expedition-report .report-motto{font-family:'Gowun Batang',serif;color:#8a6b35;margin:18px 0}
+@media(max-width:480px){.expedition-report{padding:12px}.report-heading{padding:20px 15px}.expedition-report .report-type{padding:16px}.expedition-report .report-type>h3{font-size:23px}.report-card-grid{gap:8px}.report-data-card{padding:12px 9px}}
+@media(max-width:350px){.report-highlights{gap:4px}.report-highlights>div{padding:10px 6px}.report-highlights strong{font-size:23px}.report-card-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -2109,7 +2119,10 @@ function useCrisis() {
 }
 
 /* ================= 턴 진행 ================= */
+function reinforcementLimit() { return S.enc.elite ? 6 : 5; }
 function fillTele() {
+  // Boss scripts retain their original phase timing and one-at-a-time loop.
+  if (S.enc.boss) {
   let list;
   if (S.waveIdx < S.waves.length) { list = S.waves[S.waveIdx]; S.waveIdx++; }
   else { let n = rng() < 0.4 + 0.03 * ((S.floor || 1) - 1) ? 2 : 1;
@@ -2121,6 +2134,34 @@ function fillTele() {
     if (S.tele[l]) { const em = [0, 1, 2, 3].filter(i => !S.tele[i]); if (!em.length) continue; l = em[rint(em.length)]; }
     S.tele[l] = mkEnemy(key);
   }
+    return;
+  }
+  // Persist pending scripted units instead of dropping a wave when the board is full.
+  S.wavePending = S.wavePending || [];
+  if (S.loopRemaining === undefined) S.loopRemaining = S.enc.elite ? 6 : 4;
+  let space = Math.min(4 - S.tele.filter(Boolean).length,
+    reinforcementLimit() - S.e.concat(S.tele).filter(u => u && u.hp > 0).length);
+  if (space <= 0) return;
+  if (!S.wavePending.length && S.waveIdx < S.waves.length) {
+    S.wavePending = S.waves[S.waveIdx++].map(x => x.slice());
+    // Empty authored waves remain a genuine rest turn.
+    if (!S.wavePending.length) return;
+  }
+  if (S.wavePending.length) {
+    while (space-- > 0 && S.wavePending.length) {
+      const [lane,key] = S.wavePending.shift();
+      const free = [0,1,2,3].filter(i => !S.tele[i]);
+      const l = S.tele[lane] ? free[rint(free.length)] : lane;
+      S.tele[l] = mkEnemy(key);
+    }
+    return;
+  }
+  // Finite reserves: one unit, followed by at least one full turn without a new reserve.
+  if (S.loopRemaining <= 0 || (S.nextReserveTurn !== undefined && S.turn < S.nextReserveTurn)) return;
+  const free = [0,1,2,3].filter(i => !S.tele[i]);
+  S.tele[free[rint(free.length)]] = mkEnemy(S.loop[rint(S.loop.length)]);
+  S.loopRemaining--; S.nextReserveTurn = S.turn + 2;
+  if (!S.loopRemaining) log('적의 마지막 예비대입니다. 이후에는 새 증원이 오지 않습니다.', 'sys');
 }
 
 function enemyTurn() {
@@ -2857,7 +2898,7 @@ function buildRunReport(run) {
     comebacks: bs.filter(b => b.result === 'win' && b.minFront <= -3).length };
   const ranked = REPORT_STYLES.map((x, i) => ({ ...x, i, value: x.score(s) })).sort((a,b) => b.value - a.value || a.i - b.i);
   const style = ranked[0], journey = s.retries ? 0 : s.deaths ? 1 : run.brokeOnce ? 2 : 3;
-  const qualified = !!(run.cleared && j.complete && run.diff >= 3 && s.bosses >= MAX_STAGE && !s.retries && !s.retreats);
+  const qualified = !!(run.cleared && j.complete && s.bosses >= MAX_STAGE && !s.retries && !s.retreats);
   const allHome = j.initial.length >= 2 && !s.deaths && j.initial.every(c => run.comps.some(x => x.id === c.id && x.status !== 'dead'));
   const awards = [
     { name: '모두를 데려온 사람', rule: '출발 동료 2명 이상 · 출발 동료 전원 생존·동행 · 동료 사망 0 · 엘리트 4회 이상 격파', ok: allHome && s.elites >= 4 },
@@ -2871,12 +2912,12 @@ function buildRunReport(run) {
     const line = c.status === 'dead' ? '함께 걷던 발자국은 이 기록에 남았습니다.' : c.status === 'saseon' ? '상처를 안은 채 마지막 기록에 이름을 남겼습니다.' : gain >= 4 ? '출발할 때보다 가까운 사이가 되었습니다.' : '같은 길을 걸었던 기억을 간직했습니다.';
     return { name: c.name, status, gain, merc: !!c.merc, line };
   });
-  return { v: 1, date: new Date().toISOString(), pro: run.pro.name, cleared: !!run.cleared, diff: run.diff || 0,
+  return { v: 1, rulesVersion: 2, date: new Date().toISOString(), pro: run.pro.name, cleared: !!run.cleared, diff: run.diff || 0,
     floor: totalFloor(run), complete: j.complete, typeId: style.i * 4 + journey,
     type: `${REPORT_JOURNEYS[journey].name} ${style.name}`, description: `${style.text} ${REPORT_JOURNEYS[journey].text}`,
     evidence: [style.evidence(s), ranked[1].evidence(s), `재도전 ${s.retries}회 · 동료 사망 ${s.deaths}명 · 정신력 한계 ${run.brokeOnce ? '경험' : '없음'}`],
     stats: s, awards, party, broken: !!run.brokeOnce,
-    titleNote: !j.complete ? '업데이트 전부터 진행한 원정은 일부 기록이 없어 특별칭호를 판정하지 않습니다.' : s.retries ? '재도전을 사용해 이번 원정의 특별칭호 자격을 잃었습니다.' : '공통 조건: 탑 돌파 · 무게 3 이상 · 보스 3회 격파 · 재도전 0 · 후퇴 0.' };
+    titleNote: !j.complete ? '업데이트 전부터 진행한 원정은 일부 기록이 없어 특별칭호를 판정하지 않습니다.' : s.retries ? '재도전을 사용해 이번 원정의 특별칭호 자격을 잃었습니다.' : '공통 조건: 무게 제한 없음 · 탑 돌파 · 보스 3회 격파 · 재도전 0 · 후퇴 0.' };
 }
 
 if (typeof module !== 'undefined') {
@@ -4253,19 +4294,94 @@ function reportRows(r) {
     ['정신력', `최고 스트레스 ${s.maxStress} · 한계 ${r.broken ? '경험' : '없음'}`], ['길 위의 선택', `이벤트 ${s.events} · 카드 엮기 ${s.fuses} · 굶주림 ${s.starvations}`],
     ['다시 고른 길', `재도전 ${s.retries}회 · 후퇴 ${s.retreats}회`]];
 }
+function reportView(r) {
+  const s = r.stats, index = Math.floor(r.typeId / 4);
+  return { note: !r.rulesVersion && r.titleNote.includes('무게 3 이상') ? '이전 기준으로 판정된 보고서입니다. 새 원정부터 무게 0에서도 특별칭호에 도전할 수 있습니다.' : r.titleNote, role: REPORT_STYLES[index] ? REPORT_STYLES[index].name : r.type,
+    journey: REPORT_JOURNEYS[r.typeId % 4] ? REPORT_JOURNEYS[r.typeId % 4].name : '이번 여정',
+    highlights: [['전투 승리', String(s.wins), '엘리트 '+s.elites+' · 보스 '+s.bosses], ['최고 스트레스', String(s.maxStress), r.broken ? '정신력 한계 경험' : '정신력 한계 없음'], ['동행의 끝', r.party.filter(c=>c.status!=='사망').length+' / '+r.party.length, '생존 동료 / 마지막 동료']],
+    cards: [['감정과 판단', [['추가 뽑기',s.extra+'회'],['버스트',s.bursts+'회'],['지휘',s.commands+'회'],['전투 턴',s.turns+'턴']]],
+      ['불가에서의 선택', [['치료',s.heals+'회'],['대화',s.talks+'회'],['휴식',s.rests+'회'],['카드 엮기',s.fuses+'회']]],
+      ['길 위의 흔적', [['이벤트',s.events+'회'],['굶주림',s.starvations+'회'],['사선 발생',s.downs+'회'],['동료 사망',s.deaths+'명']]],
+      ['다시 고른 길', [['재도전',s.retries+'회'],['후퇴',s.retreats+'회'],['불리한 전선에서 승리',s.comebacks+'회']]]],
+    earned: r.awards.filter(a=>a.earned) };
+}
 function reportHtml(r) {
-  const earned = r.awards.filter(a => a.earned);
+  const v = reportView(r);
   return `<article class="expedition-report" aria-label="원정 결과 보고서">
-    <header class="report-heading"><span>EXPEDITION RECORD · ${esc(r.date.slice(0,10))}</span><h2>원정 결과 보고서</h2><p>${esc(r.pro)}의 원정 · ${r.cleared ? '탑 돌파' : '여정 종료'} · 무게 ${r.diff} · ${esc(floorText(r.floor))}</p></header>
-    ${!r.complete ? '<p class="report-notice">일부 기록만 남은 원정입니다. 유형 분석은 업데이트 이후의 기록에 기반합니다.</p>' : ''}
-    <section class="report-type"><small>이번 여정에 남은 모습 · ${String(r.typeId+1).padStart(2,'0')} / 32</small><h3>${esc(r.type)}</h3><p>${esc(r.description)}</p><ul>${r.evidence.map(x => `<li>${esc(x)}</li>`).join('')}</ul><small>이번 플레이의 기록을 해석한 유형이며, 점수나 성격 진단이 아닙니다.</small></section>
-    <section><h3>특별칭호</h3>${earned.length ? earned.map(a => `<div class="report-award"><b>${esc(a.name)}</b><p>${esc(a.rule)}</p></div>`).join('') : '<p class="soft">이번 원정에서 획득한 특별칭호는 없습니다.</p>'}<p class="small">${esc(r.titleNote)}</p>
-    <details><summary>특별칭호 달성 조건</summary><p class="small">모든 칭호 공통: 탑 돌파, 무게 3 이상, 보스 3회 격파, 재도전·후퇴 없음, 출발부터 온전한 기록.</p>${r.awards.map(a => `<p class="small"><b>${esc(a.name)}</b><br>${esc(a.rule)}</p>`).join('')}</details></section>
-    <section><h3>원정 기록</h3><dl class="report-stats">${reportRows(r).map(([k,v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl><p class="small soft">재도전으로 되돌린 시도의 전투 기록은 제외합니다. 재도전 횟수는 남습니다.</p></section>
-    <section><h3>함께 걸었던 사람들</h3>${r.party.length ? r.party.map(c => `<div class="report-party"><b>${esc(c.name)}</b><small>${c.status}${c.merc ? ' · 용병' : ` · 이번 원정 유대 +${c.gain}`}</small><p>${esc(c.line)}</p></div>`).join('') : '<p>동료 없이 홀로 걸었던 길입니다.</p>'}</section>
-    <footer><p>탑으로 가는 길 · 끝에 남은 것은, 걸어온 방식.</p><button class="btn primary" data-act="report-save">보고서 이미지 저장 · PNG</button><small class="report-save-status" role="status"></small></footer>
+    <header class="report-heading"><span>탑으로 가는 길 · EXPEDITION RECORD</span><h2>원정 결과 보고서</h2><p>${esc(r.pro)}의 원정</p><div class="report-tags"><b>${r.cleared?'탑 돌파':'여정 종료'}</b><span>무게 ${r.diff}</span><span>${esc(floorText(r.floor))}</span><span>${esc(r.date.slice(0,10))}</span></div></header>
+    <section class="report-type"><small>이번 여정에 남은 모습 · ${String(r.typeId+1).padStart(2,'0')} / 32</small><p class="report-journey">${esc(v.journey)}</p><h3>${esc(v.role)}</h3><p>${esc(r.description)}</p><div class="report-evidence">${r.evidence.map((x,i)=>`<div><b>0${i+1}</b><span>${esc(x)}</span></div>`).join('')}</div></section>
+    <div class="report-highlights">${v.highlights.map(([k,n,t])=>`<div><small>${k}</small><strong>${esc(n)}</strong><span>${esc(t)}</span></div>`).join('')}</div>
+    <section class="report-honors"><h3>01 / 특별칭호</h3>${v.earned.length?v.earned.map(a=>`<div class="report-award"><b>✦ ${esc(a.name)}</b><p>${esc(a.rule)}</p></div>`).join(''):`<p class="report-empty">이번 여정은 기록으로 남았습니다.</p>`}<p class="report-footnote">${esc(v.note)}</p><details><summary>칭호 ${v.earned.length?'달성 조건 보기':'도전 조건 보기'}</summary><p>공통: 탑 돌파 · 보스 3회 격파 · 재도전·후퇴 없음 · 출발부터 온전한 기록. 무게 제한은 각 칭호에 따릅니다.</p>${r.awards.map(a=>`<p><b>${esc(a.name)}</b><br>${esc(a.rule)}</p>`).join('')}</details></section>
+    <section><h3>02 / 원정 기록</h3><div class="report-card-grid">${v.cards.map(([h,rows])=>`<div class="report-data-card"><h4>${h}</h4><dl>${rows.map(([k,n])=>`<div><dt>${k}</dt><dd>${esc(n)}</dd></div>`).join('')}</dl></div>`).join('')}</div></section>
+    <section><h3>03 / 함께 걸었던 사람들</h3>${r.party.length?r.party.map(c=>`<div class="report-party"><div class="report-initial">${esc(c.name.slice(0,1))}</div><div><div class="report-party-head"><b>${esc(c.name)}</b><span class="report-status ${c.status==='사망'?'lost':c.status==='사선'?'hurt':''}">${c.status}</span></div><small>${c.merc?'용병':'이번 원정 유대 +'+c.gain}</small><p>${esc(c.line)}</p></div></div>`).join(''):'<p>동료 없이 홀로 걸었던 길입니다.</p>'}</section>
+    <footer>${!r.complete?'<p class="report-footnote">일부 기록만 남은 원정 · 유형과 수치는 업데이트 이후의 기록에 기반합니다.</p>':''}<p class="report-footnote">재도전으로 되돌린 전투 기록은 제외합니다. 유형은 이번 플레이의 해석이며 점수나 성격 진단이 아닙니다.</p><p class="report-motto">끝에 남은 것은, 걸어온 방식.</p><button class="btn primary" data-act="report-save">보고서 이미지 저장 · PNG</button><small class="report-save-status" role="status"></small></footer>
   </article>`;
 }
+// Measure and draw the same report sections in a fixed-width, two-column export.
+function drawReportCanvas(canvas, r) {
+  const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('canvas');
+  const v = reportView(r), W=1000, M=56, inner=W-M*2, gap=20, half=(inner-gap)/2;
+  const ops=[]; let y=52;
+  const C={bg:'#f2efe7',paper:'#fffdf8',ink:'#243a39',muted:'#626d68',line:'#d8ded5',accent:'#8a6b35',hero:'#e1e9de'};
+  const rect=(x,y,w,h,color)=>ops.push(()=>{ctx.fillStyle=color;ctx.fillRect(x,y,w,h);});
+  function text(t,x,y,w,size=23,color=C.ink,bold=false) {
+    ctx.font=`${bold?'600':'400'} ${size}px "IBM Plex Sans KR", sans-serif`;
+    let line='',lines=[];
+    for(const ch of String(t)) { if(ch==='\n'||(line&&ctx.measureText(line+ch).width>w)){lines.push(line);line=ch==='\n'?'':ch;}else line+=ch; }
+    lines.push(line);
+    lines.forEach((line,i)=>ops.push(()=>{ctx.font=`${bold?'600':'400'} ${size}px "IBM Plex Sans KR", sans-serif`;ctx.fillStyle=color;ctx.fillText(line,x,y+i*size*1.5);}));
+    return lines.length*size*1.5;
+  }
+  function section(t){y+=22;y+=text(t,M,y,inner,23,C.accent,true)+14;}
+  // Dark masthead, ample space for custom character names.
+  const top=y;
+  y+=text('탑으로 가는 길  /  EXPEDITION RECORD',M+30,y,inner-60,18,'#d3c39c',true)+14;
+  y+=text('원정 결과 보고서',M+30,y,inner-60,43,'#ffffff',true)+10;
+  y+=text(r.pro+'의 원정',M+30,y,inner-60,24,'#ffffff')+16;
+  y+=text(`${r.cleared?'탑 돌파':'여정 종료'}   /   무게 ${r.diff}   /   ${floorText(r.floor)}   /   ${r.date.slice(0,10)}`,M+30,y,inner-60,19,'#d9e2db')+28;
+  ops.unshift(()=>{ctx.fillStyle=C.ink;ctx.fillRect(M,top-24,inner,yHeader-top+24);});const yHeader=y;
+  y+=24;const heroTop=y,heroOp=ops.length;y+=26;
+  y+=text(`이번 여정에 남은 모습   ${String(r.typeId+1).padStart(2,'0')} / 32`,M+28,y,inner-56,18,C.muted)+14;
+  y+=text(v.journey,M+28,y,inner-56,24,C.muted)+2;
+  y+=text(v.role,M+28,y,inner-56,39,C.ink,true)+16;
+  y+=text(r.description,M+28,y,inner-56,22,C.ink)+20;
+  r.evidence.forEach((e,i)=>{text('0'+(i+1),M+28,y,38,18,C.accent,true); y+=text(e,M+82,y,inner-110,21,C.ink)+9;}); y+=18;
+  const heroH=y-heroTop;ops.splice(heroOp,0,()=>{ctx.fillStyle=C.hero;ctx.fillRect(M,heroTop,inner,heroH);});
+  y+=20;const tileW=(inner-24)/3;let tileH=130;
+  const hs=v.highlights.map(([k,n,t],i)=>{const x=M+i*(tileW+12);const idx=ops.length;let yy=y+20;
+    yy+=text(k,x+18,yy,tileW-36,19,C.muted)+4;yy+=text(n,x+18,yy,tileW-36,38,C.ink,true)+4;yy+=text(t,x+18,yy,tileW-36,17,C.muted)+16;
+    tileH=Math.max(tileH,yy-y);return {x,idx};});
+  for(let i=hs.length-1;i>=0;i--){const x=hs[i].x;ops.splice(hs[i].idx,0,()=>{ctx.fillStyle=C.paper;ctx.fillRect(x,yTiles,tileW,tileH);});} const yTiles=y;y+=tileH+8;
+  section('01 / 특별칭호');
+  if(v.earned.length) v.earned.forEach(a=>{y+=text('✦ '+a.name,M,y,inner,28,C.accent,true)+8;y+=text(a.rule,M,y,inner,20,C.muted)+16;});
+  else y+=text('이번 여정은 기록으로 남았습니다.',M,y,inner,24,C.ink,true)+8;
+  y+=text(v.note,M,y,inner,19,C.muted)+6;
+  section('02 / 원정 기록');
+  for(let row=0;row<2;row++) {
+    const rowY=y;let rowH=0;const backgrounds=[];
+    for(let col=0;col<2;col++) {
+      const [h,rows]=v.cards[row*2+col],x=M+col*(half+gap),idx=ops.length;let yy=y+22;
+      yy+=text(h,x+22,yy,half-44,23,C.ink,true)+16;
+      for(const [k,n] of rows){const a=text(k,x+22,yy,half-140,20,C.muted);text(n,x+half-105,yy,83,22,C.ink,true);yy+=Math.max(a,33)+10;}
+      rowH=Math.max(rowH,yy-y+12);backgrounds.push({idx,x});
+    }
+    for(let i=backgrounds.length-1;i>=0;i--){const x=backgrounds[i].x,h=rowH;ops.splice(backgrounds[i].idx,0,()=>{ctx.fillStyle=C.paper;ctx.fillRect(x,rowY,half,h);});}
+    y+=rowH+gap;
+  }
+  section('03 / 함께 걸었던 사람들');
+  if(!r.party.length)y+=text('동료 없이 홀로 걸었던 길입니다.',M,y,inner,22)+16;
+  r.party.forEach(c=>{const top=y;rect(M,top,4,62,c.status==='사망'?'#956a69':c.status==='사선'?'#b08a46':'#658878');
+    y+=text(c.name+'  ·  '+c.status,M+22,y,inner-22,25,C.ink,true)+4;
+    y+=text(c.merc?'용병':'이번 원정 유대 +'+c.gain,M+22,y,inner-22,18,C.muted)+8;
+    y+=text(c.line,M+22,y,inner-22,21,C.muted)+22;});
+  rect(M,y,inner,1,C.line);y+=22;
+  if(!r.complete)y+=text('일부 기록만 남은 원정 · 업데이트 이후의 기록으로 분석했습니다.',M,y,inner,18,C.muted)+8;
+  y+=text('재도전으로 되돌린 전투 기록은 제외합니다. 유형은 이번 플레이의 해석이며 점수나 성격 진단이 아닙니다.',M,y,inner,17,C.muted)+18;
+  y+=text('끝에 남은 것은, 걸어온 방식.',M,y,inner,22,C.accent)+30;
+  canvas.width=W;canvas.height=Math.ceil(y);ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,canvas.height);ctx.textBaseline='top';ops.forEach(f=>f());
+  return canvas;
+}
+
 function renderArchivedReport() {
   const r = meta().lastReport;
   app.innerHTML = `<main class="setup"><button class="btn" data-act="to-base">거점으로</button>${r ? reportHtml(r) : '<p>아직 보관된 보고서가 없습니다.</p>'}</main>`;
@@ -4292,46 +4408,7 @@ async function saveReportImage(r) {
   setStatus('이미지를 만들고 있습니다…');
   try {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('canvas');
-    const commands = [], width = 1000, margin = 64; let y = 64;
-    function block(text, size = 23, color = '#353b43', weight = '400', gap = 18) {
-      ctx.font = `${weight} ${size}px "IBM Plex Sans KR", sans-serif`;
-      const lines = []; let line = '';
-      for (const ch of String(text)) {
-        if (ch === '\n' || (line && ctx.measureText(line + ch).width > width - margin * 2)) { lines.push(line); line = ch === '\n' ? '' : ch; }
-        else line += ch;
-      }
-      lines.push(line);
-      for (const t of lines) { commands.push({ t, size, color, weight, y }); y += size * 1.65; }
-      y += gap;
-    }
-    function heading(t) { y += 16; block(t, 27, '#82672f', '600', 12); }
-    block('탑으로 가는 길  /  EXPEDITION RECORD', 18, '#82672f', '600');
-    block('원정 결과 보고서', 44, '#202731', '600', 14);
-    block(`${r.pro} · ${r.cleared ? '탑 돌파' : '여정 종료'} · 무게 ${r.diff} · ${floorText(r.floor)} · ${r.date.slice(0,10)}`, 21);
-    if (!r.complete) block('일부 기록만 남은 원정 · 업데이트 이후의 기록으로 분석', 21, '#8c583e');
-    heading(`이번 여정에 남은 모습  ${String(r.typeId+1).padStart(2,'0')} / 32`);
-    block(r.type, 33, '#202731', '600'); block(r.description);
-    r.evidence.forEach(t => block(`• ${t}`, 22, '#535d69', '400', 3));
-    block('이번 플레이의 기록을 해석한 유형이며, 점수나 성격 진단이 아닙니다.', 18, '#68717d');
-    heading('특별칭호');
-    const earned = r.awards.filter(a => a.earned);
-    if (!earned.length) block('이번 원정에서 획득한 특별칭호는 없습니다.');
-    earned.forEach(a => { block(a.name, 28, '#82672f', '600', 2); block(a.rule, 20); });
-    block(r.titleNote, 20);
-    heading('원정 기록');
-    reportRows(r).forEach(([k,v]) => { block(k, 20, '#68717d', '600', 0); block(v, 23, '#353b43', '400', 12); });
-    block('재도전으로 되돌린 시도의 전투 기록은 제외합니다. 재도전 횟수는 남습니다.', 18, '#68717d');
-    heading('함께 걸었던 사람들');
-    if (!r.party.length) block('동료 없이 홀로 걸었던 길입니다.');
-    r.party.forEach(c => { block(`${c.name} · ${c.status}${c.merc ? ' · 용병' : ` · 이번 원정 유대 +${c.gain}`}`, 24, '#202731', '600', 3); block(c.line, 22); });
-    y += 20; block('끝에 남은 것은, 걸어온 방식.', 21, '#82672f');
-    canvas.width = width; canvas.height = Math.ceil(y + 40);
-    ctx.fillStyle = '#f4f1e9'; ctx.fillRect(0,0,width,canvas.height);
-    ctx.fillStyle = '#82672f'; ctx.fillRect(margin,30,width-margin*2,3);
-    ctx.textBaseline = 'top';
-    for (const c of commands) { ctx.font = `${c.weight} ${c.size}px "IBM Plex Sans KR", sans-serif`; ctx.fillStyle = c.color; ctx.fillText(c.t,margin,c.y); }
+    const canvas = drawReportCanvas(document.createElement('canvas'), r);
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('blob');
     const url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -5134,6 +5211,7 @@ function renderBattle() {
     ${actionsHtml()}
     ${handHtml()}
     ${logHtml()}
+    ${!S.enc.boss && !TUT ? `<p class="reserve-note">증원 포함 최대 ${reinforcementLimit()}명 · 정해진 증원 뒤 예비대 ${S.loopRemaining === undefined ? (S.enc.elite ? 6 : 4) : S.loopRemaining}명 남음${S.loopRemaining === 0 ? ' · 마지막 증원 도착' : ' · 예비대는 2턴에 1명'}</p>` : ''}
     ${retryHtml()}
     ${TUT && S.over ? tutOverlayHtml() : overlayHtml()}
     ${pileSheet()}${glossSheet()}
