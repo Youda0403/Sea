@@ -1037,8 +1037,6 @@ main.battle.tut { padding-bottom: 13rem; }
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .btn.primary small{color:inherit;opacity:1}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) :is(.row-label,.fl){color:var(--ink-soft)}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) :is(.board,.map){box-shadow:inset 0 0 0 1.5px var(--line),inset 0 3px 18px color-mix(in srgb,var(--brass) 12%,transparent)}
-:root[data-page-skin="starlight"] .node:not(.n-boss):not(.n-elite){background:var(--table);color:var(--ink);border-color:var(--line)}
-:root[data-page-skin="starlight"] .node.visited:not(.n-boss):not(.n-elite){background:var(--table-2)}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .node.reach{border-color:var(--brass)}
 /* 꽃빛 맵: 칸의 종류는 색으로, 이동 가능 여부는 테두리로 구분합니다. */
 :root[data-page-skin="storybook"] .node{--node-bg:#f6d2df;--node-edge:#bd7c97;--node-ink:#65334d}
@@ -1052,6 +1050,18 @@ main.battle.tut { padding-bottom: 13rem; }
 :root[data-page-skin="storybook"] .map .node:disabled{opacity:.78}
 :root[data-page-skin="storybook"] .map .node.visited{opacity:.6}
 :root[data-page-skin="storybook"] .map .node.current,:root[data-page-skin="storybook"] .map .node.reach{opacity:1;border-color:#843858}
+/* 별빛 맵: 보랏빛 바탕 위에서도 각 목적지를 구분할 수 있는 색입니다. */
+:root[data-page-skin="starlight"] .node{--node-bg:#ced8f3;--node-edge:#899ac5;--node-ink:#364568}
+:root[data-page-skin="starlight"] .node.n-event{--node-bg:#e6d2f3;--node-edge:#af8ec8;--node-ink:#5b3b75}
+:root[data-page-skin="starlight"] .node.n-elite{--node-bg:#dfa9ca;--node-edge:#a5618e;--node-ink:#642849}
+:root[data-page-skin="starlight"] .node.n-camp{--node-bg:#f4e5b7;--node-edge:#bda267;--node-ink:#65512a}
+:root[data-page-skin="starlight"] .node.n-trade{--node-bg:#c6e4e8;--node-edge:#7ca8b0;--node-ink:#315760}
+:root[data-page-skin="starlight"] .node.n-legacy{--node-bg:#e5e8f3;--node-edge:#9da7c2;--node-ink:#4a526a}
+:root[data-page-skin="starlight"] .node.n-boss{--node-bg:#493465;--node-edge:#9a80bd;--node-ink:#fff3d5}
+:root[data-page-skin="starlight"] .map .node{background:var(--node-bg);border-color:var(--node-edge);color:var(--node-ink)}
+:root[data-page-skin="starlight"] .map .node:disabled{opacity:.78}
+:root[data-page-skin="starlight"] .map .node.visited{opacity:.6}
+:root[data-page-skin="starlight"] .map .node.current,:root[data-page-skin="starlight"] .map .node.reach{opacity:1;border-color:#5b3a83}
 </style>
 </head>
 <body>
