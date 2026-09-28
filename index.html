@@ -685,6 +685,7 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
   max-width: min(26rem, calc(100% - 2rem)); padding: .55rem .9rem; border-radius: 10px; font-size: .88rem; font-weight: 600;
   background: rgba(30, 22, 14, .94); color: #f3e6c4; border: 1px solid rgba(217, 168, 78, .6); box-shadow: 0 6px 18px rgba(0, 0, 0, .3); text-align: center;
 }
+.toast-float.ult-toast { box-sizing: border-box; width: max-content; max-width: calc(100vw - 2rem); overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: no-preference) {
   .toast-float { animation: toast-in .22s ease both; }
   .leaving .toast-float { animation: toast-out .3s ease forwards; }
@@ -1689,7 +1690,7 @@ function mkUnit(card, info, bonus) {
 function snapUnit(u) { return u ? { ...u, sig: u.sig.slice() } : null; }
 function rec(type, data) {
   if (!S.recording) return;
-  S.events.push({ type, ...data, snap: { p: S.p.map(snapUnit), e: S.e.map(snapUnit), tele: S.tele.map(snapUnit), front: S.front, stress: S.stress, turn: S.turn, enemyRage: !!S.enemyRage } });
+  S.events.push({ type, ...data, snap: { p: S.p.map(snapUnit), e: S.e.map(snapUnit), tele: S.tele.map(snapUnit), front: S.front, stress: S.stress, turn: S.turn, phase: S.phase, enemyRage: !!S.enemyRage } });
 }
 function mkTok(t, extra) { return { id: uid(), t, extra: !!extra }; }
 
@@ -3864,7 +3865,7 @@ function resumeRun() {
   if (d.screen === 'battle' && d.battle && ENCOUNTERS[d.battle.encKey]) {
     S = d.battle; S.enc = ENCOUNTERS[S.encKey]; S.events = []; S.recording = false; UNDO = [];
     if (typeof d.uidSeq === 'number') _uid = Math.max(_uid, d.uidSeq);
-    UI.bossSeen = true; UI.phase2Seen = true;
+    UI.bossSeen = true; UI.phase2Seen = true; UI.phase2IntroReady = false;
     screen = 'battle';
   } else screen = d.screen === 'battle' ? 'map' : d.screen;
   render(); window.scrollTo(0, 0);
@@ -4657,7 +4658,7 @@ function onReportAct(act) {
   if (act === 'retry-ask') { UI.retryAsk = true; render(); return true; }
   if (!UI.retryAsk) return true;
   const result = retryBattle(RUN); resetUI();
-  if (result.ok) { UI.bossSeen = true; UI.phase2Seen = false; UI.pileOpen = false; UI.fx = null; UI.castTarget = null; clearTimeout(UI.castTargetTimer); Object.values(FXT).forEach(clearTimeout); fxLayer.innerHTML = ''; render(); window.scrollTo(0,0); }
+  if (result.ok) { UI.bossSeen = true; UI.phase2Seen = false; UI.phase2IntroReady = false; UI.pileOpen = false; UI.fx = null; UI.castTarget = null; clearTimeout(UI.castTargetTimer); Object.values(FXT).forEach(clearTimeout); fxLayer.innerHTML = ''; render(); window.scrollTo(0,0); }
   else flash(result.msg);
   return true;
 }
@@ -4682,7 +4683,7 @@ async function saveReportImage(r) {
 'use strict';
 const app = document.getElementById('app');
 const UI = { mode: null, sel: null, from: null, exTok: null, info: null, toast: null, toastTimer: null,
-  playing: false, skip: false, fx: null, caption: null, logOpen: false, focus: null };
+  playing: false, skip: false, fx: null, caption: null, logOpen: false, focus: null, phase2IntroReady: false };
 const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let screen = 'title';
 loadRoster();
@@ -4965,7 +4966,7 @@ function startBattle() {
 }
 let RUN = null;
 function startRunBattle(enc) {
-  UI.bossSeen = false; UI.phase2Seen = false;
+  UI.bossSeen = false; UI.phase2Seen = false; UI.phase2IntroReady = false;
   newBattle({ ...battleCfgFromRun(RUN, enc), seed: Math.floor(Math.random() * 4294967296) });
   captureBattleStart(RUN);
   S.synced = false;
@@ -5054,7 +5055,7 @@ function frontHtml() {
   const toWin = S.frontMax - S.front, toLose = S.front + S.frontMax;
   return `<div class="front${fr ? ' rg-front' : ''}">
     ${fr ? `<span class="rtag front-tag">${esc(fr)}</span>` : ''}
-    ${S.enc.boss ? `<div class="phase-strip${S.phase === 2 ? ' p2' : ''}"><b>보스 페이즈 ${S.phase} (총 2단계)</b><span>${S.phase === 1 ? '끝까지 밀면 보스가 진화하고 2페이즈 시작' : '마지막 페이즈: 끝까지 밀면 승리'}</span></div>` : ''}
+    ${S.enc.boss ? `<div class="phase-strip${S.phase === 2 ? ' p2' : ''}"><b>보스 페이즈 ${S.phase} / 2</b><span>${S.phase === 1 ? '끝까지 밀면 보스가 진화하고 2페이즈 시작' : '마지막 페이즈: 끝까지 밀면 승리'}</span></div>` : ''}
     <div class="front-head"><span class="end-lose">−${S.frontMax} 패배</span><b class="front-num">전선 ${signed(S.front)}</b><span class="end-win">+${S.frontMax} ${S.enc.boss && S.phase === 1 ? '2페이즈' : '승리'}</span></div>
     <div class="front-track" style="grid-template-columns:repeat(${m * 2 + 1},1fr)">${cells.join('')}</div>
     <div class="front-goal"><span>${toLose > 0 ? `패배까지 ${toLose}칸` : '패배선 넘음'}</span><span class="${toWin <= 0 ? 'over-line' : ''}">${(() => { const goal = S.enc.boss && S.phase === 1 ? '2페이즈' : '승리'; return toWin > 0 ? `${goal}까지 ${toWin}칸` : `${goal}선 넘음(+${-toWin} 여유): 반격 뒤에도 버티면 ${goal}`; })()}</span></div>
@@ -5074,7 +5075,7 @@ function statusHtml() {
       <div><span>보급</span><b>${S.supply}</b></div>
       <div><span>전투</span><b>${RUN ? RUN.battles + 1 : 1}</b></div>
       <div><span>턴</span><b>${S.turn}</b></div>
-      ${S.enc.boss ? `<div><span>페이즈</span><b>${S.phase} / 총 2단계</b></div>` : ''}
+      ${S.enc.boss ? `<div><span>페이즈</span><b>${S.phase} / 2</b></div>` : ''}
     </div>
     ${S.brokeOnce ? '<div class="effs"><span class="eff bad">다음 한계에서 런 종료</span>' + effs + '</div>' : ''}
     ${S.relics.length ? `<div class="effs">${S.relics.map(k => `<button class="relic" data-act="relic-info" data-k="${k}">${esc(RELICS[k].name)}</button>`).join('')}</div>` : ''}
@@ -5298,7 +5299,7 @@ function ultNotice() {
   for (const u of S.p) {
     if (!ultReady(u) || S.ultNoticed[u.comp]) continue;
     S.ultNoticed[u.comp] = true;
-    showFx('toast', `<div class="toast-float" role="status">${esc(compById(u.comp).name)}의 궁극기가 준비됐어요! 행동 버튼 아래에서 쓸 수 있습니다</div>`, 2600);
+    showFx('toast', `<div class="toast-float ult-toast" role="status">${esc(jo(compById(u.comp).name, '이', '가'))} 궁극기를 쓸 수 있어요!</div>`, 2600);
   }
 }
 function costHtml(cost) {
@@ -5460,10 +5461,10 @@ function renderBattle() {
   if (TUT) tutAdvance();
   const handEl = app.querySelector('.hand');
   const sx = handEl ? handEl.scrollLeft : 0;
-  let bossBanner = S.enc.boss && S.turn === 1 && !S.actionTaken && !UI.bossSeen && S.phase === 1 ? `<div class="reveal boss" data-act="boss-ok"><div class="rv-rays" aria-hidden="true"></div><div class="rv-text"><small class="phase-tag">보스 · 페이즈 1 (총 2단계)</small><b>${esc(S.enc.name.replace('보스: ', ''))}</b><span>전선 게이지 ±${S.frontMax}. ${esc(S.enc.banner || '')}</span><small>눌러서 시작</small></div></div>` : '';
-  if (S.enc.boss && S.phase === 2 && !UI.phase2Seen && !UI.playing && !S.over) {
+  let bossBanner = S.enc.boss && S.turn === 1 && !S.actionTaken && !UI.bossSeen && S.phase === 1 ? `<div class="reveal boss" data-act="boss-ok"><div class="rv-rays" aria-hidden="true"></div><div class="rv-text"><small class="phase-tag">보스 · 페이즈 1 / 2</small><b>${esc(S.enc.name.replace('보스: ', ''))}</b><span>전선 게이지 ±${S.frontMax}. ${esc(S.enc.banner || '')}</span><small>눌러서 시작</small></div></div>` : '';
+  if (S.enc.boss && S.phase === 2 && UI.phase2IntroReady && !UI.phase2Seen && !UI.playing && !S.over) {
     const bu = S.e.find(u => u && u.boss);
-    bossBanner = `<div class="reveal boss phase2" data-act="phase-ok"><div class="rv-rays" aria-hidden="true"></div><div class="rv-text"><small class="phase-tag">페이즈 2 (마지막 단계)</small><b>${esc(bu ? bu.name : '보스')}</b>${bu ? `<span class="evo-stats">공격 ${bu.atk} · 체력 ${bu.hp}${bu.sig.length ? ` · ${esc(sigText(bu.sig))}` : ''}</span>` : ''}<span>${esc(S.enc.phase2Text || '')}</span><small>눌러서 계속</small></div></div>`;
+    bossBanner = `<div class="reveal boss phase2" data-act="phase-ok"><div class="rv-rays" aria-hidden="true"></div><div class="rv-text"><small class="phase-tag">페이즈 2 / 2</small><b>${esc(bu ? bu.name : '보스')}</b>${bu ? `<span class="evo-stats">공격 ${bu.atk} · 체력 ${bu.hp}${bu.sig.length ? ` · ${esc(sigText(bu.sig))}` : ''}</span>` : ''}<span>${esc(S.enc.phase2Text || '')}</span><small>눌러서 계속</small></div></div>`;
   }
   app.innerHTML = `<main class="battle${UI.playing ? ' playing' : ''}${S.enc.boss ? ' boss-fight' : ''}">`
     + bossBanner + `
@@ -5505,7 +5506,7 @@ function render() {
 }
 
 function renderSnap(sn) {
-  const bak = { p: S.p, e: S.e, tele: S.tele, front: S.front, stress: S.stress, turn: S.turn, enemyRage: S.enemyRage };
+  const bak = { p: S.p, e: S.e, tele: S.tele, front: S.front, stress: S.stress, turn: S.turn, phase: S.phase, enemyRage: S.enemyRage };
   Object.assign(S, sn);
   try {
     const battle = app.querySelector('.battle.playing');
@@ -5523,6 +5524,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function playEvents() {
   const evs = S.events.slice(); S.events = [];
   if (!evs.length) { render(); return; }
+  const phaseChanged = evs.some(ev => ev.type === 'phase');
   UI.playing = true; UI.skip = false;
   try {
     for (const ev of evs) {
@@ -5533,6 +5535,7 @@ async function playEvents() {
     }
   } finally {
     UI.playing = false; UI.fx = null;
+    if (phaseChanged && S.enc.boss && S.phase === 2 && !S.over) UI.phase2IntroReady = true;
     render();
   }
 }
@@ -5647,7 +5650,7 @@ function onMenuAct(act, d) {
   switch (act) {
     case 'to-roster': screen = 'roster'; render(); window.scrollTo(0, 0); return true;
     case 'boss-ok': fadeReveal(() => { UI.bossSeen = true; render(); }); return true;
-    case 'phase-ok': fadeReveal(() => { UI.phase2Seen = true; render(); }); return true;
+    case 'phase-ok': fadeReveal(() => { UI.phase2Seen = true; UI.phase2IntroReady = false; render(); }); return true;
     case 'to-camp': syncOnce(); screen = 'camp'; resetUI(); render(); window.scrollTo(0, 0); return true;
     case 'next-battle': syncOnce(); startRunBattle(SETUP.enc); return true;
     case 'depart': startRunBattle(SETUP.enc); return true;
