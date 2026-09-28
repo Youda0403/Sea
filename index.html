@@ -1037,9 +1037,21 @@ main.battle.tut { padding-bottom: 13rem; }
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .btn.primary small{color:inherit;opacity:1}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) :is(.row-label,.fl){color:var(--ink-soft)}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) :is(.board,.map){box-shadow:inset 0 0 0 1.5px var(--line),inset 0 3px 18px color-mix(in srgb,var(--brass) 12%,transparent)}
-:root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .node:not(.n-boss):not(.n-elite){background:var(--table);color:var(--ink);border-color:var(--line)}
-:root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .node.visited:not(.n-boss):not(.n-elite){background:var(--table-2)}
+:root[data-page-skin="starlight"] .node:not(.n-boss):not(.n-elite){background:var(--table);color:var(--ink);border-color:var(--line)}
+:root[data-page-skin="starlight"] .node.visited:not(.n-boss):not(.n-elite){background:var(--table-2)}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .node.reach{border-color:var(--brass)}
+/* 꽃빛 맵: 칸의 종류는 색으로, 이동 가능 여부는 테두리로 구분합니다. */
+:root[data-page-skin="storybook"] .node{--node-bg:#f6d2df;--node-edge:#bd7c97;--node-ink:#65334d}
+:root[data-page-skin="storybook"] .node.n-event{--node-bg:#e3d8f5;--node-edge:#a18ac4;--node-ink:#51416d}
+:root[data-page-skin="storybook"] .node.n-elite{--node-bg:#efaeb6;--node-edge:#b55f72;--node-ink:#6a243b}
+:root[data-page-skin="storybook"] .node.n-camp{--node-bg:#ffe2b9;--node-edge:#c69961;--node-ink:#705027}
+:root[data-page-skin="storybook"] .node.n-trade{--node-bg:#d2e3ef;--node-edge:#87a7bd;--node-ink:#37556b}
+:root[data-page-skin="storybook"] .node.n-legacy{--node-bg:#f0e7c0;--node-edge:#b2a16b;--node-ink:#635329}
+:root[data-page-skin="storybook"] .node.n-boss{--node-bg:#793e60;--node-edge:#b77899;--node-ink:#fff5fa}
+:root[data-page-skin="storybook"] .map .node{background:var(--node-bg);border-color:var(--node-edge);color:var(--node-ink)}
+:root[data-page-skin="storybook"] .map .node:disabled{opacity:.78}
+:root[data-page-skin="storybook"] .map .node.visited{opacity:.6}
+:root[data-page-skin="storybook"] .map .node.current,:root[data-page-skin="storybook"] .map .node.reach{opacity:1;border-color:#843858}
 </style>
 </head>
 <body>
