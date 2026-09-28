@@ -3883,12 +3883,14 @@ function unlockRowHtml(k) {
   const btn = st === 'owned' ? (frame || skin ? `<button class="btn small-btn${selected ? ' primary' : ''}" data-act="${frame ? 'frame-select' : 'skin-select'}" ${skin ? `data-group="${cardSkin ? 'card' : 'page'}"` : ''} data-k="${selected ? 'none' : frame || skin}">${selected ? '사용 중 (끄기)' : '적용'}</button>` : '<span class="bd good">해금됨</span>')
     : st === 'locked' ? '<span class="soft small">앞 단계 먼저</span>'
     : `<button class="btn small-btn${st === 'ready' ? ' primary' : ''}" data-act="unlock" data-k="${k}"${st === 'ready' ? '' : ' disabled'}>조각 ${u.cost}</button>`;
-  const preview = skin ? `<span class="skin-swatch skin-swatch-${skin}" aria-hidden="true">${skin === 'starlight' ? '✦' : cardSkin ? '✿' : '♥'}</span>` : '';
+  const previewSkin = skin === 'storybook' ? 'petal' : skin;
+  const preview = skin ? `<span class="skin-swatch skin-swatch-${previewSkin}" aria-hidden="true">${skin === 'starlight' ? '✦' : '✿'}</span>` : '';
   return `<li class="ul-row ${st}"><div class="unlock-copy">${preview}<span><b>${esc(u.name)}</b><small>${esc(u.desc)}</small></span></div>${btn}</li>`;
 }
 function renderBase() {
   const m = meta();
   const decor = ['frameSilver', 'frameForest', 'frameRose', 'cardPetal', 'cardStarlight', 'pageStorybook', 'pageStarlight'];
+  const rosterUnlocks = ['slots8', 'slots10', 'slots12'];
   const lg = m.legacy;
   const legacy = (lg ? `<div class="legacy-box">${cardHtml({ key: lg.card.key, custom: lg.card.custom, awk: lg.card.awk })}
       <p class="small">${esc(fixJosa(lg.gift ? `${lg.from}이(가) 보내 준 ${lg.name}` : `${lg.from}이(가) ${legacyWhere(lg)}에 남긴 ${lg.name}`))}</p>
@@ -3917,10 +3919,10 @@ function renderBase() {
       <p class="soft small">열린 무게: ${m.maxDiff ? `0~${m.maxDiff}. 출정 준비에서 고를 수 있습니다` : '없음. 스테이지 1의 보스를 쓰러뜨리면 탑의 무게(난이도)가 열립니다'}</p>
       <p class="soft small">런이 끝나면 도달한 층마다 ${SHARD_RULE.floor}개, 엘리트를 쓰러뜨릴 때마다 ${SHARD_RULE.elite}개, 보스를 쓰러뜨리면 ${SHARD_RULE.boss}개를 얻습니다.</p>
     </section>
-    ${!m.runs && !m.shards && !m.legacy && !m.sentCode ? `<section class="panel"><p class="soft small">런을 한 번 마치면 여기에 해금과 유품이 나타납니다. 먼저 출정 준비에서 탑에 올라 보세요.</p>${recv}</section>` : `<section class="panel"><h2>해금</h2><p class="soft small">원정 해금은 다음 출정부터, 꾸미기 해금은 바로 적용됩니다. 적용 버튼으로 바꾸거나 끌 수 있어요.</p><h3 class="unlock-group-title">원정과 로스터</h3><ul class="ul-list">${Object.keys(UNLOCKS).filter(k => !decor.includes(k)).map(unlockRowHtml).join('')}</ul><h3 class="unlock-group-title">꾸미기</h3><ul class="ul-list">${decor.map(unlockRowHtml).join('')}
+    ${!m.runs && !m.shards && !m.legacy && !m.sentCode ? `<section class="panel"><p class="soft small">런을 한 번 마치면 여기에 해금과 유품이 나타납니다. 먼저 출정 준비에서 탑에 올라 보세요.</p>${recv}</section>` : `<section class="panel"><h2>해금</h2><p class="soft small">원정 해금은 다음 출정부터, 꾸미기 해금은 바로 적용됩니다. 적용 버튼으로 바꾸거나 끌 수 있어요.</p><h3 class="unlock-group-title">로스터</h3><ul class="ul-list">${rosterUnlocks.map(unlockRowHtml).join('')}</ul><h3 class="unlock-group-title">원정</h3><ul class="ul-list">${Object.keys(UNLOCKS).filter(k => !decor.includes(k) && !rosterUnlocks.includes(k)).map(unlockRowHtml).join('')}</ul><h3 class="unlock-group-title">꾸미기</h3><ul class="ul-list">
       <li class="ul-row ${m.frame ? 'owned' : 'locked'}"><div><b>초상화 금테</b><small>캐릭터 초상화에 금테를 두릅니다. 보스를 처음 쓰러뜨리면 열립니다</small></div>${m.frame
         ? (() => { const goldOn = m.frameOn && (m.frameStyle || 'gold') === 'gold'; return `<button class="btn small-btn${goldOn ? ' primary' : ''}" data-act="frame-select" data-k="${goldOn ? 'none' : 'gold'}">${goldOn ? '사용 중 (끄기)' : '적용'}</button>`; })()
-        : '<span class="soft small">보스 첫 처치</span>'}</li></ul></section>
+        : '<span class="soft small">보스 첫 처치</span>'}</li>${decor.map(unlockRowHtml).join('')}</ul></section>
     <section class="panel"><h2>유품</h2>${legacyAll}</section>`}
     <button class="btn primary big" data-act="to-prep">출정 준비</button>
   </main>`;
