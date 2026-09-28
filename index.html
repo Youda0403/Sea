@@ -1002,7 +1002,7 @@ main.battle.tut { padding-bottom: 13rem; }
 
 :root[data-page-skin="storybook"]{
   --table:#fff5ee;--table-2:#f2e3e2;--ink:#3e3039;--ink-soft:#745b67;--line:#ceadb5;
-  --mat:#a1ad98;--mat-2:#839585;--mat-line:rgba(255,255,255,.6);
+  --mat:#efdae3;--mat-2:#dcc0cf;--mat-line:rgba(100,61,85,.36);
   --own:#536e94;--foe:#9b5058;--good:#486e55;--bad:#a54051;--brass:#a65d82;
   --r:11px;color-scheme:light
 }
@@ -1012,6 +1012,26 @@ main.battle.tut { padding-bottom: 13rem; }
 :root[data-page-skin="storybook"] .panel{border-top-style:dotted}
 :root[data-page-skin="storybook"] .btn{border-radius:13px}
 :root[data-page-skin="storybook"] .btn.primary{box-shadow:0 2px 0 rgba(96,61,80,.2)}
+
+:root[data-page-skin="starlight"]{
+  --table:#f7f4ff;--table-2:#e9e3f4;--ink:#342d49;--ink-soft:#655a7c;--line:#bcb0d3;
+  --mat:#e6def5;--mat-2:#cfc2e5;--mat-line:rgba(83,63,119,.36);
+  --own:#536e94;--foe:#98516c;--good:#486e55;--bad:#a54065;--brass:#76609e;
+  --r:11px;color-scheme:light
+}
+:root[data-page-skin="starlight"] body{
+  background:radial-gradient(circle at 12px 16px,rgba(132,107,179,.22) 1px,transparent 1.8px) 0 0/47px 47px,radial-gradient(circle at 28px 33px,rgba(181,145,64,.24) 1px,transparent 2px) 0 0/71px 71px,linear-gradient(145deg,#fcf9ff,#eae3f6)
+}
+:root[data-page-skin="starlight"] .panel{border-top-style:dotted}
+:root[data-page-skin="starlight"] .btn{border-radius:13px}
+:root[data-page-skin="storybook"] .btn.primary{background:linear-gradient(180deg,#955070,#854365);border-color:#854365;color:#fffafc}
+:root[data-page-skin="starlight"] .btn.primary{background:linear-gradient(180deg,#715d96,#604d83);border-color:#604d83;color:#fffaff}
+:root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .btn.primary small{color:inherit;opacity:1}
+:root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) :is(.row-label,.fl){color:var(--ink-soft)}
+:root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) :is(.board,.map){box-shadow:inset 0 0 0 1.5px var(--line),inset 0 3px 18px color-mix(in srgb,var(--brass) 12%,transparent)}
+:root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .node:not(.n-boss):not(.n-elite){background:var(--table);color:var(--ink);border-color:var(--line)}
+:root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .node.visited:not(.n-boss):not(.n-elite){background:var(--table-2)}
+:root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .node.reach{border-color:var(--brass)}
 </style>
 </head>
 <body>
@@ -3144,10 +3164,11 @@ const UNLOCKS = {
   cardPetal: { name: '꽃잎 카드', desc: '아군 카드와 손패에 분홍빛 종이 무늬를 입힙니다', cost: 30 },
   cardStarlight: { name: '별빛 카드', desc: '아군 카드와 손패에 연보라색 별무늬를 입힙니다', cost: 40 },
   pageStorybook: { name: '꽃빛 그림책', desc: '거점과 전투 화면을 포근한 분홍빛으로 꾸밉니다', cost: 55 },
+  pageStarlight: { name: '별빛 그림책', desc: '거점과 맵, 전투 화면을 별이 비치는 연보라빛으로 꾸밉니다', cost: 55 },
 };
 const FRAME_STYLES = { silver: { name: '달빛 은테', unlock: 'frameSilver' }, forest: { name: '숲빛 테두리', unlock: 'frameForest' }, rose: { name: '장밋빛 테두리', unlock: 'frameRose' } };
 const CARD_SKINS = { petal: { unlock: 'cardPetal' }, starlight: { unlock: 'cardStarlight' } };
-const PAGE_SKINS = { storybook: { unlock: 'pageStorybook' } };
+const PAGE_SKINS = { storybook: { unlock: 'pageStorybook' }, starlight: { unlock: 'pageStarlight' } };
 const ROLE_EXTRA_SIGIL = { atk: 'execute', def: 'armor', sup: 'mend' };
 const SHARD_RULE = { floor: 1, elite: 2, boss: 10 };
 let META = null;
@@ -3778,12 +3799,12 @@ function unlockRowHtml(k) {
   const btn = st === 'owned' ? (frame || skin ? `<button class="btn small-btn${selected ? ' primary' : ''}" data-act="${frame ? 'frame-select' : 'skin-select'}" ${skin ? `data-group="${cardSkin ? 'card' : 'page'}"` : ''} data-k="${selected ? 'none' : frame || skin}">${selected ? '사용 중 (끄기)' : '적용'}</button>` : '<span class="bd good">해금됨</span>')
     : st === 'locked' ? '<span class="soft small">앞 단계 먼저</span>'
     : `<button class="btn small-btn${st === 'ready' ? ' primary' : ''}" data-act="unlock" data-k="${k}"${st === 'ready' ? '' : ' disabled'}>조각 ${u.cost}</button>`;
-  const preview = skin ? `<span class="skin-swatch skin-swatch-${skin}" aria-hidden="true">${cardSkin ? cardSkin === 'petal' ? '✿' : '✦' : '♥'}</span>` : '';
+  const preview = skin ? `<span class="skin-swatch skin-swatch-${skin}" aria-hidden="true">${skin === 'starlight' ? '✦' : cardSkin ? '✿' : '♥'}</span>` : '';
   return `<li class="ul-row ${st}"><div class="unlock-copy">${preview}<span><b>${esc(u.name)}</b><small>${esc(u.desc)}</small></span></div>${btn}</li>`;
 }
 function renderBase() {
   const m = meta();
-  const decor = ['frameSilver', 'frameForest', 'frameRose', 'cardPetal', 'cardStarlight', 'pageStorybook'];
+  const decor = ['frameSilver', 'frameForest', 'frameRose', 'cardPetal', 'cardStarlight', 'pageStorybook', 'pageStarlight'];
   const lg = m.legacy;
   const legacy = (lg ? `<div class="legacy-box">${cardHtml({ key: lg.card.key, custom: lg.card.custom, awk: lg.card.awk })}
       <p class="small">${esc(fixJosa(lg.gift ? `${lg.from}이(가) 보내 준 ${lg.name}` : `${lg.from}이(가) ${legacyWhere(lg)}에 남긴 ${lg.name}`))}</p>
@@ -3956,7 +3977,7 @@ function startGameRun() {
 function renderTitle() {
   const sv = loadRunState();
   const now = sv && sv.battle ? sv.battle : sv && sv.run;
-  const cont = sv ? `${esc(sv.run.pro.name)}, ${sv.run.stage || 1}-${sv.run.floor || 1}층${sv.battle ? ' 전투 중' : ''}, 스트레스 ${now.stress}, 보급 ${now.supply}` : '';
+  const cont = sv ? `${esc(sv.run.pro.name)} · 무게 ${sv.run.diff || 0} · ${sv.run.stage || 1}-${sv.run.floor || 1}층${sv.battle ? ' 전투 중' : ''}, 스트레스 ${now.stress}, 보급 ${now.supply}` : '';
   app.innerHTML = `<main class="title-screen">
     <div class="title-mark">
       <div class="title-toks" aria-hidden="true"><span class="tok t-anger">분노</span><span class="tok t-calm">냉정</span><span class="tok t-hope">희망</span></div>
