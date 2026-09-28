@@ -1062,6 +1062,15 @@ main.battle.tut { padding-bottom: 13rem; }
 :root[data-page-skin="starlight"] .map .node:disabled{opacity:.78}
 :root[data-page-skin="starlight"] .map .node.visited{opacity:.6}
 :root[data-page-skin="starlight"] .map .node.current,:root[data-page-skin="starlight"] .map .node.reach{opacity:1;border-color:#5b3a83}
+/* 보스전의 어두운 판에는 밝은 선과 글씨를 사용합니다. */
+:root[data-page-skin="storybook"] .battle.boss-fight .board{
+  --mat-line:#c4a0b5;--ink-soft:#f5dfeb;--brass:#ebbad2;
+  background:radial-gradient(ellipse 90% 80% at 50% 45%,#493244 0%,#281b29 100%)
+}
+:root[data-page-skin="starlight"] .battle.boss-fight .board{
+  --mat-line:#b5acd8;--ink-soft:#eae4ff;--brass:#d0bcf0;
+  background:radial-gradient(ellipse 90% 80% at 50% 45%,#35324e 0%,#191a2c 100%)
+}
 </style>
 </head>
 <body>
