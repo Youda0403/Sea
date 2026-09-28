@@ -526,8 +526,8 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 .xp i.on { background: #8e2d24; }
 .deck-sheet { max-height: 86vh; overflow-y: auto; }
 .fuse-prev { display: flex; align-items: center; gap: .6rem; padding: .5rem; border-radius: 10px; background: color-mix(in srgb, var(--brass) 14%, transparent); }
-.reward-pick { display: flex; flex: 0 0 6.8rem; flex-direction: column; gap: .4rem; min-width: 0; }
-.reward-pick .hcard { flex: none; width: 100%; }
+.reward .reward-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(100%, 21.5rem); margin-inline: auto; overflow: visible; }
+.reward .reward-cards .hcard { width: 100%; min-width: 0; }
 .pouch-preview { display: block; padding: .36rem .28rem; border-radius: 7px; background: color-mix(in srgb, var(--brass) 12%, transparent); color: var(--ink); font-size: .72rem; line-height: 1.4; text-align: center; overflow-wrap: anywhere; }
 .pouch-preview b { white-space: nowrap; }
 .fuse-pouch { display: grid; gap: .25rem; min-width: 0; flex: 1; }
@@ -3481,9 +3481,9 @@ function cardDetailHtml(card) {
     ${other.length ? `<ul class="rlist">${sigDescList(other)}</ul>` : ''}
     ${notes.map(n => `<p class="soft small">${esc(n)}</p>`).join('')}`;
 }
-function pouchPreviewHtml(card, added) {
+function pouchPreviewHtml(card) {
   const emos = cardEmos(card).map(e => EMO[e]);
-  return `<span class="pouch-preview">${added ? '주머니 +' : '주머니 토큰 '}${emos.map(esc).join(' · ')} <b>${emos.length}개</b></span>`;
+  return `<span class="pouch-preview">주머니 토큰 ${emos.map(esc).join(' · ')} <b>${emos.length}개</b></span>`;
 }
 function cardSheet() {
   const ci = UI.cinfo; if (!ci) return '';
@@ -3613,7 +3613,7 @@ function renderReward() {
   const relic = rw.relic ? `<div class="relic-get"><b>유물 획득: ${esc(RELICS[rw.relic].name)}</b><small>${esc(RELICS[rw.relic].desc)}</small></div>` : '';
   const cards = rw.done
     ? `<p class="soft">${rw.took ? `${esc(jo(CARDS[rw.took].name, '을', '를'))} 덱에 넣었습니다.` : '카드 대신 보급 1을 챙겼습니다.'}</p><button class="btn primary big" data-act="to-map">맵으로</button>`
-    : `<p class="soft small">카드를 누르면 능력을 볼 수 있고, 거기서 덱에 넣습니다. 아래 감정은 다음 전투 주머니에 추가됩니다.</p><div class="card-row reward-cards">${rw.cards.map(k => `<div class="reward-pick">${cardHtml({ key: k }, { act: 'card-info', data: ` data-ctx="reward" data-k="${k}"` })}${pouchPreviewHtml({ key: k }, true)}</div>`).join('')}</div>
+    : `<p class="soft small">카드를 누르면 능력을 볼 수 있고, 거기서 덱에 넣습니다.</p><div class="card-row reward-cards">${rw.cards.map(k => cardHtml({ key: k }, { act: 'card-info', data: ` data-ctx="reward" data-k="${k}"` })).join('')}</div>
        <div class="reward-alternative"><span class="reward-or">또는</span><button class="btn" data-act="skip-card"><span>카드 대신 보급 챙기기</span><b>보급 +1</b></button></div>`;
   app.innerHTML = `<main class="setup reward">
     <h1>전리품</h1>
@@ -3702,7 +3702,7 @@ function deckOverlay() {
   if (pick === 'fuse' && sel.length === 2) {
     const a = RUN.deck.find(c => c.cid === sel[0]), b = RUN.deck.find(c => c.cid === sel[1]);
     const card = { key: a.key, custom: fusePreview(a, b), awk: !!(a.awk || b.awk) };
-    preview = `<div class="fuse-prev"><span>엮으면</span>${cardHtml(card)}<div class="fuse-pouch">${pouchPreviewHtml(card, false)}<small>두 카드의 토큰을 그대로 담습니다. 같은 감정이어도 2개예요.</small></div><button class="btn primary" data-act="confirm-fuse">엮기</button></div>`;
+    preview = `<div class="fuse-prev"><span>엮으면</span>${cardHtml(card)}<div class="fuse-pouch">${pouchPreviewHtml(card)}<small>두 카드의 토큰을 그대로 담습니다. 같은 감정이어도 2개예요.</small></div><button class="btn primary" data-act="confirm-fuse">엮기</button></div>`;
   }
   const comps = RUN.comps.filter(c => c.status !== 'dead').map(c => `<li>${esc(c.name)}: 동료 카드. 덱과 따로 전투마다 들어갑니다.</li>`).join('');
   return `<div class="sheet"><div class="sheet-body deck-sheet">${head}${preview}<div class="card-row wrap">${cards}</div>
