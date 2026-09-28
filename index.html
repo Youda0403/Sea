@@ -526,6 +526,14 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 .xp i.on { background: #8e2d24; }
 .deck-sheet { max-height: 86vh; overflow-y: auto; }
 .fuse-prev { display: flex; align-items: center; gap: .6rem; padding: .5rem; border-radius: 10px; background: color-mix(in srgb, var(--brass) 14%, transparent); }
+.reward-pick { display: flex; flex: 0 0 6.8rem; flex-direction: column; gap: .4rem; min-width: 0; }
+.reward-pick .hcard { flex: none; width: 100%; }
+.pouch-preview { display: block; padding: .36rem .28rem; border-radius: 7px; background: color-mix(in srgb, var(--brass) 12%, transparent); color: var(--ink); font-size: .72rem; line-height: 1.4; text-align: center; overflow-wrap: anywhere; }
+.pouch-preview b { white-space: nowrap; }
+.fuse-pouch { display: grid; gap: .25rem; min-width: 0; flex: 1; }
+.fuse-pouch small { color: var(--ink-soft); line-height: 1.45; }
+.fuse-prev .btn { flex-shrink: 0; }
+@media (max-width: 410px) { .fuse-prev { flex-wrap: wrap; } .fuse-pouch { flex-basis: calc(100% - 8rem); } .fuse-prev .btn { width: 100%; } }
 .relic-get { display: grid; padding: .6rem .8rem; border-radius: 10px; border: 2px solid var(--brass); margin: .4rem 0; }
 .note.good { color: var(--good); font-weight: 600; }
 
@@ -2395,7 +2403,7 @@ function newRun(cfg) {
     bondStart: Object.fromEntries(cfg.comps.filter(c => !c.merc).map(c => [c.id, c.bondPts || 0])), bondSaved: false,
     mode: cfg.mode || 'test', deck: (cfg.deck || START_DECK).map(k => newCard(k)), relics: [], notes: [],
     bench: (cfg.bench || []).map(c => ({ ...c, aux: c.aux.slice(), lines: { ...(c.lines || {}) } })),
-    map: null, pos: null, floor: 0, usedEvents: [], recruited: false, reward: null, event: null, shop: null, cleared: false,
+    map: null, pos: null, floor: 0, usedEvents: [], eventThreads: {}, recruited: false, reward: null, event: null, shop: null, cleared: false,
     stage: 1, diff: cfg.diff || 0, weightRulesVersion: 2, bossWins: 0, stageDone: false,
   };
 }
@@ -2875,6 +2883,38 @@ function relEventDef(run) {
   const A = find(ev.a, ev.an), B = find(ev.b, ev.bn);
   return { title: def.title, text: fixJosa(def.text(A, B)), choices: def.choices.map(c => ({ label: fixJosa(c.label(A, B)), run: r => c.run(r, A, B) })) };
 }
+/* 첫 스테이지의 선택이 다음 스테이지의 사건 한 번에 반영됩니다. */
+const THREAD_EVENTS = { child: 'after_child', outpost: 'after_outpost', well: 'after_well' };
+function threadEventDef(run, key) {
+  const choice = (run.eventThreads || {})[key.slice(6)];
+  if (key === 'after_child') return {
+    title: '다시 만난 아이',
+    text: choice === 1 ? '복도 끝에 지난번 나눠 준 보급의 포장지가 놓여 있습니다. 그 곁에서 아이가 조용히 손을 흔듭니다.' : '복도 끝에서 전에 지나쳤던 아이가 손을 흔듭니다. 아직 이곳에 남아 있었습니다.',
+    choices: choice === 1 ? [
+      { label: '아이가 가리키는 틈을 살핀다', run: r => `숨겨 둔 꾸러미를 찾았습니다. 보급 +${gainSupply(r, 2)}` },
+      { label: '잠시 곁에 앉는다', run: r => `아이는 말을 하지 않아도 자리를 지킵니다. ${stressTxt(r, -10)}` }
+    ] : [
+      { label: '이번에는 보급 1을 나눈다', req: r => r.supply >= 1, reqText: '보급 1 필요', run: r => { gainSupply(r, -1); return `아이가 받아 들고 웃습니다. ${stressTxt(r, -10)}`; } },
+      { label: '갈 길을 간다', run: () => '복도 끝을 돌아서자 발소리가 멀어집니다.' }
+    ]
+  };
+  if (key === 'after_outpost') return {
+    title: '초소의 표식',
+    text: choice === 1 ? '지난번 챙긴 창의 녹과 똑같은 자국이 벽에 남아 있습니다. 자국은 작은 창고 앞에서 끝납니다.' : '이 벽에도 지난 초소에서 읽었던 글씨체로 방향이 적혀 있습니다. 화살표는 작은 창고를 가리킵니다.',
+    choices: [
+      { label: '표식을 따라 창고를 살핀다', run: r => `먼지 쌓인 상자를 열었습니다. 보급 +${gainSupply(r, 2)}` },
+      { label: '벽의 글씨를 기억해 둔다', run: r => `몇 글자는 닳아 없어졌지만, 방향만은 남아 있습니다. ${stressTxt(r, -8)}` }
+    ]
+  };
+  return {
+    title: '우물 소리의 끝',
+    text: choice === 1 ? '마른 우물에서 들었던 목소리가 빈 방 안에서 다시 울립니다. 이번에는 닫힌 문 너머에서 들립니다.' : '마른 우물에 던졌던 돌과 같은 소리가 문 너머에서 울립니다. 무언가 굴러가는 소리도 따라옵니다.',
+    choices: [
+      { label: '소리가 나는 문을 연다', run: r => `문틈에 걸린 보급품을 찾았습니다. 보급 +${gainSupply(r, 2)}` },
+      { label: '소리가 멎을 때까지 기다린다', run: r => `한참 뒤 방은 조용해졌습니다. ${stressTxt(r, -8)}` }
+    ]
+  };
+}
 function recruitPick(run) {
   if (!run.recruitId) { const b = run.bench.filter(c => !run.comps.some(x => x.id === c.id)); run.recruitId = b.length ? randomOf(b).id : 'none'; }
   return run.bench.find(c => c.id === run.recruitId) || null;
@@ -2909,6 +2949,10 @@ function recruitChoices(run) {
 function startEvent(run, node) {
   if (node.type === 'legacy' && run.legacy) { run.event = { key: 'legacy', done: false }; return; }
   if (node.recruit && !run.recruited) { run.event = { key: 'recruit', done: false }; return; }
+  if ((run.stage || 1) === 2) {
+    const pending = Object.keys(THREAD_EVENTS).find(k => (run.eventThreads || {})[k] && !run.usedEvents.includes(THREAD_EVENTS[k]));
+    if (pending) { const key = THREAD_EVENTS[pending]; run.usedEvents.push(key); run.event = { key, done: false }; return; }
+  }
   const pairs = relPairs(run).filter(p => REL_EVENTS[p.type] && !run.usedEvents.includes(`rel:${p.type}`));
   if (pairs.length && Math.random() < 0.4) {
     const p = randomOf(pairs); run.usedEvents.push(`rel:${p.type}`);
@@ -2924,6 +2968,7 @@ function eventDef(run) {
   if (k === 'recruit') return { ...RECRUIT_EVENT, choices: recruitChoices(run) };
   if (k === 'legacy') return legacyEventDef(run);
   if (k === 'rel') return relEventDef(run);
+  if (Object.values(THREAD_EVENTS).includes(k)) return threadEventDef(run, k);
   return withKw(run, EVENTS[k]);
 }
 function chooseEvent(run, i) {
@@ -2935,6 +2980,7 @@ function chooseEvent(run, i) {
   const j = journalOf(run); j.events++;
   j.eventDeaths += Math.max(0, run.comps.filter(c => c.status === 'dead').length - beforeDead);
   j.maxStress = Math.max(j.maxStress, run.stress);
+  if ((run.stage || 1) === 1 && THREAD_EVENTS[run.event.key]) (run.eventThreads = run.eventThreads || {})[run.event.key] = i + 1;
   run.event.done = true; run.event.result = fixJosa(text);
   return { ok: true };
 }
@@ -3003,6 +3049,9 @@ function buildRunReport(run) {
     { name: '흔들리지 않는 등불', rule: '정신력 한계 0 · 최고 스트레스 70 미만 · 엘리트 4회 이상 격파', ok: !run.brokeOnce && s.maxStress < 70 && s.elites >= 4 },
     { name: '탑의 역린을 꺾은 자', rule: '무게 4 이상 · 엘리트 6회 이상 격파', ok: run.diff >= 4 && s.elites >= 6 },
     { name: '가장 무거운 귀환', rule: '무게 5 · 동료 사망 0 · 정신력 한계 0 · 엘리트 4회 이상 격파', ok: run.diff >= 5 && !s.deaths && !run.brokeOnce && s.elites >= 4 },
+    { name: '무너진 전선을 되찾은 사람', rule: '전선 −3 이하에서 승리 3회 이상 · 엘리트 4회 이상 격파', ok: s.comebacks >= 3 && s.elites >= 4 },
+    { name: '서로 다른 길을 엮은 사람', rule: '카드 엮기 3회 이상 · 엘리트 4회 이상 격파', ok: s.fuses >= 3 && s.elites >= 4 },
+    { name: '꺼지지 않은 모닥불', rule: '야영 대화 4회 이상 · 동료 사망 0', ok: s.talks >= 4 && !s.deaths },
   ].map(a => ({ name: a.name, rule: a.rule, earned: qualified && a.ok }));
   const party = run.comps.map(c => {
     const gain = c.merc ? 0 : Math.max(0, (c.bondPts || 0) - ((run.bondStart || {})[c.id] || 0));
@@ -3432,6 +3481,10 @@ function cardDetailHtml(card) {
     ${other.length ? `<ul class="rlist">${sigDescList(other)}</ul>` : ''}
     ${notes.map(n => `<p class="soft small">${esc(n)}</p>`).join('')}`;
 }
+function pouchPreviewHtml(card, added) {
+  const emos = cardEmos(card).map(e => EMO[e]);
+  return `<span class="pouch-preview">${added ? '주머니 +' : '주머니 토큰 '}${emos.map(esc).join(' · ')} <b>${emos.length}개</b></span>`;
+}
 function cardSheet() {
   const ci = UI.cinfo; if (!ci) return '';
   let card, action = '';
@@ -3560,7 +3613,7 @@ function renderReward() {
   const relic = rw.relic ? `<div class="relic-get"><b>유물 획득: ${esc(RELICS[rw.relic].name)}</b><small>${esc(RELICS[rw.relic].desc)}</small></div>` : '';
   const cards = rw.done
     ? `<p class="soft">${rw.took ? `${esc(jo(CARDS[rw.took].name, '을', '를'))} 덱에 넣었습니다.` : '카드 대신 보급 1을 챙겼습니다.'}</p><button class="btn primary big" data-act="to-map">맵으로</button>`
-    : `<p class="soft small">카드를 누르면 능력을 볼 수 있고, 거기서 덱에 넣습니다.</p><div class="card-row">${rw.cards.map(k => cardHtml({ key: k }, { act: 'card-info', data: ` data-ctx="reward" data-k="${k}"` })).join('')}</div>
+    : `<p class="soft small">카드를 누르면 능력을 볼 수 있고, 거기서 덱에 넣습니다. 아래 감정은 다음 전투 주머니에 추가됩니다.</p><div class="card-row reward-cards">${rw.cards.map(k => `<div class="reward-pick">${cardHtml({ key: k }, { act: 'card-info', data: ` data-ctx="reward" data-k="${k}"` })}${pouchPreviewHtml({ key: k }, true)}</div>`).join('')}</div>
        <div class="reward-alternative"><span class="reward-or">또는</span><button class="btn" data-act="skip-card"><span>카드 대신 보급 챙기기</span><b>보급 +1</b></button></div>`;
   app.innerHTML = `<main class="setup reward">
     <h1>전리품</h1>
@@ -3649,7 +3702,7 @@ function deckOverlay() {
   if (pick === 'fuse' && sel.length === 2) {
     const a = RUN.deck.find(c => c.cid === sel[0]), b = RUN.deck.find(c => c.cid === sel[1]);
     const card = { key: a.key, custom: fusePreview(a, b), awk: !!(a.awk || b.awk) };
-    preview = `<div class="fuse-prev"><span>엮으면</span>${cardHtml(card)}<button class="btn primary" data-act="confirm-fuse">엮기</button></div>`;
+    preview = `<div class="fuse-prev"><span>엮으면</span>${cardHtml(card)}<div class="fuse-pouch">${pouchPreviewHtml(card, false)}<small>두 카드의 토큰을 그대로 담습니다. 같은 감정이어도 2개예요.</small></div><button class="btn primary" data-act="confirm-fuse">엮기</button></div>`;
   }
   const comps = RUN.comps.filter(c => c.status !== 'dead').map(c => `<li>${esc(c.name)}: 동료 카드. 덱과 따로 전투마다 들어갑니다.</li>`).join('');
   return `<div class="sheet"><div class="sheet-body deck-sheet">${head}${preview}<div class="card-row wrap">${cards}</div>
