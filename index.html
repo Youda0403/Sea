@@ -3715,8 +3715,11 @@ function renderMap() {
   const lines = [];
   // 지나온 길(현재 층까지의 선)은 그리지 않고, 지나간 층의 안 간 칸은 흐리게
   const curFloor = r.pos != null && nodes[r.pos] ? nodes[r.pos].floor : 0;
+  // 선은 지금 서 있는 칸에서 앞으로 갈 수 있는 길만 그립니다
+  const ahead = new Set(r.pos != null && nodes[r.pos] ? [r.pos] : nodes.filter(n => n.floor === 1).map(n => n.id));
+  for (const n of [...nodes].sort((a, b) => a.floor - b.floor)) if (ahead.has(n.id)) n.next.forEach(id => ahead.add(id));
   for (const n of nodes) for (const id of n.next) {
-    const m = nodes[id]; if (m.floor <= curFloor) continue;
+    const m = nodes[id]; if (m.floor <= curFloor || !ahead.has(n.id)) continue;
     const on = path.has(n.id) && path.has(m.id);
     lines.push(`<line x1="${X(n.col)}" y1="${Y(n.floor)}" x2="${X(m.col)}" y2="${Y(m.floor)}" class="${on ? 'walked' : ''}" vector-effect="non-scaling-stroke"/>`);
   }
