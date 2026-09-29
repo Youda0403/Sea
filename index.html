@@ -3719,8 +3719,10 @@ function renderMap() {
   const ahead = new Set(r.pos != null && nodes[r.pos] ? [r.pos] : nodes.filter(n => n.floor === 1).map(n => n.id));
   for (const n of [...nodes].sort((a, b) => a.floor - b.floor)) if (ahead.has(n.id)) n.next.forEach(id => ahead.add(id));
   for (const n of nodes) for (const id of n.next) {
-    const m = nodes[id]; if (m.floor <= curFloor || !ahead.has(n.id)) continue;
+    const m = nodes[id];
     const on = path.has(n.id) && path.has(m.id);
+    // 걸어온 길(두꺼운 선)은 항상 남기고, 점선은 지금 칸에서 앞으로 갈 수 있는 길만
+    if (!on && (m.floor <= curFloor || !ahead.has(n.id))) continue;
     lines.push(`<line x1="${X(n.col)}" y1="${Y(n.floor)}" x2="${X(m.col)}" y2="${Y(m.floor)}" class="${on ? 'walked' : ''}" vector-effect="non-scaling-stroke"/>`);
   }
   const btns = nodes.map(n => {
