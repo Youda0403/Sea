@@ -1187,13 +1187,13 @@ const KEYWORDS = {
   // 분노
   hot: { name: '열혈', emo: 'anger', desc: '전선 −3 이하일 때 공격 +1 / 버스트 스트레스 +3 추가' },
   proud: { name: '오만', emo: 'anger', desc: '전선 +3 이상일 때 공격 +1 / 격려·결속 효과를 받지 않음' },
-  tsun: { name: '츤데레', emo: 'anger', desc: '합동 인장 수치 +1 / 야영 대화 첫 1회는 유대 점수 0' },
+  tsun: { name: '츤데레', emo: 'anger', desc: '합동 인장 수치 +1 / 야영 대화 첫 1회는 유대 점수 0. 대신 유대 3단계면 궁극기 결의 1을 채운 채 판에 나옴' },
   obsess: { name: '집착', emo: 'anger', desc: '관계 상대가 죽으면 복수 각성 100% / 관계 상대가 파티에 없으면 공격 −1' },
   compet: { name: '승부욕', emo: 'anger', desc: '적을 처치할 때마다 그 전투 동안 공격 +1(최대 +2) / 체력 −1' },
   rebel: { name: '반항', emo: 'anger', desc: '스트레스 50 이상이면 공격 +2 / 50 미만이면 공격 −1' },
   // 냉정
   cool: { name: '냉철', emo: 'calm', desc: '버스트 때 추가 토큰 1개 보존 / 유대 토큰의 공격 +1 보너스를 받지 않음' },
-  indiff: { name: '무심', emo: 'calm', desc: '이 캐릭터가 겪거나 일으키는 사망 스트레스 절반 / 유대 점수 절반' },
+  indiff: { name: '무심', emo: 'calm', desc: '이 캐릭터가 겪거나 일으키는 사망 스트레스 절반 / 유대가 한 번에 1 덜 오름(최소 1). 대신 유대 3단계면 이 동료가 사선에 설 때 스트레스 −3' },
   kuu: { name: '쿨데레', emo: 'calm', desc: '유대 3단계면 전투 시작 시 냉정 토큰 1개 보관 / 유대 필요 점수 +2' },
   timid: { name: '소심', emo: 'calm', desc: '체력 +1, 사선 스트레스 절반 / 전선 −3 이하일 때 공격 −1' },
   perfect: { name: '완벽주의', emo: 'calm', desc: '체력이 가득 차 있으면 공격 +1 / 사선 스트레스 +5 추가' },
@@ -1700,11 +1700,8 @@ function bondThresholds(c) { const add = kwsOf(c).includes('kuu') ? 2 : 0; retur
 function bondLevel(c) { const t = bondThresholds(c); return c.bondPts >= t[2] ? 3 : c.bondPts >= t[1] ? 2 : c.bondPts >= t[0] ? 1 : 0; }
 function gainBond(c, n, why) {
   if (c.merc) return;
-  if (kwsOf(c).includes('indiff')) {
-    c.bondHalf = (c.bondHalf || 0) + n;
-    n = Math.floor(c.bondHalf / 2); c.bondHalf %= 2;
-  }
-  if (n <= 0) { log(`${c.name}: 유대 점수가 반영되지 않았습니다(무심)`, 'sys'); return; }
+  if (kwsOf(c).includes('indiff') && n > 0) n = Math.max(1, n - 1);
+  if (n <= 0) return;
   const before = bondLevel(c);
   c.bondPts += n;
   log(`${c.name} 유대 +${n}(${why})`, 'good');
@@ -1758,7 +1755,7 @@ function mkUnit(card, info, bonus) {
   const shield = hasRelic('crackshield') && ((c && c.role === 'def') || info.sig.includes('guard'));
   if (shield) hp += 3;
   return { uid: uid(), card, name: info.name, atk: info.atk, hp, maxHp: hp, sig: info.sig.slice(), comp: info.comp, emo: info.emo,
-    poison: false, tempAtk: 0, wall: 0, bonus, saseonAtPlay: !!(c && c.status === 'saseon'), shield };
+    poison: false, tempAtk: 0, wall: 0, bonus, saseonAtPlay: !!(c && c.status === 'saseon'), shield, resolve: c && !c.merc && kwsOf(c).includes('tsun') && bondLevel(c) >= 3 ? 1 : 0 };
 }
 function snapUnit(u) { return u ? { ...u, sig: u.sig.slice() } : null; }
 function rec(type, data) {
@@ -2196,7 +2193,7 @@ function companionDown(u) {
   say(c, 'down');
   crushRageFor(c);
   log(`${jo(c.name, '이', '가')} 사선에 섰습니다. 한 번 더 쓰러지면 사망합니다`, 'bad');
-  addStress((c.merc ? 5 : kwsOf(c).includes('timid') ? 2 : 5) + (kwsOf(c).includes('perfect') ? 5 : 0) + (kwsOf(c).includes('chatty') ? 5 : 0), '동료 사선');
+  addStress(Math.max(0, (c.merc ? 5 : kwsOf(c).includes('timid') ? 2 : 5) + (kwsOf(c).includes('perfect') ? 5 : 0) + (kwsOf(c).includes('chatty') ? 5 : 0) - (kwsOf(c).includes('indiff') && bondLevel(c) >= 3 ? 3 : 0)), '동료 사선');
   redThreadCost(c);
 }
 function redThreadCost(c) {
@@ -2581,14 +2578,12 @@ function syncRunFromBattle(run, B) {
 
 function runGainBond(c, n) {
   if (c.merc) return { n: 0, before: 0, after: 0 };
-  if (kwsOf(c).includes('indiff')) {
-    c.bondHalf = (c.bondHalf || 0) + n;
-    n = Math.floor(c.bondHalf / 2); c.bondHalf %= 2;
-  }
+  if (kwsOf(c).includes('indiff') && n > 0) n = Math.max(1, n - 1);
   const before = bondLevel(c);
   c.bondPts += n;
   return { n, before, after: bondLevel(c) };
 }
+const TALK_BOND_CAP = 3;
 function talkGain(run, c) {
   if (kwsOf(c).includes('tsun') && !c.tsunTalked) return { base: 0, why: '츤데레: 첫 대화에서는 마음을 열지 않습니다' };
   if (kwsOf(c).includes('calc') || kwsOf(run.pro).includes('calc')) return { base: 1, why: '계산적: 보너스 없이 담담하게 대화합니다' };
@@ -2599,7 +2594,8 @@ function talkGain(run, c) {
   const rel = (run.rels || []).find(x => (x.a === run.pro.id && x.b === c.id) || (x.b === run.pro.id && x.a === c.id));
   if (rel) { n++; why.push('주인공과의 관계'); }
   const half = kwsOf(c).includes('indiff');
-  return { base: n, why: why.length ? `${why.join(', ')} +1` : '', half };
+  const capped = n > TALK_BOND_CAP; n = Math.min(TALK_BOND_CAP, n);
+  return { base: n, why: why.length ? `${why.join(', ')} +1${capped ? ` (한 번에 최대 +${TALK_BOND_CAP})` : ''}` : '', half };
 }
 function pickLine(ch, kind, other) {
   const set = linesFor(ch, kind);
@@ -2646,7 +2642,7 @@ function campTalk(run, id) {
   if (r.after > r.before) text += `. 유대 ${r.after}단계 달성!`;
   if (chat) text += `. 수다 덕분에 스트레스 −5${chatTxt ? `. ${chatTxt}` : ''}`;
   journalOf(run).talks++;
-  run.lastCamp = { kind: 'talk', id, lines, text, why: [g.why, g.half && g.base > 0 ? '무심: 유대 점수가 절반만 반영됩니다' : ''].filter(Boolean).join(' / ') };
+  run.lastCamp = { kind: 'talk', id, lines, text, why: [g.why, g.half && g.base > 1 ? '무심: 유대가 1 덜 오릅니다' : ''].filter(Boolean).join(' / ') };
   return { ok: true };
 }
 
@@ -5449,7 +5445,7 @@ function renderCamp() {
   if (!r.camped) {
     const talks = alive.filter(c => !c.merc).map(c => {
       const g = talkGain(r, c);
-      const est = g.base === 0 ? '첫 대화라 유대가 오르지 않습니다' : `유대 +${g.half ? g.base / 2 : g.base}${g.half ? '(무심으로 절반)' : ''} 예상`;
+      const est = g.base === 0 ? '첫 대화라 유대가 오르지 않습니다' : `유대 +${g.half ? Math.max(1, g.base - 1) : g.base}${g.half && g.base > 1 ? '(무심으로 1 덜)' : ''} 예상`;
       return `<button class="btn opt-btn" data-act="camp-talk" data-id="${c.id}">${avatarById(c.id, c.name)}<span><b>${esc(c.name)}</b><small>${esc(est)}${g.why ? `. ${esc(g.why)}` : ''}</small></span></button>`;
     }).join('') || '<p class="soft small">대화할 동료가 없습니다.</p>';
     const heals = sas.map(c => `<button class="btn opt-btn" data-act="camp-heal" data-id="${c.id}"${canPay ? '' : ' disabled'}>${avatarById(c.id, c.name)}<span><b>${esc(c.name)} 치료</b><small>보급 ${CAMP_COST}을 써서 사선을 풉니다</small></span></button>`).join('') || '<p class="soft small">사선 상태인 동료가 없습니다.</p>';
