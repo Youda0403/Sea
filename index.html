@@ -1095,6 +1095,10 @@ main.battle.tut { padding-bottom: 13rem; }
 .gift-shelf-row .hcard { width: 110px; min-height: 150px; }
 .gift-shelf-row p { margin: .3rem 0; overflow-wrap: anywhere; }
 .gift-art { object-fit: cover; }
+
+.ws-joint-preview { margin-bottom: 16px; padding: 18px; }
+.ws-joint-preview h2 { margin: 8px 0; }
+.ws-joint-preview p { margin: 8px 0; }
 </style>
 </head>
 <body>
@@ -2741,6 +2745,7 @@ function takeRewardCard(run, key) {
 }
 function skipRewardCard(run) {
   if (!run.reward || run.reward.done) return { ok: false };
+  if (run.supply >= runSupplyMax(run)) return { ok: false, msg: '보급이 가득 찼습니다. 카드 보상을 선택해 주세요.' };
   run.supply = Math.min(runSupplyMax(run), run.supply + 1); run.reward.done = true; run.reward.took = null; return { ok: true };
 }
 
@@ -3671,7 +3676,7 @@ function renderReward() {
   const cards = rw.done
     ? `<p class="soft">${rw.took ? `${esc(jo(CARDS[rw.took].name, '을', '를'))} 덱에 넣었습니다.` : '카드 대신 보급 1을 챙겼습니다.'}</p><button class="btn primary big" data-act="to-map">맵으로</button>`
     : `<p class="soft small">카드를 누르면 능력을 볼 수 있고, 거기서 덱에 넣습니다.</p><div class="card-row reward-cards">${rw.cards.map(k => cardHtml({ key: k }, { act: 'card-info', data: ` data-ctx="reward" data-k="${k}"` })).join('')}</div>
-       <div class="reward-alternative"><span class="reward-or">또는</span><button class="btn" data-act="skip-card"><span>카드 대신 보급 챙기기</span><b>보급 +1</b></button></div>`;
+       <div class="reward-alternative"><span class="reward-or">또는</span><button class="btn" data-act="skip-card"${RUN.supply >= runSupplyMax(RUN) ? ' disabled' : ''}><span>카드 대신 보급 챙기기</span><b>${RUN.supply >= runSupplyMax(RUN) ? '보급 가득 참 (' + RUN.supply + '/' + runSupplyMax(RUN) + ')' : '보급 +1'}</b></button></div>`;
   app.innerHTML = `<main class="setup reward">
     <h1>전리품</h1>
     ${runHead()}
@@ -3845,7 +3850,7 @@ function onRunAct(act, d) {
       render(); return true;
     }
     case 'take-card': { takeRewardCard(RUN, d.k); UI.cinfo = null; render(); return true; }
-    case 'skip-card': { skipRewardCard(RUN); render(); return true; }
+    case 'skip-card': { const r = skipRewardCard(RUN); if (!r.ok && r.msg) flash(r.msg); render(); return true; }
     case 'to-reward': {
       syncOnce();
       if (RUN.over) { screen = 'runend'; render(); return true; }
@@ -4867,6 +4872,7 @@ function onWorkshopAct(act,d) {
     if(!commitGiftMeta(m.cardGifts,active)) flash('설정을 저장하지 못했습니다'); else render(); return true;
   }
   if (!act.startsWith('ws-')) return false;
+  if(act==='ws-joint-replay' && UI.workshopJoint) { replayWorkshopJoint(); return true; }
   if (!workshopAllowed()) return true;
   if(act==='ws-preview') { wsPreview(d.kind); return true; }
   if(act==='ws-close-preview') { const frame=app.querySelector('#ws-preview'); if(frame) frame.srcdoc=''; app.querySelector('.ws-preview-wrap').hidden=true; return true; }
@@ -4911,7 +4917,12 @@ function runWorkshopPreview(cfg) {
   const line=kind=>(linesFor(a,kind)[0]||'').replace(/\{상대\}/g,b.name).replace(/\{이름\}/g,a.name);
   if(cfg.kind==='cutin') showFx('cutin',cutinHtml({id:a.id,name:a.name,link:cfg.relationship || 'lover',bond:3,line:line('play')}),8000);
   else if(cfg.kind==='ult') { S.p[0].resolve=3; useUlt(0); render(); castFx('ult',a.ultName||ULTS[a.role].def,line('ult'),{id:a.id,who:a.name,target:{side:a.role==='atk'?'e':'p',lanes:[0]}}); }
-  else if(cfg.kind.startsWith('joint-')) {const kind=cfg.kind.slice(6);S.recording=true;rec('joint',{kind,lanes:[0,1],target:0,text:JOINTS[kind].name+': '+a.name+' · '+b.name});S.recording=false;playEvents();}
+  else if(cfg.kind.startsWith('joint-')) {
+    const kind=cfg.kind.slice(6);
+    UI.workshopJoint={kind,names:a.name+' · '+b.name};
+    render(); // Keep the explanation visible even after the short board effect ends.
+    replayWorkshopJoint();
+  }
   else if(['down','death','grit'].includes(cfg.kind)) {
     S.recording=true;
     if(cfg.kind==='grit'){S.p[0].hp=1;rec('grit',{lane:0,name:a.name});}
@@ -4936,6 +4947,21 @@ function workshopBoot() {
       else if(t.matches('[data-ws-image]')) {wsReadDraft();WORKSHOP.draft.image=await wsImage(t.files[0]);render();}
     } catch(err) {flash(err.message||'파일을 읽지 못했습니다');}
   });
+}
+
+function workshopJointHtml() {
+  const preview=UI.workshopJoint;
+  if(!preview) return '';
+  const joint=JOINTS[preview.kind];
+  return `<section class="panel ws-joint-preview" aria-live="polite"><small>관계 행동 미리보기 · ${esc(preview.names)}</small><h2>${esc(joint.name)}</h2><p>${esc(joint.desc)}</p><p class="soft small">${preview.kind==='crush' ? '지속 효과라 본게임에는 별도의 발동 컷씬이 없습니다. 여기서는 영향을 받는 카드를 강조합니다.' : '본게임의 카드 강조 연출을 천천히 보여 줍니다. 발동 조건과 확률은 생략합니다.'}</p><button class="btn" data-act="ws-joint-replay"${UI.playing?' disabled':''}>${UI.playing?'연출 재생 중':'연출 다시 보기'}</button></section>`;
+}
+function replayWorkshopJoint() {
+  if(!UI.workshopJoint || UI.playing) return;
+  const {kind,names}=UI.workshopJoint;
+  S.events=[]; S.recording=true;
+  rec('joint',{kind,lanes:kind==='crush'?[0]:[0,1],target:0,text:JOINTS[kind].name+': '+names});
+  S.recording=false;
+  playEvents(3500);
 }
 'use strict';
 const app = document.getElementById('app');
@@ -5728,6 +5754,7 @@ function renderBattle() {
   }
   app.innerHTML = `<main class="battle${UI.playing ? ' playing' : ''}${S.enc.boss ? ' boss-fight' : ''}">`
     + bossBanner + `
+    ${workshopJointHtml()}
     <header class="top">${frontHtml()}${statusHtml()}</header>
     ${TUT ? tutGuideHtml() : ''}
     ${boardHtml()}
@@ -5781,7 +5808,7 @@ function renderSnap(sn) {
 }
 const FX_MS = { absorb: 520, hit: 560, front: 560, hold: 520, thorn: 420, die: 440, descend: 480, guard: 440, poison: 480, phase: 1000, joint: 700, grit: 800 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function playEvents() {
+async function playEvents(previewDuration = 0) {
   const evs = S.events.slice(); S.events = [];
   if (!evs.length) { render(); return; }
   const phaseChanged = evs.some(ev => ev.type === 'phase');
@@ -5791,7 +5818,7 @@ async function playEvents() {
       if (UI.skip) break;
       UI.fx = ev;
       renderSnap(ev.snap);
-      await sleep(FX_MS[ev.type] * (REDUCED ? 0.6 : 1));
+      await sleep(previewDuration || FX_MS[ev.type] * (REDUCED ? 0.6 : 1));
     }
   } finally {
     UI.playing = false; UI.fx = null;
