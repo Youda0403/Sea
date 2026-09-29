@@ -4897,14 +4897,14 @@ function runWorkshopPreview(cfg) {
   const a=structuredClone(originals.find(c=>c.id===cfg.a)||originals[0]);
   const b=structuredClone(originals.find(c=>c.id===cfg.b)||originals[0]);
   a.id='preview-a'; b.id='preview-b';
-  const pro={...structuredClone(presetRoster().chars[0]),id:'preview-pro',name:'여행자'};
-  ROSTER={chars:[pro,a,b],rels:[{a:a.id,b:b.id,type:'lover'}],bonds:{}};
+  const pro=cfg.kind==='cutin' ? {...structuredClone(b),id:'preview-pro'} : {...structuredClone(presetRoster().chars[0]),id:'preview-pro',name:'여행자'};
+  ROSTER={chars:[pro,a,b],rels:cfg.kind==='cutin' ? [{a:pro.id,b:a.id,type:cfg.relationship || 'lover'}] : [{a:a.id,b:b.id,type:cfg.kind.startsWith('joint-')?cfg.kind.slice(6):'lover'}],bonds:{}};
   META=metaDefault(); META.runs=1; META.unlocks=Object.keys(UNLOCKS); META.pageSkin=cfg.theme;
-  const comps=[a,b].map(c=>({...c,bondPts:30,status:'ok'}));
+  const comps=(cfg.kind==='cutin'?[a]:[a,b]).map(c=>({...c,bondPts:30,status:'ok'}));
   RUN=newRun({mode:'test',pro,comps,rels:ROSTER.rels});
   const boss=['boss','phase'].includes(cfg.kind);
   newBattle({enc:boss?'boss':'early',pro,comps,rels:ROSTER.rels,seed:42});
-  S.p=comps.map(c=>mkUnit({comp:c.id},cardInfo({comp:c.id}),0)).concat([null,null]);
+  S.p=comps.map(c=>mkUnit({comp:c.id},cardInfo({comp:c.id}),0)).concat(Array(4-comps.length).fill(null));
   if(!boss) { S.e=[mkEnemy('dog'),null,null,null]; S.tele=[null,null,null,null]; }
   UI.bossSeen=cfg.kind!=='boss'; UI.phase2Seen=false; UI.phase2IntroReady=false;
   screen='battle'; render();
