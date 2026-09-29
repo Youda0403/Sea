@@ -4826,6 +4826,12 @@ function wsReadDraft() {
 function renderWorkshop() {
   if (!workshopAllowed()) { screen = 'title'; render(); return; }
   const lock = wsLockGet();
+  if (!lock && !WORKSHOP.key) {
+    // 키가 없는 기기에서는 작업실 내용을 보여 주지 않고 키 파일 입력만 받습니다
+    app.innerHTML = `<main class="setup workshop ws-gate"><div class="nav"><a class="btn ghost" href="${esc(location.pathname)}">게임으로</a></div><p class="ws-eyebrow">TOWER · ATELIER</p><h1>제작자 작업실</h1>
+    <section class="panel"><p class="small">발급용 키 파일을 불러와야 들어갈 수 있습니다.</p><label class="ws-keyfile">키 파일<input type="file" accept=".json,application/json" data-ws-key></label><p class="soft small">들어간 뒤 비밀번호를 정해 두면, 이 기기에서는 다음부터 비밀번호만으로 열 수 있습니다.</p></section></main>`;
+    return;
+  }
   if (lock && !WORKSHOP.key) {
     app.innerHTML = `<main class="setup workshop ws-gate"><div class="nav"><a class="btn ghost" href="${esc(location.pathname)}">게임으로</a></div><p class="ws-eyebrow">TOWER · ATELIER</p><h1>제작자 작업실</h1>
     <section class="panel"><form class="ws-pw" onsubmit="return false"><label>비밀번호<input type="password" id="ws-pw" autocomplete="current-password" autofocus></label><button type="submit" class="btn primary" data-act="ws-unlock"${WORKSHOP.busy ? ' disabled' : ''}>${WORKSHOP.busy ? '여는 중' : '열기'}</button></form>
