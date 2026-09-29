@@ -5990,6 +5990,9 @@ function renderBattle() {
     const bu = S.e.find(u => u && u.boss);
     bossBanner = `<div class="reveal boss phase2" data-act="phase-ok"><div class="rv-rays" aria-hidden="true"></div><div class="rv-text"><small class="phase-tag">페이즈 2 / 2</small><b>${esc(bu ? bu.name : '보스')}</b>${bu ? `<span class="evo-stats">공격 ${bu.atk} · 체력 ${bu.hp}${bu.sig.length ? ` · ${esc(sigText(bu.sig))}` : ''}</span>` : ''}<span>${esc(S.enc.phase2Text || '')}</span><small>눌러서 계속</small></div></div>`;
   }
+  // 설명 창: 손패 카드를 골랐을 때만 손패 바로 아래, 그 밖(판 위 카드·안내)은 원래 자리(토큰 아래)
+  const handInfo = UI.mode === 'play' && UI.sel != null && !UI.playing;
+  const infoSec = `<section class="info"><div class="info-row"><div>${hintHtml()}</div><button class="btn small-btn gloss-btn" data-act="gloss">용어</button></div></section>`;
   app.innerHTML = `<main class="battle${UI.playing ? ' playing' : ''}${S.enc.boss ? ' boss-fight' : ''}">`
     + bossBanner + `
     ${workshopJointHtml()}
@@ -5997,9 +6000,10 @@ function renderBattle() {
     ${TUT ? tutGuideHtml() : ''}
     ${boardHtml()}
     ${tokensHtml()}
+    ${handInfo ? '' : infoSec}
     ${actionsHtml()}
     ${handHtml()}
-    <section class="info"><div class="info-row"><div>${hintHtml()}</div><button class="btn small-btn gloss-btn" data-act="gloss">용어</button></div></section>
+    ${handInfo ? infoSec : ''}
     ${logHtml()}
     ${!S.enc.boss && !TUT ? '<p class="reserve-note">새 적은 예고 칸에 먼저 나타납니다. 증원은 무한하지 않아요.</p>' : ''}
     ${retryHtml()}
