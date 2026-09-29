@@ -1131,6 +1131,20 @@ main.battle.tut { padding-bottom: 13rem; }
 .save-panel .save-import { margin-top: .8rem; }
 .save-panel .save-import summary { cursor: pointer; font-size: .88rem; }
 .save-panel .save-import .btn { width: 100%; box-sizing: border-box; margin-top: .5rem; }
+.gift-panel .gift-recv-btn { display: block; width: 100%; box-sizing: border-box; }
+.gift-panel .gift-shelf { margin-top: 1rem; }
+.gift-panel .gift-shelf h3 { font-size: .95rem; margin: 0 0 .5rem; }
+.gift-shelf-row .gift-del { margin-top: .35rem; }
+.relic-offer { text-align: center; display: grid; gap: .4rem; }
+.relic-offer > small { color: var(--brass); font-weight: 700; letter-spacing: .1em; }
+.relic-offer h2 { margin: 0; }
+.relic-offer .res-btns .btn { flex: 1; }
+.relic-drop-h { font-size: .95rem; margin: 1.1rem 0 .2rem; }
+.relic-drop { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .45rem; }
+.relic-drop li { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .5rem .6rem; border: 1px solid var(--line); border-radius: 8px; background: var(--table-2); }
+.relic-drop li div { display: grid; gap: .1rem; min-width: 0; }
+.relic-drop li small { color: var(--ink-soft); font-size: .76rem; }
+.relic-drop li .btn { flex: 0 0 auto; }
 .trade .shop-refresh { display: block; width: 100%; box-sizing: border-box; margin-top: .8rem; }
 .deck-sheet .hcard.sel { box-shadow: 0 0 0 4px var(--brass), 0 0 16px color-mix(in srgb, var(--brass) 65%, transparent); transform: translateY(-4px); }
 .deck-sheet .hcard.sel::after { content: "✓ 선택"; position: absolute; top: -.6rem; right: -.4rem; z-index: 2; font: 700 .72rem/1 "IBM Plex Sans KR", sans-serif; color: #21180c; background: #f3c65c; border: 2px solid #21180c; border-radius: 999px; padding: .22rem .5rem; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
@@ -2804,10 +2818,25 @@ function advanceStage(run) {
 function rageAtk() { return (S && (S.diff || 0) >= 4 && (S.wrv || 1) >= 3) ? 2 : 1; }
 function shopMarkup(run) { return (run.diff || 0) >= 3 && (run.weightRulesVersion || 1) >= 3 ? 1 : 0; }
 function cardPrice(key) { const d = CARDS[key]; const n = Object.values(d.cost).reduce((a, b) => a + b, 0); return d.desperate ? n + 1 : n + 1; }
+/* 유물을 주웠을 때 바로 넣지 않고 챙길지 고르게 합니다 */
+function offerRelic(run, k) { run.pendingRelic = k; }
+function takePendingRelic(run, take) {
+  const k = run.pendingRelic; if (!k) return;
+  run.pendingRelic = null;
+  if (take && !run.relics.includes(k)) run.relics.push(k);
+  if (run.reward && run.reward.relic === k) run.reward.relicTaken = !!take;
+  if (!take) gainSupply(run, 0);
+}
+function discardRelic(run, k) {
+  const i = run.relics.indexOf(k); if (i < 0) return { ok: false };
+  run.relics.splice(i, 1);
+  run.supply = Math.min(run.supply, runSupplyMax(run));
+  return { ok: true };
+}
 function makeReward(run, B) {
   const cards = pickN(cardPool(), 3);
   let relic = null;
-  if (B.enc.elite || B.enc.boss || Math.random() < 0.15) { const pool = relicPool(run); if (pool.length) { relic = pickN(pool, 1)[0]; run.relics.push(relic); } }
+  if (B.enc.elite || B.enc.boss || Math.random() < 0.15) { const pool = relicPool(run); if (pool.length) { relic = pickN(pool, 1)[0]; offerRelic(run, relic); } }
   run.reward = { cards, relic, done: false };
 }
 function takeRewardCard(run, key) {
@@ -2885,7 +2914,7 @@ const EVENTS = {
     choices: [
       { label: '들여다본다', run: run => {
         const pool = relicPool(run);
-        if (Math.random() < 0.5 && pool.length) { const k = randomOf(pool); run.relics.push(k); return `바닥에서 무언가 반짝입니다. 유물 ${RELICS[k].name}을(를) 얻었습니다.`; }
+        if (Math.random() < 0.5 && pool.length) { const k = randomOf(pool); offerRelic(run, k); return `바닥에서 무언가 반짝입니다. 유물 ${RELICS[k].name}을(를) 발견했습니다.`; }
         return `목소리가 귓가로 기어 올라옵니다. ${stressTxt(run, 15)}`; } },
       { label: '돌을 던져 넣는다', run: run => { const a = aliveComps(run); if (!a.length) return '소리가 멎었습니다.'; const c = randomOf(a); const g = runGainBond(c, 1); return `${c.name}이(가) 킥킥 웃었습니다. 소리가 멎었습니다.${g.n ? ` 유대 +${g.n}` : ''}`; } }] },
   storm: { title: '폭우', text: '하늘이 갈라진 것처럼 비가 쏟아집니다. 비를 피할 곳은 멀리 보이는 동굴뿐입니다.',
@@ -2925,7 +2954,7 @@ const EVENTS = {
     choices: [
       { label: '보급 2로 책 한 권을 바꿔 온다', req: run => run.supply >= 2, reqText: '보급 2 필요', run: run => {
         gainSupply(run, -2); const pool = relicPool(run);
-        if (pool.length && Math.random() < 0.6) { const k = randomOf(pool); run.relics.push(k); return `책장 사이에서 ${RELICS[k].name}이(가) 떨어졌습니다. 유물을 얻었습니다.`; }
+        if (pool.length && Math.random() < 0.6) { const k = randomOf(pool); offerRelic(run, k); return `책장 사이에서 ${RELICS[k].name}이(가) 떨어졌습니다. 유물을 발견했습니다.`; }
         return `책은 텅 비어 있었습니다. ${stressTxt(run, 5)}`; } },
       { label: '아무것도 건드리지 않는다', run: () => '발소리를 죽이고 서가를 지나쳤습니다.' }] },
   lullaby: { stage: 2, title: '자장가', text: '어디선가 자장가가 들려옵니다. 누가 불러 주던 노래였는지 기억나지 않습니다.',
@@ -2976,7 +3005,7 @@ const EVENTS = {
   clocktower: { stage: 2, title: '멈춘 시계탑', text: '방 한가운데 거대한 톱니가 멈춰 있습니다. 누군가의 시간이 여기서 멈춘 것 같습니다.',
     choices: [
       { label: '톱니를 억지로 돌린다', run: run => (Math.random() < 0.5 ? `시계가 한 칸 움직이자 머릿속이 맑아졌습니다. ${stressTxt(run, -12)}` : `톱니에 손을 찧었습니다. ${stressTxt(run, 10)}`) },
-      { kw: 'perfect', label: '어긋난 톱니를 하나하나 맞춘다', run: run => { const pool = relicPool(run); if (pool.length && Math.random() < 0.6) { const k = randomOf(pool); run.relics.push(k); return `${kwName(run, 'perfect')}이(가) 톱니를 맞추자 시계 속에서 ${RELICS[k].name}이(가) 굴러 나왔습니다.`; } return `시계가 다시 움직였습니다. ${stressTxt(run, -8)}`; } },
+      { kw: 'perfect', label: '어긋난 톱니를 하나하나 맞춘다', run: run => { const pool = relicPool(run); if (pool.length && Math.random() < 0.6) { const k = randomOf(pool); offerRelic(run, k); return `${kwName(run, 'perfect')}이(가) 톱니를 맞추자 시계 속에서 ${RELICS[k].name}이(가) 굴러 나왔습니다.`; } return `시계가 다시 움직였습니다. ${stressTxt(run, -8)}`; } },
       { label: '건드리지 않는다', run: () => '째깍, 소리 없이 지나쳤습니다.' }] },
   doorless: { stage: 2, title: '문 없는 방', text: '들어온 곳도 나갈 곳도 보이지 않는 방입니다. 벽 너머에서 무언가 긁는 소리가 납니다.',
     choices: [
@@ -3731,7 +3760,7 @@ function renderEvent() {
       <p class="story">${esc(def.text)}</p>
       ${ev.done ? `<p class="story result">${esc(ev.result)}</p><button class="btn primary big" data-act="to-map">계속</button>` : choices}
     </section>
-    ${deckOverlay()}${cardSheet()}${revealHtml()}
+    ${deckOverlay()}${cardSheet()}${revealHtml()}${relicOfferHtml()}
   </main>`;
 }
 
@@ -3751,7 +3780,10 @@ function renderTrade() {
     <section class="panel"><h2>유물</h2>${relic}</section>
     <section class="panel"><h2>카드 제거</h2>
       <p class="soft small">덱에서 카드 1장을 빼면 주머니 토큰도 함께 빠집니다. 보급 2, 한 번만 가능합니다.</p>
-      <button class="btn" data-act="pick-remove"${sh.removed || RUN.supply < 2 || RUN.deck.length <= 5 ? ' disabled' : ''}>${sh.removed ? '제거했습니다' : '뺄 카드 고르기'}</button></section>
+      <button class="btn" data-act="pick-remove"${sh.removed || RUN.supply < 2 || RUN.deck.length <= 5 ? ' disabled' : ''}>${sh.removed ? '제거했습니다' : '뺄 카드 고르기'}</button>
+      <h3 class="relic-drop-h">유물 버리기</h3>
+      <p class="soft small">대가가 있는 유물이 부담되면 버릴 수 있습니다. 보급은 들지 않고, 버린 유물은 돌아오지 않습니다.</p>
+      ${RUN.relics.length ? `<ul class="relic-drop">${RUN.relics.map(k => `<li><div><b>${esc(RELICS[k].name)}</b><small>${esc(RELICS[k].desc)}</small></div><button class="btn small-btn${UI.relicDropAsk === k ? ' danger' : ''}" data-act="relic-drop" data-k="${k}">${UI.relicDropAsk === k ? '한 번 더' : '버리기'}</button></li>`).join('')}</ul>` : '<p class="soft small">가진 유물이 없습니다.</p>'}</section>
     <button class="btn primary big" data-act="to-map">떠나기</button>
     ${deckOverlay()}${cardSheet()}${revealHtml()}
   </main>`;
@@ -3761,7 +3793,7 @@ function renderTrade() {
 function renderReward() {
   const rw = RUN.reward;
   const notes = RUN.notes.map(n => `<p class="note good">${esc(n)}</p>`).join('');
-  const relic = rw.relic ? `<div class="relic-get"><b>유물 획득: ${esc(RELICS[rw.relic].name)}</b><small>${esc(RELICS[rw.relic].desc)}</small></div>` : '';
+  const relic = rw.relic && !RUN.pendingRelic ? `<div class="relic-get"><b>${rw.relicTaken === false ? '두고 온 유물' : '유물 획득'}: ${esc(RELICS[rw.relic].name)}</b><small>${esc(RELICS[rw.relic].desc)}</small></div>` : '';
   const cards = rw.done
     ? `<p class="soft">${rw.took ? `${esc(jo(CARDS[rw.took].name, '을', '를'))} 덱에 넣었습니다.` : '카드 대신 보급 1을 챙겼습니다.'}</p><button class="btn primary big" data-act="to-map">맵으로</button>`
     : `<p class="soft small">카드를 누르면 능력을 볼 수 있고, 거기서 덱에 넣습니다.</p><div class="card-row reward-cards">${rw.cards.map(k => cardHtml({ key: k }, { act: 'card-info', data: ` data-ctx="reward" data-k="${k}"` })).join('')}</div>
@@ -3772,7 +3804,7 @@ function renderReward() {
     ${tipHtml('reward')}
     ${notes}${relic}
     <section class="panel"><h2>카드</h2>${cards}</section>
-    ${deckOverlay()}${cardSheet()}${revealHtml()}
+    ${deckOverlay()}${cardSheet()}${revealHtml()}${relicOfferHtml()}
   </main>`;
 }
 
@@ -3837,6 +3869,13 @@ function renderRunEnd() {
   </main>`;
 }
 
+/* ---------- 유물 발견: 챙길지 고르기 ---------- */
+function relicOfferHtml() {
+  const k = RUN && RUN.pendingRelic; if (!k || !RELICS[k]) return '';
+  return `<div class="sheet"><div class="sheet-body relic-offer"><small>유물 발견</small><h2>${esc(RELICS[k].name)}</h2><p>${esc(RELICS[k].desc)}</p>
+    ${RUN.relics.length ? `<p class="soft small">가진 유물: ${RUN.relics.map(x => esc(RELICS[x].name)).join(', ')}</p>` : ''}
+    <div class="res-btns"><button class="btn primary" data-act="relic-take">챙기기</button><button class="btn" data-act="relic-leave">두고 가기</button></div></div></div>`;
+}
 /* ---------- 덱 보기, 카드 고르기(제거, 엮기) ---------- */
 function deckOverlay() {
   if (!UI.deckOpen) return '';
@@ -3915,10 +3954,12 @@ function onRunAct(act, d) {
       return true;
     }
     case 'ev-choose': { const had = deckCids(); const r = chooseEvent(RUN, +d.i); if (!r.ok && r.msg) flash(r.msg); if (RUN.over) { screen = 'runend'; } else gainReveal(had); render(); return true; }
-    case 'to-map': UI.deckOpen = false; screen = RUN.over ? 'runend' : RUN.stageDone ? 'stage' : 'map'; render(); window.scrollTo(0, 0); return true;
+    case 'to-map': if (RUN && RUN.pendingRelic) { render(); return true; } UI.deckOpen = false; screen = RUN.over ? 'runend' : RUN.stageDone ? 'stage' : 'map'; render(); window.scrollTo(0, 0); return true;
     case 'next-stage': { const r = advanceStage(RUN); if (!r.ok) return true; placeLegacy(RUN); UI.mapScrolled = false; screen = 'map'; render(); window.scrollTo(0, 0); flash(r.text); return true; }
     case 'buy-card': { const had = deckCids(); const r = buyCard(RUN, +d.i); UI.cinfo = null; if (!r.ok) flash(r.msg); else { gainReveal(had); render(); } return true; }
     case 'buy-relic': { const r = buyRelic(RUN); if (!r.ok) flash(r.msg); else render(); return true; }
+    case 'relic-take': case 'relic-leave': { const k = RUN.pendingRelic; takePendingRelic(RUN, act === 'relic-take'); if (k) flash(fixJosa(act === 'relic-take' ? `${RELICS[k].name}을(를) 챙겼습니다` : `${RELICS[k].name}을(를) 두고 갑니다`)); render(); return true; }
+    case 'relic-drop': { if (UI.relicDropAsk !== d.k) { UI.relicDropAsk = d.k; render(); return true; } UI.relicDropAsk = null; const r = discardRelic(RUN, d.k); if (r.ok) flash(fixJosa(`${RELICS[d.k].name}을(를) 버렸습니다`)); render(); return true; }
     case 'shop-refresh': { const r = refreshShop(RUN); if (!r.ok) flash(r.msg); else render(); return true; }
     case 'pick-remove': UI.deckOpen = true; UI.picking = 'remove'; render(); return true;
     case 'pick-fuse': UI.deckOpen = true; UI.picking = 'fuse'; UI.fuseSel = []; render(); return true;
@@ -4066,9 +4107,7 @@ function renderBase() {
         ? (() => { const goldOn = m.frameOn && (m.frameStyle || 'gold') === 'gold'; return `<button class="btn small-btn${goldOn ? ' primary' : ''}" data-act="frame-select" data-k="${goldOn ? 'none' : 'gold'}">${goldOn ? '사용 중 (끄기)' : '적용'}</button>`; })()
         : '<span class="soft small">보스 첫 처치</span>'}</li>${decor.map(unlockRowHtml).join('')}</ul></section>
     <section class="panel"><h2>유품</h2>${legacyAll}</section>`}
-    ${giftShelfHtml()}
     <button class="btn primary big" data-act="to-prep">출정 준비</button>
-    ${giftReceiptHtml()}
   </main>`;
 }
 
@@ -4262,7 +4301,7 @@ function onGameAct(act, d) {
     case 'gift-cancel': { UI.giftCloseConfirm = false; const r = cancelGift(); if (!r.ok) { flash(r.msg); return true; } flash(fixJosa(`${r.name}을(를) 되찾았습니다`)); return true; }
     case 'gift-recv': {
       const ta = app.querySelector('[data-gift]'); const code = ta ? ta.value.trim() : '';
-      if (code.startsWith('TCG1:')) { receiveSignedGiftUI(code); return true; }
+      if (code.startsWith('TCG1:')) { UI.settingsBack = 'base'; screen = 'settings'; render(); window.scrollTo(0, 0); flash('선물 카드는 이제 설정에서 받습니다'); receiveSignedGiftUI(code); return true; }
       const r = receiveGift(code);
       UI.giftOpen = !r.ok; if (!r.ok) { flash(r.msg); return true; }
       flash(fixJosa(`${r.name}을(를) 유품으로 받았습니다`)); render(); return true;
@@ -4453,6 +4492,12 @@ function renderSettings() {
       <button class="btn switch-btn" data-act="fx-toggle" role="switch" aria-checked="${!meta().fxOff}"><span>연출 효과<small>${meta().fxOff ? '관계·지휘·궁극기 연출을 띄우지 않습니다. 기록에는 남습니다' : '관계 등장, 관계 행동, 지휘·궁극기 연출을 보여 줍니다'}</small></span><i class="sw${meta().fxOff ? '' : ' on'}" aria-hidden="true"></i></button>
       <button class="btn switch-btn" data-act="tips-toggle" role="switch" aria-checked="${meta().tipsOn !== false}"><span>화면별 도움말<small>${meta().tipsOn !== false ? '처음 보는 화면마다 안내가 뜹니다' : '안내를 띄우지 않습니다'}</small></span><i class="sw${meta().tipsOn !== false ? ' on' : ''}" aria-hidden="true"></i></button>
     </section>
+    <section class="panel gift-panel"><h2>선물 카드</h2>
+      <p class="soft small">제작자가 만든 선물 카드 코드(TCG1:로 시작)를 넣으면 받을 수 있습니다. 받은 카드는 다음 원정부터 원래 카드 한 장을 대신하고, 언제든 끄거나 지울 수 있습니다.</p>
+      <textarea class="save-code" data-signed-in rows="3" placeholder="TCG1:로 시작하는 코드" aria-label="선물 카드 코드"></textarea>
+      <button class="btn gift-recv-btn" data-act="signed-recv"${UI.signedBusy ? ' disabled' : ''}>선물 카드 받기</button>
+      ${giftShelfHtml()}
+    </section>
     <section class="panel save-panel"><h2>저장 옮기기</h2>
       <p class="soft small">진행 중인 원정, 기억 조각·해금·유품, 캐릭터와 관계를 코드 하나로 내보냅니다. 다른 기기나 브라우저에서 불러오면 그대로 이어서 할 수 있습니다.</p>
       <div class="res-btns"><button class="btn" data-act="save-export">저장 내보내기</button><button class="btn ghost" data-act="save-download">파일로 받기</button></div>
@@ -4467,6 +4512,7 @@ function renderSettings() {
       <button class="btn${UI.resetAsk === 'progress' ? ' danger' : ''}" data-act="reset-progress">${UI.resetAsk === 'progress' ? '정말 초기화할까요? 한 번 더 누르면 진행이 지워집니다' : '진행만 초기화'}<small>진행 중인 런, 기억 조각, 해금, 유품, 무게, 유대 기록이 지워집니다. 캐릭터와 관계는 남습니다</small></button>
       <button class="btn${UI.resetAsk === 'all' ? ' danger' : ''}" data-act="reset-all">${UI.resetAsk === 'all' ? '정말 전부 지울까요? 한 번 더 누르면 처음 상태가 됩니다' : '전부 초기화'}<small>캐릭터까지 모두 지우고 처음 켠 상태로 돌아갑니다</small></button>
     </section>
+    ${giftReceiptHtml()}
   </main>`;
 }
 
@@ -4942,11 +4988,11 @@ function acceptSignedGift(p, use) {
 }
 function giftShelfHtml() {
   const m = meta(), gifts = (m.cardGifts || []).filter(validSignedCard);
-  if (!gifts.length) return '';
-  return `<section class="panel gift-shelf"><h2>받아 둔 카드</h2><p class="soft small">선택한 카드가 다음 원정부터 원래 카드 한 장을 대신합니다. 끄면 원래 카드로 돌아갑니다. 시작 카드 선택으로 원래 카드를 뺐다면 적용되지 않습니다.</p>${gifts.map(p => {
+  if (!gifts.length) return '<p class="soft small">받아 둔 카드가 없습니다.</p>';
+  return `<div class="gift-shelf"><h3>받아 둔 카드 ${gifts.length}/30</h3><p class="soft small">선택한 카드가 다음 원정부터 원래 카드 한 장을 대신합니다. 끄면 원래 카드로 돌아갑니다. 시작 카드 선택으로 원래 카드를 뺐다면 적용되지 않습니다.</p>${gifts.map(p => {
     const on = (m.cardGiftActive || {})[p.base] === p.id;
-    return `<div class="gift-shelf-row">${cardHtml({ key: p.base, gift: signedCard(p) })}<div><b>${esc(p.name)}</b><p class="small">${esc(CARDS[p.base].name)} 한 장 대체</p><p class="soft small">${esc(p.note)}</p><button class="btn${on ? ' primary' : ''}" data-act="signed-toggle" data-id="${esc(p.id)}">${on ? '사용 중 · 끄기' : '다음 원정에 사용'}</button></div></div>`;
-  }).join('')}</section>`;
+    return `<div class="gift-shelf-row">${cardHtml({ key: p.base, gift: signedCard(p) })}<div><b>${esc(p.name)}</b><p class="small">${esc(CARDS[p.base].name)} 한 장 대체</p><p class="soft small">${esc(p.note)}</p><button class="btn${on ? ' primary' : ''}" data-act="signed-toggle" data-id="${esc(p.id)}">${on ? '사용 중 · 끄기' : '다음 원정에 사용'}</button><button class="btn ghost small-btn gift-del${UI.signedDelAsk === p.id ? ' danger' : ''}" data-act="signed-delete" data-id="${esc(p.id)}">${UI.signedDelAsk === p.id ? '한 번 더 누르면 지웁니다' : '삭제'}</button></div></div>`;
+  }).join('')}</div>`;
 }
 function giftReceiptHtml() {
   const p = UI.signedPending; if (!p) return '';
@@ -4955,7 +5001,7 @@ function giftReceiptHtml() {
 async function receiveSignedGiftUI(code) {
   if (UI.signedBusy) return;
   UI.signedBusy = true;
-  try { const p = await verifySignedGift(code); if (screen === 'base') { UI.signedPending = p; render(); } }
+  try { const p = await verifySignedGift(code); if (screen === 'settings') { UI.signedPending = p; render(); } }
   catch (e) { flash(e.message || '코드를 읽지 못했습니다'); }
   finally { UI.signedBusy = false; }
 }
@@ -5000,7 +5046,7 @@ function renderWorkshop() {
   <form data-ws-form onsubmit="return false"><label>바탕 카드<select name="base" data-ws-base>${[...new Set(START_DECK)].map(k=>opt(k,CARDS[k].name,d.base)).join('')}</select></label><div class="ws-fields"><label>카드 이름<input name="name" maxlength="24" value="${esc(d.name)}"></label><label>공격<input name="atk" type="number" min="0" max="8" value="${d.atk}"></label><label>체력<input name="hp" type="number" min="1" max="12" value="${d.hp}"></label><label>인장 1<select name="sig1">${sigOpts(d.sig[0])}</select></label><label>인장 2<select name="sig2">${sigOpts(d.sig[1])}</select></label></div><label>카드에 담을 말<textarea name="note" rows="3" maxlength="180">${esc(d.note)}</textarea></label><label>작은 그림 (선택)<input type="file" accept="image/*" data-ws-image></label><p class="soft small">그림은 작게 압축합니다. 그림을 넣으면 전달할 코드가 길어집니다.</p><div class="res-btns"><button type="button" class="btn" data-act="ws-card-preview">카드 미리보기</button><button type="button" class="btn ghost" data-act="ws-clear-image">그림 지우기</button></div></form>
   <div class="ws-card-preview">${cardHtml({key:d.base,gift:signedCard({...d,id:'preview-000'})})}<p>${esc(d.note)}</p></div>
   <div class="ws-sign">${signHtml}<button class="btn primary" data-act="ws-sign"${WORKSHOP.key && !WORKSHOP.busy ? '' : ' disabled'}>선물 코드 발급</button></div>
-  ${WORKSHOP.code ? `<label>전달할 코드<textarea id="ws-code" readonly rows="4">${esc(WORKSHOP.code)}</textarea></label><button class="btn" data-act="ws-copy">코드 복사</button><p class="soft small">친구에게 기존 ‘받은 유품 코드 넣기’에 붙여넣으라고 알려 주세요.</p>` : ''}</section></main>`;
+  ${WORKSHOP.code ? `<label>전달할 코드<textarea id="ws-code" readonly rows="4">${esc(WORKSHOP.code)}</textarea></label><button class="btn" data-act="ws-copy">코드 복사</button><p class="soft small">친구에게 게임의 설정 → 선물 카드에 붙여 넣으라고 알려 주세요.</p>` : ''}</section></main>`;
 }
 async function wsImportKey(file) {
   if (!file || file.size > 4096) throw Error('전달받은 키 파일을 선택해 주세요');
@@ -5066,11 +5112,20 @@ async function wsImage(file) {
 }
 function onWorkshopAct(act,d) {
   if (act === 'signed-cancel') { UI.signedPending = null; render(); return true; }
+  if (act === 'signed-recv') { const ta = app.querySelector('[data-signed-in]'); const code = ta ? ta.value.trim() : ''; if (!code) { flash('선물 코드를 붙여 넣어 주세요'); return true; } receiveSignedGiftUI(code); return true; }
+  if (act === 'signed-delete') {
+    if (UI.signedDelAsk !== d.id) { UI.signedDelAsk = d.id; render(); return true; }
+    UI.signedDelAsk = null;
+    const m = meta(), gifts = (m.cardGifts || []).filter(x => x.id !== d.id), active = { ...(m.cardGiftActive || {}) };
+    for (const b in active) if (active[b] === d.id) delete active[b];
+    if (!commitGiftMeta(gifts, active)) flash('저장하지 못했습니다'); else { flash('선물 카드를 지웠습니다. 같은 코드로 다시 받을 수 있습니다'); render(); }
+    return true;
+  }
   if (act === 'signed-accept' || act === 'signed-store') {
     if (!UI.signedPending) return true;
     const r=acceptSignedGift(UI.signedPending,act==='signed-accept');
     if(r.ok) UI.signedPending=null;
-    flash(r.ok ? (act==='signed-accept'?'받았습니다. 다음 원정부터 적용됩니다':'카드를 보관했습니다. 거점에서 사용을 켤 수 있습니다') : r.msg); return true;
+    flash(r.ok ? (act==='signed-accept'?'받았습니다. 다음 원정부터 적용됩니다':'카드를 보관했습니다. 설정에서 사용을 켤 수 있습니다') : r.msg); render(); return true;
   }
   if (act === 'signed-toggle') {
     const m=meta(),p=(m.cardGifts||[]).find(x=>x.id===d.id); if(!p) return true;
