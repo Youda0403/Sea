@@ -1787,7 +1787,14 @@ function cardEmos(card) { return card.custom ? card.custom.emos.slice() : [CARDS
 const BOSS_STAGE_HP = { 1: 0, 2: 3, 3: 3 };
 /* v4: 보스전 전선 길이도 스테이지마다 늘어납니다(보스전은 전선을 끝까지 밀어야 이기므로) */
 const BOSS_STAGE_FRONT = { 1: 0, 2: 4, 3: 2 };
-function bossFrontBonus(cfg, enc) { if (!enc.boss || (cfg.wrv || 4) < 4) return 0; const k = cfg.enc || ''; return BOSS_STAGE_FRONT[k.startsWith('s3') ? 3 : k.startsWith('s2') ? 2 : 1] || 0; }
+/* 일반 전투(엘리트·보스 제외)의 스테이지별 전선 연장. 시험해 보니 전투가 길어져 스트레스 부담이 너무 커서 지금은 0으로 둡니다 */
+const NORMAL_STAGE_FRONT = { 1: 0, 2: 0, 3: 0 };
+function bossFrontBonus(cfg, enc) {
+  const w = cfg.wrv || 5, k = cfg.enc || '', st = k.startsWith('s3') ? 3 : k.startsWith('s2') ? 2 : 1;
+  if (enc.boss) return w >= 4 ? BOSS_STAGE_FRONT[st] || 0 : 0;
+  if (!enc.hidden && !/elite/.test(k)) return w >= 5 ? NORMAL_STAGE_FRONT[st] || 0 : 0;
+  return 0;
+}
 function bossStageHp() { const k = (S && S.encKey) || ''; return BOSS_STAGE_HP[k.startsWith('s3') ? 3 : k.startsWith('s2') ? 2 : 1] || 0; }
 function enemyBonus() {
   const f = (S && S.floor) || 1;
@@ -1797,7 +1804,8 @@ function enemyBonus() {
   const df = (S && S.diff) || 0;
   const bossP1 = S && S.enc && S.enc.boss && S.phase === 1;
   const atk = ((S && S.wrv) || 1) >= 4 && !bossP1 ? (st >= 3 ? 1 : st === 2 && (f >= 7 || df >= 4) ? 1 : 0) : 0;
-  return { hp: Math.floor((f - 1) / 4), atk };
+  // v5: 층마다 붙는 적 체력이 4층마다 → 3층마다
+  return { hp: Math.floor((f - 1) / (((S && S.wrv) || 1) >= 5 ? 3 : 4)), atk };
 }
 function mkEnemy(k) { const d = ENEMIES[k]; const bn = enemyBonus(); const df = (S && S.diff) || 0; const v4 = ((S && S.wrv) || 1) >= 4; bn.hp += (d.boss ? (df >= (v4 ? 3 : 4) ? 3 : 0) + (v4 && df >= 5 ? 3 : 0) + (v4 ? bossStageHp() : 0) : d.elite ? (df >= (v4 ? 2 : 4) ? 2 : 0) : 0) + (((S && S.floor) || 1) >= 6 && (v4 ? (S && S.enc && S.enc.boss ? df >= 5 : df >= 4) : df >= 5) ? 1 : 0); return { uid: uid(), key: k, name: d.name, atk: d.atk + (d.atk > 0 && !(((S && S.wrv) || 1) >= 4 && (d.elite || d.atk >= 3)) ? bn.atk : 0), hp: d.hp + bn.hp, maxHp: d.hp + bn.hp, sig: d.sig.concat(d.elite && df >= 2 && ((S && S.wrv) || 1) >= 3 && !d.sig.includes('thorn') ? ['thorn'] : []), enemy: true, boss: !!d.boss, elite: !!d.elite, poison: false, tempAtk: 0, wall: 0, bonus: 0, delay: 0 }; }
 function mkUnit(card, info, bonus) {
@@ -1836,7 +1844,7 @@ function newBattle(cfg) {
     momentum: false, counterBuff: false, holdFront: false, phaseBreak: false,
     log: [], over: null, overflow: 0, lastBreak: null, events: [], recording: false,
     rels: (cfg.rels || []).map(r => ({ ...r })), ultUsed: {}, gritUsed: {}, crushRage: {}, ultShield: false,
-    relics: (cfg.relics || []).slice(), cardKills: {}, charmUsed: false, diff: cfg.diff || 0, wrv: cfg.wrv || 4,
+    relics: (cfg.relics || []).slice(), cardKills: {}, charmUsed: false, diff: cfg.diff || 0, wrv: cfg.wrv || 5,
   };
   const deckKeys = cfg.deck || START_DECK;
   S.master = deckKeys.map(k => (typeof k === 'string' ? { key: k } : { ...k })).concat(S.comps.filter(c => c.status !== 'dead').map(c => ({ comp: c.id })));
@@ -2559,7 +2567,9 @@ function winBattle() {
   const before = S.supply;
   S.supply = Math.min(supplyMax(), S.supply + gain);
   log(`승리! 보급 +${S.supply - before}${S.overflow ? `(넘친 피해 ${S.overflow} 포함)` : ''}`, 'good');
-  addStress(-(RULE.winRelief + (partyHas('optim') ? 5 : 0) + (hasRelic('bell') ? 3 : 0)), '전투 승리');
+  // v5: 스테이지가 깊을수록 승리 시 스트레스 회복도 커집니다(스테이지 2 +2, 스테이지 3 +4)
+  const deepRelief = (S.wrv || 1) >= 5 ? (S.encKey.startsWith('s3') ? 4 : S.encKey.startsWith('s2') ? 2 : 0) : 0;
+  addStress(-(RULE.winRelief + deepRelief + (partyHas('optim') ? 5 : 0) + (hasRelic('bell') ? 3 : 0)), '전투 승리');
   for (const id of Object.keys(S.kills)) { const c = compById(id); if (c.status !== 'dead') gainBond(c, 1, '적 처치'); }
 }
 
@@ -2585,7 +2595,7 @@ function newRun(cfg) {
     mode: cfg.mode || 'test', deck: (cfg.deck || START_DECK).map(k => newCard(k)), relics: [], notes: [],
     bench: (cfg.bench || []).map(c => ({ ...c, aux: c.aux.slice(), lines: { ...(c.lines || {}) } })),
     map: null, pos: null, floor: 0, usedEvents: [], eventThreads: {}, recruited: false, reward: null, event: null, shop: null, cleared: false,
-    stage: 1, diff: cfg.diff || 0, weightRulesVersion: 4, bossWins: 0, stageDone: false,
+    stage: 1, diff: cfg.diff || 0, weightRulesVersion: 5, bossWins: 0, stageDone: false,
   };
 }
 /* 배치 고르기: 같은 상대의 배치(좌우 반전 포함)를 한 바퀴 다 만날 때까지 겹치지 않게 돌립니다 */
@@ -5087,7 +5097,7 @@ function renderWorkshop() {
   const chars = ROSTER.chars.length ? ROSTER.chars : presetRoster().chars;
   app.innerHTML = `<main class="setup workshop"><div class="nav"><a class="btn ghost" href="${esc(location.pathname)}">게임으로</a></div><p class="ws-eyebrow">TOWER · ATELIER</p><h1>제작자 작업실</h1><p class="soft">연출을 살펴보고, 누군가를 위한 카드를 만듭니다.</p>
   <section class="panel"><h2>연출 미리보기</h2><p class="soft small">별도 시험 화면에서 재생합니다. 실제 원정·동료·재화는 바뀌지 않습니다. 합동은 발동 확률을 생략해 효과를 보여 줍니다.</p><div class="ws-fields"><label>첫 번째 인물<select id="ws-a">${chars.map((c,i)=>opt(c.id,c.name,WORKSHOP.a || chars[0].id)).join('')}</select></label><label>두 번째 인물<select id="ws-b">${chars.map(c=>opt(c.id,c.name,WORKSHOP.b || chars[Math.min(1,chars.length-1)].id)).join('')}</select></label><label>관계<select id="ws-rel">${Object.entries(PRO_LINKS).map(([k,r])=>opt(k,r.name,WORKSHOP.relationship || 'lover')).join('')}</select></label><label>화면 테마<select id="ws-theme">${[['none','기본'],['storybook','꽃빛 그림책'],['starlight','별빛 그림책']].map(([k,n])=>opt(k,n,WORKSHOP.theme || 'none')).join('')}</select></label></div>
-  <div class="ws-effect-buttons">${[['cutin','관계 등장'],['ult','궁극기'],...Object.entries(JOINTS).map(([k,j])=>['joint-'+k,j.name]),['down','사선'],['death','사망'],['grit','근성'],['gain','카드 획득'],['fuse','엮기'],['awaken','카드 각성'],['boss','보스 등장'],['phase','2페이즈 전환'],['ending','엔딩']].map(([k,n])=>`<button class="btn" data-act="ws-preview" data-kind="${k}">${n}</button>`).join('')}</div>
+  <div class="ws-effect-buttons">${[['cutin','관계 등장'],['ult','궁극기'],...Object.entries(JOINTS).map(([k,j])=>['joint-'+k,j.name]),['down','사선'],['death','사망'],['grit','근성'],['stress','스트레스 단계'],['awaken','각성'],['collapse','붕괴'],['gain','카드 획득'],['fuse','엮기'],['awaken','카드 각성'],['boss','보스 등장'],['phase','2페이즈 전환'],['ending','엔딩']].map(([k,n])=>`<button class="btn" data-act="ws-preview" data-kind="${k}">${n}</button>`).join('')}</div>
   <div class="ws-preview-wrap" hidden><iframe id="ws-preview" title="게임 연출 미리보기" sandbox="allow-scripts"></iframe><button class="btn ghost" data-act="ws-close-preview">미리보기 닫기</button></div></section>
   <section class="panel"><h2>선물 카드 만들기</h2><p class="soft small">기본 덱 카드 한 장을 바탕으로 만듭니다. 비용과 주머니 감정은 유지하며, 공격·체력·인장·이름·그림을 바꿀 수 있습니다. 같은 원본의 선물은 한 번에 하나만 사용할 수 있습니다.</p>
   <form data-ws-form onsubmit="return false"><label>바탕 카드<select name="base" data-ws-base>${[...new Set(START_DECK)].map(k=>opt(k,CARDS[k].name,d.base)).join('')}</select></label><div class="ws-fields"><label>카드 이름<input name="name" maxlength="24" value="${esc(d.name)}"></label><label>공격<input name="atk" type="number" min="0" max="8" value="${d.atk}"></label><label>체력<input name="hp" type="number" min="1" max="12" value="${d.hp}"></label><label>인장 1<select name="sig1">${sigOpts(d.sig[0])}</select></label><label>인장 2<select name="sig2">${sigOpts(d.sig[1])}</select></label></div><label>카드에 담을 말<textarea name="note" rows="3" maxlength="180">${esc(d.note)}</textarea></label><label>작은 그림 (선택)<input type="file" accept="image/*" data-ws-image>${d.image ? `<span class="soft small ws-file-name">적용된 그림: ${esc(WORKSHOP.imageName || '선택한 그림')}</span>` : ''}</label><p class="soft small">그림은 작게 압축합니다. 그림을 넣으면 전달할 코드가 길어집니다.</p><div class="res-btns"><button type="button" class="btn" data-act="ws-card-preview">카드 미리보기</button><button type="button" class="btn ghost" data-act="ws-clear-image">그림 지우기</button></div></form>
@@ -5257,6 +5267,8 @@ function runWorkshopPreview(cfg) {
     render(); // Keep the explanation visible even after the short board effect ends.
     replayWorkshopJoint();
   }
+  else if(cfg.kind==='stress') { S.stress=45; addStress(8,'미리보기'); render(); }
+  else if(cfg.kind==='awaken'||cfg.kind==='collapse') { const aw=cfg.kind==='awaken'; S.stress=60; S.breakNote={awaken:aw,o:aw?'sig2':'fear3'}; render(); }
   else if(['down','death','grit'].includes(cfg.kind)) {
     S.recording=true;
     if(cfg.kind==='grit'){S.p[0].hp=1;rec('grit',{lane:0,name:a.name});}
