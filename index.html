@@ -661,6 +661,13 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 .ci-text b { font-family: "Gowun Batang", serif; font-size: 1.1rem; color: #f3d78f; }
 .ci-text p { margin: 0; font-family: "Gowun Batang", serif; font-size: 1rem; }
 .ci-text small { color: #d8caa6; font-size: .76rem; }
+/* 관계 행동 띠 (감싸기·경쟁심·돌봄·연계·잘 보이고 싶어) */
+.cast.joint .joint-band { background: linear-gradient(90deg, transparent 0%, rgba(58, 20, 40, .93) 16%, rgba(58, 20, 40, .93) 84%, transparent 100%); border-color: rgba(207, 109, 151, .75); padding: 1rem 1.2rem; text-align: center; }
+.joint-band .jb-pair { display: flex; gap: .5rem; justify-content: center; margin-bottom: .25rem; }
+.joint-band .jb-pair .av.lg { box-shadow: 0 0 0 2px #cf6d97, 0 0 14px rgba(207, 109, 151, .55); }
+.joint-band small { color: #e7a6c2; }
+.joint-band b { color: #f7dbe6; }
+.joint-band span { max-width: 22rem; }
 @media (prefers-reduced-motion: no-preference) {
   .cast-band { animation: band-in .45s cubic-bezier(.2, .9, .3, 1) both; }
   @keyframes band-in { from { transform: translateX(-60%); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -2144,6 +2151,7 @@ function crushRageFor(c) {
     if (o.status !== 'dead' && relOf(o.id, c.id) === 'crushTo' && !S.crushRage[o.id]) {
       S.crushRage[o.id] = true;
       log(`${jo(o.name, '이', '가')} ${c.name}의 모습을 보고 격앙합니다. 이번 전투 공격 +2`, 'good');
+      { const ol = S.p.findIndex(u => u && u.comp === o.id); rec('joint', { kind: 'crush', lanes: ol >= 0 ? [ol] : [], ids: [o.id, c.id], text: `잘 보이고 싶어: ${jo(o.name, '이', '가')} 격앙합니다. 이번 전투 공격 +2` }); }
     }
   }
 }
@@ -4959,7 +4967,9 @@ function replayWorkshopJoint() {
   if(!UI.workshopJoint || UI.playing) return;
   const {kind,names}=UI.workshopJoint;
   S.events=[]; S.recording=true;
-  rec('joint',{kind,lanes:kind==='crush'?[0]:[0,1],target:0,text:JOINTS[kind].name+': '+names});
+  const [na,nb]=names.split(' · ');
+  const sample={lover:`${jo(nb,'이','가')} ${jo(na,'을','를')} 지켰습니다`,rival:`${na} 이번 턴 공격 +1`,family:`${na}, ${nb} 체력 +1`,comrade:`${nb} → 적에게 1 추가 피해`,crush:`${jo(na,'이','가')} ${nb}의 모습을 보고 격앙합니다. 이번 전투 공격 +2`}[kind]||names;
+  rec('joint',{kind,lanes:kind==='crush'?[0]:[0,1],ids:S.p.filter(u=>u&&u.comp).map(u=>u.comp).slice(0,2),target:0,text:JOINTS[kind].name+': '+sample});
   S.recording=false;
   playEvents(3500);
 }
@@ -5806,7 +5816,16 @@ function renderSnap(sn) {
     caption.innerHTML = hintHtml();
   } finally { Object.assign(S, bak); }
 }
-const FX_MS = { absorb: 520, hit: 560, front: 560, hold: 520, thorn: 420, die: 440, descend: 480, guard: 440, poison: 480, phase: 1000, joint: 700, grit: 800 };
+const FX_MS = { absorb: 520, hit: 560, front: 560, hold: 520, thorn: 420, die: 440, descend: 480, guard: 440, poison: 480, phase: 1000, joint: 1600, grit: 800 };
+/* 관계 행동 연출: 판 위 두 사람의 얼굴과 행동 이름을 띠로 보여 줍니다 */
+function jointFxHtml(ev) {
+  const j = JOINTS[ev.kind] || { name: '관계' };
+  const us = (ev.lanes || []).map(l => ev.snap.p[l]).filter(u => u && u.comp);
+  const ids = ev.ids || us.map(u => u.comp);
+  const who = ids.map(id => { const c = S.comps.find(x => x.id === id) || (S.pro.id === id ? S.pro : null); return c ? { id, name: c.name } : null; }).filter(Boolean);
+  const text = String(ev.text || '').replace(/^[^:]+:\s*/, '');
+  return `<div class="cast joint" aria-live="polite"><div class="cast-band joint-band">${who.length ? `<div class="jb-pair">${who.map(w => avatarById(w.id, w.name, 'lg')).join('')}</div>` : ''}<small>관계 행동</small><b>${esc(j.name)}</b><span>${esc(text)}</span></div></div>`;
+}
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function playEvents(previewDuration = 0) {
   const evs = S.events.slice(); S.events = [];
@@ -5818,6 +5837,7 @@ async function playEvents(previewDuration = 0) {
       if (UI.skip) break;
       UI.fx = ev;
       renderSnap(ev.snap);
+      if (ev.type === 'joint') showFx('joint', jointFxHtml(ev), (previewDuration || FX_MS.joint) * (REDUCED ? 0.6 : 1));
       await sleep(previewDuration || FX_MS[ev.type] * (REDUCED ? 0.6 : 1));
     }
   } finally {
