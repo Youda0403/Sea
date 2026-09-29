@@ -4049,7 +4049,7 @@ function renderBase() {
       <button class="btn gift-recv-submit" data-act="gift-recv">유품 받기</button></div></details>`;
   const legacyAll = legacy + recv;
   app.innerHTML = `<main class="setup base">
-    <div class="nav"><button class="btn ghost" data-act="to-title">타이틀로</button><button class="btn ghost" data-act="to-roster">캐릭터 로스터</button><button class="btn ghost" data-act="to-howto" data-back="base">게임 방법</button></div>
+    <div class="nav"><button class="btn ghost" data-act="to-title">타이틀로</button><button class="btn ghost" data-act="to-roster">캐릭터 로스터</button><button class="btn ghost" data-act="to-howto" data-back="base">게임 방법</button><button class="btn ghost" data-act="to-settings" data-back="base">설정</button></div>
     <h1>거점</h1>
     ${m.lastReport ? '<button class="btn" data-act="report-open">지난 원정 보고서</button>' : ''}
     <p class="story-line">아직 잊지 않은 사람들이 모인 곳. 탑에서 되찾아 온 기억이 여기 쌓입니다.</p>
@@ -4220,7 +4220,8 @@ function renderTitle() {
       ${sv ? `<button class="btn primary big menu-btn" data-act="continue"><b>이어하기</b><small>${cont}</small></button>` : ''}
       <button class="btn big menu-btn${sv ? '' : ' primary'}" data-act="to-base"><b>거점</b><small>기억 조각 ${meta().shards}. 해금, 유품, 출정 준비</small></button>
       <button class="btn big menu-btn" data-act="to-roster"><b>캐릭터 로스터</b></button>
-      <button class="btn big menu-btn" data-act="to-howto"><b>게임 방법</b><small>훈련 전투, 규칙, 이야기</small></button>
+      <button class="btn big menu-btn" data-act="to-howto"><b>게임 방법</b><small>훈련 전투, 규칙, 이야기, 용어</small></button>
+      <button class="btn big menu-btn" data-act="to-settings"><b>설정</b><small>연출·도움말, 저장 옮기기, 초기화</small></button>
       ${/dev/.test(location.search) ? '<button class="btn ghost dev-btn" data-act="to-setup">개발용 전투 시험장</button><button class="btn ghost dev-btn" data-act="dev-ending">엔딩 미리 보기</button>' : ''}
     </div>
   </main>`;
@@ -4436,13 +4437,22 @@ function renderHowTo() {
     <section class="panel howto-btns">
       <button class="btn primary" data-act="tut-start">훈련 전투 시작<small>실제 전투에서 한 단계씩 따라 해 봅니다</small></button>
       <button class="btn" data-act="story-open">이야기 다시 보기</button>
-      <button class="btn switch-btn" data-act="fx-toggle" role="switch" aria-checked="${!meta().fxOff}"><span>연출 효과<small>${meta().fxOff ? '관계·지휘·궁극기 연출을 띄우지 않습니다. 기록에는 남습니다' : '관계 등장, 관계 행동, 지휘·궁극기 연출을 보여 줍니다'}</small></span><i class="sw${meta().fxOff ? '' : ' on'}" aria-hidden="true"></i></button>
-      <button class="btn switch-btn" data-act="tips-toggle" role="switch" aria-checked="${meta().tipsOn !== false}"><span>화면별 도움말<small>${meta().tipsOn !== false ? '처음 보는 화면마다 안내가 뜹니다' : '안내를 띄우지 않습니다'}</small></span><i class="sw${meta().tipsOn !== false ? ' on' : ''}" aria-hidden="true"></i></button>
     </section>
     ${HOWTO.map(([h, t]) => `<section class="panel"><h2>${esc(h)}</h2><p class="small">${esc(t)}</p></section>`).join('')}
     <section class="panel"><h2>무게별 조건</h2><p class="soft small">조건은 모두 누적됩니다. 각 무게의 기억 조각 보너스도 함께 표시합니다.</p>
       <dl class="gloss">${DIFFS.slice(1).map(d => `<dt>${esc(d.name)} · 기억 조각 +${Math.round(d.bonus * 100)}%</dt><dd>${esc(d.desc)}</dd>`).join('')}</dl></section>
     <section class="panel"><h2>용어 사전</h2>${glossaryHtml()}</section>
+  </main>`;
+}
+
+function renderSettings() {
+  app.innerHTML = `<main class="setup settings">
+    <div class="nav"><button class="btn ghost" data-act="${UI.settingsBack === 'base' ? 'to-base' : 'to-title'}">${UI.settingsBack === 'base' ? '거점으로' : '타이틀로'}</button></div>
+    <h1>설정</h1>
+    <section class="panel howto-btns"><h2>화면</h2>
+      <button class="btn switch-btn" data-act="fx-toggle" role="switch" aria-checked="${!meta().fxOff}"><span>연출 효과<small>${meta().fxOff ? '관계·지휘·궁극기 연출을 띄우지 않습니다. 기록에는 남습니다' : '관계 등장, 관계 행동, 지휘·궁극기 연출을 보여 줍니다'}</small></span><i class="sw${meta().fxOff ? '' : ' on'}" aria-hidden="true"></i></button>
+      <button class="btn switch-btn" data-act="tips-toggle" role="switch" aria-checked="${meta().tipsOn !== false}"><span>화면별 도움말<small>${meta().tipsOn !== false ? '처음 보는 화면마다 안내가 뜹니다' : '안내를 띄우지 않습니다'}</small></span><i class="sw${meta().tipsOn !== false ? ' on' : ''}" aria-hidden="true"></i></button>
+    </section>
     <section class="panel save-panel"><h2>저장 옮기기</h2>
       <p class="soft small">진행 중인 원정, 기억 조각·해금·유품, 캐릭터와 관계를 코드 하나로 내보냅니다. 다른 기기나 브라우저에서 불러오면 그대로 이어서 할 수 있습니다.</p>
       <div class="res-btns"><button class="btn" data-act="save-export">저장 내보내기</button><button class="btn ghost" data-act="save-download">파일로 받기</button></div>
@@ -4698,6 +4708,7 @@ function onTutAct(act, d) {
       return true;
     }
     case 'story-open': UI.storyPage = 0; UI.storyNext = 'howto'; screen = 'story'; render(); window.scrollTo(0, 0); return true;
+    case 'to-settings': UI.resetAsk = null; UI.saveCode = null; UI.saveImportAsk = false; UI.settingsBack = d && d.back === 'base' ? 'base' : 'title'; screen = 'settings'; render(); window.scrollTo(0, 0); return true;
     case 'to-howto': UI.resetAsk = null; UI.howtoBack = d && d.back === 'base' ? 'base' : 'title'; screen = 'howto'; render(); window.scrollTo(0, 0); return true;
     case 'tut-start': { const back = TUT ? TUT.back : screen === 'howto' ? 'howto' : 'base'; startTutorial(back); return true; }
     case 'tut-more': if (TUT) { TUT.part = (TUT.part || 0) + 1; render(); } return true;
@@ -6001,7 +6012,7 @@ function renderBattle() {
   if (!TUT) ultNotice();
 }
 
-const SCREENS = { report: () => renderArchivedReport(), firstchar: () => renderFirstChar(), ending: () => renderEnding(), 'ending-preview': () => renderEnding(), stage: () => renderStage(), title: () => renderTitle(), story: () => renderStory(), howto: () => renderHowTo(), base: () => renderBase(), prep: () => renderPrep(), setup: () => renderSetup(), roster: () => renderRoster(), edit: () => renderEditor(), camp: () => renderCamp(),
+const SCREENS = { settings: () => renderSettings(), report: () => renderArchivedReport(), firstchar: () => renderFirstChar(), ending: () => renderEnding(), 'ending-preview': () => renderEnding(), stage: () => renderStage(), title: () => renderTitle(), story: () => renderStory(), howto: () => renderHowTo(), base: () => renderBase(), prep: () => renderPrep(), setup: () => renderSetup(), roster: () => renderRoster(), edit: () => renderEditor(), camp: () => renderCamp(),
   map: () => renderMap(), event: () => renderEvent(), trade: () => renderTrade(), reward: () => renderReward(), runend: () => renderRunEnd() };
 function render() {
   // 턴 재생 중에는 연출 타이머 등이 결과 화면을 끼워 그리지 않게 막습니다(재생이 끝나면 다시 그림)
