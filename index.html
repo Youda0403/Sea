@@ -1289,7 +1289,7 @@ const CARDS = {
   choir: { name: '꺼져 가는 성가대', cost: { fear: 1, hope: 1 }, atk: 2, hp: 3, sig: ['cheer', 'absorb'], emo: 'hope', desperate: true, meta: true },
 };
 const RELICS = {
-  cloak: { name: '낡은 망토', desc: '아군 카드가 공격받을 때 10% 확률로 피합니다' },
+  cloak: { name: '낡은 망토', desc: '아군 카드가 공격받을 때 10% 확률로 피합니다', retired: true },
   whistle: { name: '녹슨 호루라기', desc: '지휘 스킬 대기 시간이 3턴에서 2턴으로 줄어듭니다' },
   herbs: { name: '말린 약초 주머니', desc: '야영 휴식의 스트레스 회복이 25에서 35로 늘어납니다' },
   charm: { name: '금 간 부적', desc: '전투마다 첫 번째 버스트를 막아 줍니다' },
@@ -1299,16 +1299,24 @@ const RELICS = {
   candle: { name: '꺼지지 않는 촛대', desc: '공포 토큰이 스트레스 25가 아니라 35마다 늘어납니다' },
   pouch: { name: '덧댄 주머니', desc: '턴이 끝날 때 토큰을 2개까지 보관할 수 있습니다' },
   // v0.20 추가 유물
-  compass: { name: '녹슨 나침반', desc: '층을 오를 때 받는 이동 피로 스트레스가 3에서 1로 줄어듭니다' },
-  gloves: { name: '해진 장갑', desc: '전투 첫 턴에 감정 토큰 1개를 더 받습니다' },
-  handmirror: { name: '손거울', desc: '버스트 스트레스가 5에서 2로 줄어듭니다' },
+  compass: { name: '녹슨 나침반', desc: '층을 오를 때 받는 이동 피로 스트레스가 3에서 1로 줄어듭니다', retired: true },
+  gloves: { name: '해진 장갑', desc: '전투 첫 턴에 감정 토큰 1개를 더 받습니다', retired: true },
+  handmirror: { name: '손거울', desc: '버스트 스트레스가 5에서 2로 줄어듭니다', retired: true },
   bandage: { name: '낡은 붕대', desc: '동료 카드의 체력이 +1 됩니다' },
-  bell: { name: '맑은 종', desc: '전투에서 이기면 스트레스가 3 더 내려갑니다' },
-  button: { name: '빛나는 단추', desc: '적을 쓰러뜨릴 때마다 25% 확률로 보급 +1' },
+  bell: { name: '맑은 종', desc: '전투에서 이기면 스트레스가 3 더 내려갑니다', retired: true },
+  button: { name: '빛나는 단추', desc: '적을 쓰러뜨릴 때마다 25% 확률로 보급 +1', retired: true },
   rope: { name: '질긴 밧줄', desc: '동료를 남기고 후퇴할 때 스트레스가 15가 아니라 5 오릅니다' },
   ring: { name: '할머니의 반지', desc: '동료가 죽을 때 오르는 스트레스가 10 줄어듭니다' },
   whetstone: { name: '숫돌', desc: '전투를 손패 1장 더 들고 시작합니다' },
+  // v0.29: 판을 바꾸는 유물. 좋은 효과에 대가나 조건이 붙습니다. retired 표시된 유물은 더는 나오지 않습니다(진행 중인 런 호환용)
+  letter: { name: '밤새 쓴 편지', desc: '매 턴 주머니에서 감정 토큰을 1개 더 뽑습니다. 대신 주머니의 공포가 2개 늘어납니다' },
+  pinky: { name: '새끼손가락 약속', desc: '전투마다 한 번, 쓰러질 동료가 체력 1로 버팁니다. 대신 그때 스트레스가 10 오릅니다' },
+  redthread: { name: '붉은 실', desc: '감싸기와 연계의 발동 확률이 두 배가 됩니다. 대신 관계가 있는 동료가 쓰러질 때마다 스트레스가 5 더 오릅니다' },
+  crackshield: { name: '금 간 방패', desc: '방어형 동료와 수호 카드의 체력이 +3 됩니다. 대신 그 카드들의 공격이 −1 됩니다' },
+  shoes: { name: '뒤꿈치 닳은 신발', desc: '전선이 −3 이하로 밀려 있으면 모든 아군의 공격이 +2 됩니다' },
+  photo: { name: '반쪽 사진', desc: '사선에 선 동료의 공격이 +3 됩니다' },
 };
+function relicPool(run) { return Object.keys(RELICS).filter(k => !RELICS[k].retired && !run.relics.includes(k)); }
 const START_DECK = ['blade', 'blade', 'scout', 'shieldboy', 'lamp', 'herb', 'hound', 'wire', 'flag', 'refugee'];
 
 const ENEMIES = {
@@ -1740,8 +1748,10 @@ function mkUnit(card, info, bonus) {
   const c = info.comp ? compById(info.comp) : null;
   if (c && proLink(c.id) === 'family') hp += 2;
   if (c && hasRelic('bandage')) hp += 1;
+  const shield = hasRelic('crackshield') && ((c && c.role === 'def') || info.sig.includes('guard'));
+  if (shield) hp += 3;
   return { uid: uid(), card, name: info.name, atk: info.atk, hp, maxHp: hp, sig: info.sig.slice(), comp: info.comp, emo: info.emo,
-    poison: false, tempAtk: 0, wall: 0, bonus, saseonAtPlay: !!(c && c.status === 'saseon') };
+    poison: false, tempAtk: 0, wall: 0, bonus, saseonAtPlay: !!(c && c.status === 'saseon'), shield };
 }
 function snapUnit(u) { return u ? { ...u, sig: u.sig.slice() } : null; }
 function rec(type, data) {
@@ -1795,7 +1805,7 @@ function newBattle(cfg) {
 }
 
 /* ================= 토큰 ================= */
-function fearCount() { return RULE.baseFear + ((S.diff || 0) >= 3 ? 1 : 0) + Math.floor(S.stress / (hasRelic('candle') ? 35 : 25)) + (S.effects.fear3 ? 3 : 0) + S.bossFear; }
+function fearCount() { return RULE.baseFear + ((S.diff || 0) >= 3 ? 1 : 0) + Math.floor(S.stress / (hasRelic('candle') ? 35 : 25)) + (S.effects.fear3 ? 3 : 0) + S.bossFear + (hasRelic('letter') ? 2 : 0); }
 function buildPool() {
   const bag = [];
   for (const card of S.master) {
@@ -1826,7 +1836,7 @@ function startTurn() {
   const core = KEYWORDS[S.pro.core].emo;
   const g = S.effects.noSig ? 0 : S.effects.sig2 ? 2 : 1;
   for (let i = 0; i < g; i++) S.tokens.push(mkTok(core));
-  for (let i = 0; i < RULE.randomDraw && S.bag.length; i++) S.tokens.push(mkTok(S.bag.pop()));
+  for (let i = 0; i < RULE.randomDraw + (hasRelic('letter') ? 1 : 0) && S.bag.length; i++) S.tokens.push(mkTok(S.bag.pop()));
   S.kept.forEach(t => S.tokens.push(mkTok(t)));
   S.kept = [];
   drawCard();
@@ -1975,6 +1985,9 @@ function effAtk(u, side, lane, why) {
     if (kws.includes('hot') && S.front <= -S.frontPush) add(1, '열혈');
     if (kws.includes('proud') && S.front >= S.frontPush) add(1, '오만');
     if (kws.includes('timid') && S.front <= -S.frontPush) add(-1, '소심');
+    if (hasRelic('shoes') && S.front <= -S.frontPush) add(2, '뒤꿈치 닳은 신발');
+    if (u.shield) add(-1, '금 간 방패');
+    if (u.comp && hasRelic('photo')) { const pc = compById(u.comp); if (pc && pc.status === 'saseon') add(3, '반쪽 사진'); }
     if (u.comp) {
       if (boardPartners(u, 'crushTo').length) add(1 + (hasTsun(u.comp) ? 1 : 0), '잘 보이고 싶어');
       const pl = proLink(u.comp); if (pl === 'lover' || pl === 'crush') add(1, PRO_LINKS[pl].name);
@@ -2007,7 +2020,7 @@ function damageUnit(u, amt, side, lane, noCover) {
       if (!noCover) {
         for (const pt of boardPartners(u, 'lover')) {
           if (pt.u.hp < 2) continue;
-          const p = 0.30 + (hasTsun(u.comp, pt.u.comp) ? 0.10 : 0) + (hasRelic('ribbon') ? 0.10 : 0);
+          const p = Math.min(0.9, (0.30 + (hasTsun(u.comp, pt.u.comp) ? 0.10 : 0) + (hasRelic('ribbon') ? 0.10 : 0)) * (hasRelic('redthread') ? 2 : 1));
           if (rng() < p) {
             u.hp = 1;
             pt.u.hp -= 1;
@@ -2025,6 +2038,15 @@ function damageUnit(u, amt, side, lane, noCover) {
         log(`근성! ${jo(u.name, '이', '가')} 체력 1로 버팁니다`, 'good');
         rec('grit', { lane, name: u.name });
         addResolve(u);
+        return;
+      }
+      if (hasRelic('pinky') && !S.pinkyUsed) {
+        S.pinkyUsed = true;
+        u.hp = 1;
+        log(`새끼손가락 약속: ${jo(u.name, '이', '가')} 체력 1로 버팁니다`, 'good');
+        rec('grit', { lane, name: u.name, label: '약속!' });
+        addResolve(u);
+        addStress(10, '새끼손가락 약속');
         return;
       }
     }
@@ -2072,7 +2094,7 @@ function strike(att, side, aLane, t, a) {
   if (side === 'p' && att.comp && d.hp > 0) {
     for (const pt of boardPartners(att, 'comrade')) {
       if (d.hp <= 0) break;
-      const p = 0.40 + (hasTsun(att.comp, pt.u.comp) ? 0.10 : 0) + (hasRelic('ribbon') ? 0.10 : 0);
+      const p = Math.min(0.9, (0.40 + (hasTsun(att.comp, pt.u.comp) ? 0.10 : 0) + (hasRelic('ribbon') ? 0.10 : 0)) * (hasRelic('redthread') ? 2 : 1));
       if (rng() < p) { d.hp -= 1; log(`연계! ${jo(pt.u.name, '이', '가')} ${d.name}에게 1 추가 피해`, 'good'); rec('joint', { kind: 'comrade', lanes: [pt.l], text: `연계: ${pt.u.name} → ${d.name} 1 추가 피해`, target: t }); }
     }
   }
@@ -2166,6 +2188,11 @@ function companionDown(u) {
   crushRageFor(c);
   log(`${jo(c.name, '이', '가')} 사선에 섰습니다. 한 번 더 쓰러지면 사망합니다`, 'bad');
   addStress((c.merc ? 5 : kwsOf(c).includes('timid') ? 2 : 5) + (kwsOf(c).includes('perfect') ? 5 : 0) + (kwsOf(c).includes('chatty') ? 5 : 0), '동료 사선');
+  redThreadCost(c);
+}
+function redThreadCost(c) {
+  if (!hasRelic('redthread') || c.merc) return;
+  if (proLink(c.id) || S.comps.some(o => o.id !== c.id && o.status !== 'dead' && relOf(o.id, c.id))) addStress(5, '붉은 실');
 }
 
 function crushRageFor(c) {
@@ -2208,6 +2235,7 @@ function companionDie(c) {
   if (partyHas('kind')) s += 5;
   if (hasRelic('ring')) s = Math.max(0, s - 10);
   addStress(s, '동료 사망');
+  redThreadCost(c);
 }
 
 function addStress(n, why) {
@@ -2766,7 +2794,7 @@ function cardPrice(key) { const d = CARDS[key]; const n = Object.values(d.cost).
 function makeReward(run, B) {
   const cards = pickN(cardPool(), 3);
   let relic = null;
-  if (B.enc.elite || B.enc.boss || Math.random() < 0.15) { const pool = Object.keys(RELICS).filter(k => !run.relics.includes(k)); if (pool.length) { relic = pickN(pool, 1)[0]; run.relics.push(relic); } }
+  if (B.enc.elite || B.enc.boss || Math.random() < 0.15) { const pool = relicPool(run); if (pool.length) { relic = pickN(pool, 1)[0]; run.relics.push(relic); } }
   run.reward = { cards, relic, done: false };
 }
 function takeRewardCard(run, key) {
@@ -2781,7 +2809,7 @@ function skipRewardCard(run) {
 
 /* ================= 거래 ================= */
 function makeShop(run) {
-  const pool = Object.keys(RELICS).filter(k => !run.relics.includes(k));
+  const pool = relicPool(run);
   run.shop = { cards: pickN(cardPool(), 3).map(k => ({ key: k, price: cardPrice(k), sold: false })), relic: pool.length ? { key: pickN(pool, 1)[0], price: 5, sold: false } : null, removed: false };
 }
 /* 거래 카드 새로 들여오기: 보급 1, 거래마다 한 번. 유물과 카드 제거는 그대로 */
@@ -2843,7 +2871,7 @@ const EVENTS = {
   well: { title: '속삭이는 우물', text: '말라붙은 우물 속에서 누군가 이름을 부르는 소리가 들립니다.',
     choices: [
       { label: '들여다본다', run: run => {
-        const pool = Object.keys(RELICS).filter(k => !run.relics.includes(k));
+        const pool = relicPool(run);
         if (Math.random() < 0.5 && pool.length) { const k = randomOf(pool); run.relics.push(k); return `바닥에서 무언가 반짝입니다. 유물 ${RELICS[k].name}을(를) 얻었습니다.`; }
         return `목소리가 귓가로 기어 올라옵니다. ${stressTxt(run, 15)}`; } },
       { label: '돌을 던져 넣는다', run: run => { const a = aliveComps(run); if (!a.length) return '소리가 멎었습니다.'; const c = randomOf(a); const g = runGainBond(c, 1); return `${c.name}이(가) 킥킥 웃었습니다. 소리가 멎었습니다.${g.n ? ` 유대 +${g.n}` : ''}`; } }] },
@@ -2883,7 +2911,7 @@ const EVENTS = {
   archive: { stage: 2, title: '기록 보관소', text: '끝없는 서가에 누군가의 하루하루가 적힌 책이 꽂혀 있습니다. 사서는 보이지 않습니다.',
     choices: [
       { label: '보급 2로 책 한 권을 바꿔 온다', req: run => run.supply >= 2, reqText: '보급 2 필요', run: run => {
-        gainSupply(run, -2); const pool = Object.keys(RELICS).filter(k => !run.relics.includes(k));
+        gainSupply(run, -2); const pool = relicPool(run);
         if (pool.length && Math.random() < 0.6) { const k = randomOf(pool); run.relics.push(k); return `책장 사이에서 ${RELICS[k].name}이(가) 떨어졌습니다. 유물을 얻었습니다.`; }
         return `책은 텅 비어 있었습니다. ${stressTxt(run, 5)}`; } },
       { label: '아무것도 건드리지 않는다', run: () => '발소리를 죽이고 서가를 지나쳤습니다.' }] },
@@ -2935,7 +2963,7 @@ const EVENTS = {
   clocktower: { stage: 2, title: '멈춘 시계탑', text: '방 한가운데 거대한 톱니가 멈춰 있습니다. 누군가의 시간이 여기서 멈춘 것 같습니다.',
     choices: [
       { label: '톱니를 억지로 돌린다', run: run => (Math.random() < 0.5 ? `시계가 한 칸 움직이자 머릿속이 맑아졌습니다. ${stressTxt(run, -12)}` : `톱니에 손을 찧었습니다. ${stressTxt(run, 10)}`) },
-      { kw: 'perfect', label: '어긋난 톱니를 하나하나 맞춘다', run: run => { const pool = Object.keys(RELICS).filter(k => !run.relics.includes(k)); if (pool.length && Math.random() < 0.6) { const k = randomOf(pool); run.relics.push(k); return `${kwName(run, 'perfect')}이(가) 톱니를 맞추자 시계 속에서 ${RELICS[k].name}이(가) 굴러 나왔습니다.`; } return `시계가 다시 움직였습니다. ${stressTxt(run, -8)}`; } },
+      { kw: 'perfect', label: '어긋난 톱니를 하나하나 맞춘다', run: run => { const pool = relicPool(run); if (pool.length && Math.random() < 0.6) { const k = randomOf(pool); run.relics.push(k); return `${kwName(run, 'perfect')}이(가) 톱니를 맞추자 시계 속에서 ${RELICS[k].name}이(가) 굴러 나왔습니다.`; } return `시계가 다시 움직였습니다. ${stressTxt(run, -8)}`; } },
       { label: '건드리지 않는다', run: () => '째깍, 소리 없이 지나쳤습니다.' }] },
   doorless: { stage: 2, title: '문 없는 방', text: '들어온 곳도 나갈 곳도 보이지 않는 방입니다. 벽 너머에서 무언가 긁는 소리가 납니다.',
     choices: [
@@ -5599,7 +5627,7 @@ function slotHtml(u, side, lane) {
     if (fx.type === 'poison' && fx.lanes[side] && fx.lanes[side].includes(lane)) { cls.push('fx-hit'); pop = '<span class="pop">−1</span>'; }
     if (fx.type === 'joint' && side === 'p' && fx.lanes.includes(lane)) { cls.push('fx-joint'); }
     if (fx.type === 'joint' && fx.kind === 'comrade' && side === 'e' && fx.target === lane) { cls.push('fx-hit'); pop = '<span class="pop">−1</span>'; }
-    if (fx.type === 'grit' && side === 'p' && fx.lane === lane) { cls.push('fx-joint'); pop = '<span class="pop good">근성!</span>'; }
+    if (fx.type === 'grit' && side === 'p' && fx.lane === lane) { cls.push('fx-joint'); pop = `<span class="pop good">${esc(fx.label || '근성!')}</span>`; }
     if (fx.type === 'absorb' && side === 'p' && fx.lane === lane) { cls.push('fx-buff'); pop = `<span class="pop good">스트레스 −${fx.n}</span>`; }
   }
   let rtag = '';
