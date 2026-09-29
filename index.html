@@ -1043,6 +1043,7 @@ main.battle.tut { padding-bottom: 13rem; }
 :root[data-page-skin="storybook"] .btn.primary{background:linear-gradient(180deg,#955070,#854365);border-color:#854365;color:#fffafc}
 :root[data-page-skin="starlight"] .btn.primary{background:linear-gradient(180deg,#715d96,#604d83);border-color:#604d83;color:#fffaff}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .btn.primary small{color:inherit;opacity:1}
+:root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .btn.ghost{background:var(--table)}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) :is(.row-label,.fl){color:var(--ink-soft)}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) :is(.board,.map){box-shadow:inset 0 0 0 1.5px var(--line),inset 0 3px 18px color-mix(in srgb,var(--brass) 12%,transparent)}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .node.reach{border-color:var(--brass)}
@@ -1131,10 +1132,10 @@ main.battle.tut { padding-bottom: 13rem; }
 .save-panel .save-import { margin-top: .8rem; }
 .save-panel .save-import summary { cursor: pointer; font-size: .88rem; }
 .save-panel .save-import .btn { width: 100%; box-sizing: border-box; margin-top: .5rem; }
-.gift-panel .gift-recv-btn { display: block; width: 100%; box-sizing: border-box; }
 .gift-panel .gift-shelf { margin-top: 1rem; }
 .gift-panel .gift-shelf h3 { font-size: .95rem; margin: 0 0 .5rem; }
-.gift-shelf-row .gift-del { margin-top: .35rem; }
+.gift-shelf-btns { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+.gift-shelf-btns .btn { flex: 0 1 auto; }
 .relic-offer { text-align: center; display: grid; gap: .4rem; }
 .relic-offer > small { color: var(--brass); font-weight: 700; letter-spacing: .1em; }
 .relic-offer h2 { margin: 0; }
@@ -4494,8 +4495,9 @@ function renderSettings() {
     </section>
     <section class="panel gift-panel"><h2>선물 카드</h2>
       <p class="soft small">제작자가 만든 선물 카드 코드(TCG1:로 시작)를 넣으면 받을 수 있습니다. 받은 카드는 다음 원정부터 원래 카드 한 장을 대신하고, 언제든 끄거나 지울 수 있습니다.</p>
-      <textarea class="save-code" data-signed-in rows="3" placeholder="TCG1:로 시작하는 코드" aria-label="선물 카드 코드"></textarea>
-      <button class="btn gift-recv-btn" data-act="signed-recv"${UI.signedBusy ? ' disabled' : ''}>선물 카드 받기</button>
+      <details class="gift-recv"${UI.signedOpen === false ? '' : ' open'}><summary>받은 선물 카드 코드 넣기</summary>
+        <div class="gift-recv-body"><textarea rows="3" data-signed-in aria-label="받은 선물 카드 코드" placeholder="TCG1:로 시작하는 코드"></textarea>
+        <button class="btn gift-recv-submit" data-act="signed-recv"${UI.signedBusy ? ' disabled' : ''}>선물 카드 받기</button></div></details>
       ${giftShelfHtml()}
     </section>
     <section class="panel save-panel"><h2>저장 옮기기</h2>
@@ -4991,7 +4993,7 @@ function giftShelfHtml() {
   if (!gifts.length) return '<p class="soft small">받아 둔 카드가 없습니다.</p>';
   return `<div class="gift-shelf"><h3>받아 둔 카드 ${gifts.length}/30</h3><p class="soft small">선택한 카드가 다음 원정부터 원래 카드 한 장을 대신합니다. 끄면 원래 카드로 돌아갑니다. 시작 카드 선택으로 원래 카드를 뺐다면 적용되지 않습니다.</p>${gifts.map(p => {
     const on = (m.cardGiftActive || {})[p.base] === p.id;
-    return `<div class="gift-shelf-row">${cardHtml({ key: p.base, gift: signedCard(p) })}<div><b>${esc(p.name)}</b><p class="small">${esc(CARDS[p.base].name)} 한 장 대체</p><p class="soft small">${esc(p.note)}</p><button class="btn${on ? ' primary' : ''}" data-act="signed-toggle" data-id="${esc(p.id)}">${on ? '사용 중 · 끄기' : '다음 원정에 사용'}</button><button class="btn ghost small-btn gift-del${UI.signedDelAsk === p.id ? ' danger' : ''}" data-act="signed-delete" data-id="${esc(p.id)}">${UI.signedDelAsk === p.id ? '한 번 더 누르면 지웁니다' : '삭제'}</button></div></div>`;
+    return `<div class="gift-shelf-row">${cardHtml({ key: p.base, gift: signedCard(p) })}<div><b>${esc(p.name)}</b><p class="small">${esc(CARDS[p.base].name)} 한 장 대체</p><p class="soft small">${esc(p.note)}</p><div class="gift-shelf-btns"><button class="btn${on ? ' primary' : ''}" data-act="signed-toggle" data-id="${esc(p.id)}">${on ? '사용 중 · 끄기' : '다음 원정에 사용'}</button><button class="btn ghost gift-del${UI.signedDelAsk === p.id ? ' danger' : ''}" data-act="signed-delete" data-id="${esc(p.id)}">${UI.signedDelAsk === p.id ? '한 번 더 누르면 지웁니다' : '삭제'}</button></div></div></div>`;
   }).join('')}</div>`;
 }
 function giftReceiptHtml() {
