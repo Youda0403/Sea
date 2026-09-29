@@ -1195,7 +1195,7 @@ const BASIC = ['anger', 'calm', 'hope'];
 const RULE = { battleSupply: 1, eliteSupply: 3, frontMax: 6, frontPush: 3, randomDraw: 3, minHand: 3, frontStress: 2, threatStress: 4, baseFear: 1, cardLossStress: 2, winRelief: 3 };
 
 const SIGILS = {
-  fly: { name: '비행', desc: '앞 카드를 넘어가 그 공격력만큼 전선 게이지를 바로 밉니다.' },
+  fly: { name: '비행', desc: '앞 카드를 넘어가 그 공격력만큼 전선 게이지를 바로 밉니다. 한 번에 최대 3칸까지 밉니다.' },
   watch: { name: '경계', desc: '비행 카드의 공격을 막습니다.' },
   thorn: { name: '가시', desc: '공격받으면 공격자에게 1 피해를 줍니다.' },
   pierce: { name: '관통', desc: '앞 카드를 처치하고 남은 피해만큼 전선 게이지를 밉니다.' },
@@ -1775,8 +1775,23 @@ function cardInfo(card) {
 }
 function cardEmos(card) { return card.custom ? card.custom.emos.slice() : [CARDS[card.key].emo]; }
 
-function enemyBonus() { const f = (S && S.floor) || 1; return { hp: Math.floor((f - 1) / 4), atk: 0 }; }
-function mkEnemy(k) { const d = ENEMIES[k]; const bn = enemyBonus(); const df = (S && S.diff) || 0; bn.hp += (df >= 4 ? (d.boss ? 3 : d.elite ? 2 : 0) : 0) + (df >= 5 && ((S && S.floor) || 1) >= 6 ? 1 : 0); return { uid: uid(), key: k, name: d.name, atk: d.atk + (d.atk > 0 ? bn.atk : 0), hp: d.hp + bn.hp, maxHp: d.hp + bn.hp, sig: d.sig.concat(d.elite && df >= 2 && ((S && S.wrv) || 1) >= 3 && !d.sig.includes('thorn') ? ['thorn'] : []), enemy: true, boss: !!d.boss, elite: !!d.elite, poison: false, tempAtk: 0, wall: 0, bonus: 0, delay: 0 }; }
+/* v4: 스테이지가 올라갈수록 보스가 더 단단해집니다 */
+const BOSS_STAGE_HP = { 1: 0, 2: 3, 3: 3 };
+/* v4: 보스전 전선 길이도 스테이지마다 늘어납니다(보스전은 전선을 끝까지 밀어야 이기므로) */
+const BOSS_STAGE_FRONT = { 1: 0, 2: 4, 3: 2 };
+function bossFrontBonus(cfg, enc) { if (!enc.boss || (cfg.wrv || 4) < 4) return 0; const k = cfg.enc || ''; return BOSS_STAGE_FRONT[k.startsWith('s3') ? 3 : k.startsWith('s2') ? 2 : 1] || 0; }
+function bossStageHp() { const k = (S && S.encKey) || ''; return BOSS_STAGE_HP[k.startsWith('s3') ? 3 : k.startsWith('s2') ? 2 : 1] || 0; }
+function enemyBonus() {
+  const f = (S && S.floor) || 1;
+  // v4: 원정이 깊어질수록 적 공격도 오릅니다. 스테이지 2는 7층부터 +1, 스테이지 3은 처음부터 +1
+  const st = S && S.encKey ? (S.encKey.startsWith('s3') ? 3 : S.encKey.startsWith('s2') ? 2 : 1) : 1;
+  // 보스전은 2페이즈에 나오는 적(진화한 보스, 2페이즈 증원)부터 적용
+  const df = (S && S.diff) || 0;
+  const bossP1 = S && S.enc && S.enc.boss && S.phase === 1;
+  const atk = ((S && S.wrv) || 1) >= 4 && !bossP1 ? (st >= 3 ? 1 : st === 2 && (f >= 7 || df >= 4) ? 1 : 0) : 0;
+  return { hp: Math.floor((f - 1) / 4), atk };
+}
+function mkEnemy(k) { const d = ENEMIES[k]; const bn = enemyBonus(); const df = (S && S.diff) || 0; const v4 = ((S && S.wrv) || 1) >= 4; bn.hp += (d.boss ? (df >= (v4 ? 3 : 4) ? 3 : 0) + (v4 && df >= 5 ? 3 : 0) + (v4 ? bossStageHp() : 0) : d.elite ? (df >= (v4 ? 2 : 4) ? 2 : 0) : 0) + (((S && S.floor) || 1) >= 6 && (v4 ? (S && S.enc && S.enc.boss ? df >= 5 : df >= 4) : df >= 5) ? 1 : 0); return { uid: uid(), key: k, name: d.name, atk: d.atk + (d.atk > 0 && !(((S && S.wrv) || 1) >= 4 && (d.elite || d.atk >= 3)) ? bn.atk : 0), hp: d.hp + bn.hp, maxHp: d.hp + bn.hp, sig: d.sig.concat(d.elite && df >= 2 && ((S && S.wrv) || 1) >= 3 && !d.sig.includes('thorn') ? ['thorn'] : []), enemy: true, boss: !!d.boss, elite: !!d.elite, poison: false, tempAtk: 0, wall: 0, bonus: 0, delay: 0 }; }
 function mkUnit(card, info, bonus) {
   let hp = info.hp;
   if (info.sig.includes('coward') && S.stress >= 50) hp += 2;
@@ -1806,14 +1821,14 @@ function newBattle(cfg) {
     enc, encKey: cfg.enc, phase: 1, waves: [], loop: enc.loop, waveIdx: 0, variant: 0,
     stress: cfg.stress || 0, supply: cfg.supply === undefined ? 8 : cfg.supply,
     brokeOnce: !!cfg.brokeOnce, effects: { ...(cfg.effects || {}) },
-    floor: cfg.floor || 1, front: 0, frontMax: enc.front || RULE.frontMax, frontPush: Math.floor((enc.front || RULE.frontMax) / 2), turn: 0, p: [null, null, null, null], e: [null, null, null, null], tele: [null, null, null, null],
+    floor: cfg.floor || 1, front: 0, frontMax: (enc.front || RULE.frontMax) + bossFrontBonus(cfg, enc), frontPush: Math.floor(((enc.front || RULE.frontMax) + bossFrontBonus(cfg, enc)) / 2), turn: 0, p: [null, null, null, null], e: [null, null, null, null], tele: [null, null, null, null],
     deck: [], hand: [], discard: [], master: [], tokens: [], kept: [], keepMark: null, bag: [], fallenThisTurn: 0,
     mournCount: 0, bossFear: 0, kills: {}, cmdCd: 0, crisisUsed: false, bustImmuneUsed: false,
     extraCount: 0, extraIds: [], actionTaken: false, exchangeUsed: false,
     momentum: false, counterBuff: false, holdFront: false, phaseBreak: false,
     log: [], over: null, overflow: 0, lastBreak: null, events: [], recording: false,
     rels: (cfg.rels || []).map(r => ({ ...r })), ultUsed: {}, gritUsed: {}, crushRage: {}, ultShield: false,
-    relics: (cfg.relics || []).slice(), cardKills: {}, charmUsed: false, diff: cfg.diff || 0, wrv: cfg.wrv || 3,
+    relics: (cfg.relics || []).slice(), cardKills: {}, charmUsed: false, diff: cfg.diff || 0, wrv: cfg.wrv || 4,
   };
   const deckKeys = cfg.deck || START_DECK;
   S.master = deckKeys.map(k => (typeof k === 'string' ? { key: k } : { ...k })).concat(S.comps.filter(c => c.status !== 'dead').map(c => ({ comp: c.id })));
@@ -2091,10 +2106,12 @@ function damageUnit(u, amt, side, lane, noCover) {
   u.hp -= amt;
 }
 
+const FLY_PUSH_CAP = 3;
 function hitFront(side, a, aLane, name, att) {
   if (a <= 0) return;
   if (side === 'p') {
     if (S.momentum) a += 1;
+    if (att && att.sig.includes('fly') && (S.wrv || 1) >= 4 && a > FLY_PUSH_CAP) { log(`비행은 한 번에 전선을 ${FLY_PUSH_CAP}까지만 밉니다`, 'sys'); a = FLY_PUSH_CAP; }
     S.front += a;
     log(`전선 +${a} → ${S.front > 0 ? '+' : ''}${S.front}`, 'good');
     rec('front', { side, a, aLane, name });
@@ -2558,7 +2575,7 @@ function newRun(cfg) {
     mode: cfg.mode || 'test', deck: (cfg.deck || START_DECK).map(k => newCard(k)), relics: [], notes: [],
     bench: (cfg.bench || []).map(c => ({ ...c, aux: c.aux.slice(), lines: { ...(c.lines || {}) } })),
     map: null, pos: null, floor: 0, usedEvents: [], eventThreads: {}, recruited: false, reward: null, event: null, shop: null, cleared: false,
-    stage: 1, diff: cfg.diff || 0, weightRulesVersion: 3, bossWins: 0, stageDone: false,
+    stage: 1, diff: cfg.diff || 0, weightRulesVersion: 4, bossWins: 0, stageDone: false,
   };
 }
 /* 배치 고르기: 같은 상대의 배치(좌우 반전 포함)를 한 바퀴 다 만날 때까지 겹치지 않게 돌립니다 */
@@ -2826,7 +2843,7 @@ function advanceStage(run) {
 }
 
 /* ================= 보상 ================= */
-function rageAtk() { return (S && (S.diff || 0) >= 4 && (S.wrv || 1) >= 3) ? 2 : 1; }
+function rageAtk() { const w = (S && S.wrv) || 1; return (S && (S.diff || 0) >= (w >= 4 ? 5 : 4) && w >= 3) ? 2 : 1; }
 function shopMarkup(run) { return (run.diff || 0) >= 3 && (run.weightRulesVersion || 1) >= 3 ? 1 : 0; }
 function cardPrice(key) { const d = CARDS[key]; const n = Object.values(d.cost).reduce((a, b) => a + b, 0); return d.desperate ? n + 1 : n + 1; }
 /* 유물을 주웠을 때 바로 넣지 않고 챙길지 고르게 합니다 */
@@ -3547,10 +3564,10 @@ function selectSkin(group, style) {
 const DIFFS = [
   { name: '무게 0', desc: '기본 난이도', bonus: 0 },
   { name: '무게 1', desc: '시작 보급 −2 · 스테이지 이동 보급 −1', bonus: 0.2 },
-  { name: '무게 2', desc: '야영 휴식 회복 −5, 엘리트가 가시 인장을 가짐', bonus: 0.4 },
-  { name: '무게 3', desc: '주머니의 공포 토큰 +1, 거래 가격 +1', bonus: 0.6 },
-  { name: '무게 4', desc: '엘리트 체력 +2, 보스 체력 +3, 궁지에 몰린 적의 발악 공격 +2', bonus: 0.8 },
-  { name: '무게 5', desc: '6층부터 모든 적 체력 +1', bonus: 1 },
+  { name: '무게 2', desc: '야영 휴식 회복 −5, 엘리트가 가시 인장을 가지고 체력 +2', bonus: 0.4 },
+  { name: '무게 3', desc: '주머니의 공포 토큰 +1, 거래 가격 +1, 보스 체력 +3', bonus: 0.6 },
+  { name: '무게 4', desc: '6층부터 일반·엘리트 전투의 적 체력 +1, 스테이지 2 적의 공격 +1이 1층부터', bonus: 0.8 },
+  { name: '무게 5', desc: '궁지에 몰린 적의 발악 공격 +2, 보스 체력 +3 추가, 보스전의 모든 적 체력 +1', bonus: 1 },
 ];
 function diffSummary(d) { return DIFFS.slice(1, d + 1).map(x => x.desc).join(', ') || DIFFS[0].desc; }
 
@@ -5692,7 +5709,7 @@ function rangeWord(sig, atk) {
 function rangeLines(sig, atk, kws) {
   const L = [];
   if (atk <= 0) L.push('공격하지 않습니다.');
-  else if (sig.includes('fly')) L.push('<b>비행</b>: 앞 카드를 넘어가 전선 게이지를 바로 밉니다. 정면 적이 경계를 가지고 있으면 그 적을 공격합니다.');
+  else if (sig.includes('fly')) L.push('<b>비행</b>: 앞 카드를 넘어가 전선 게이지를 바로 밉니다(한 번에 최대 3칸). 정면 적이 경계를 가지고 있으면 그 적을 공격합니다.');
   else if (sig.includes('split')) L.push('<b>양옆</b>: 자기 정면 대신 왼쪽과 오른쪽 칸을 공격합니다. 비어 있는 쪽은 전선 게이지를 밉니다.');
   else L.push('<b>정면</b>: 정면 칸의 적을 공격하고, 비어 있으면 전선 게이지를 밉니다.');
   if (sig.includes('guard')) L.push('<b>수호</b>: 옆 칸이 비어 있을 때, 그 칸으로 오는 공격을 대신 막으러 이동합니다.');
