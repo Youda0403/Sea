@@ -1096,6 +1096,12 @@ main.battle.tut { padding-bottom: 13rem; }
 .ws-card-preview > .hcard { width: 145px; min-height: 180px; flex: 0 0 145px; }
 .ws-card-preview p { max-width: 22rem; overflow-wrap: anywhere; }
 .ws-sign { border-top: 1px solid var(--line); padding-top: .7rem; margin-top: 1rem; }
+.ws-pw { display: grid; gap: .6rem; margin: 0 0 .7rem; }
+.ws-pw label { display: grid; gap: .3rem; }
+.ws-pw input { width: 100%; box-sizing: border-box; padding: .6rem .7rem; border-radius: 8px; border: 1px solid var(--line); background: var(--table-2); color: var(--ink); font-size: 16px; }
+.ws-pw .btn, .ws-gate .ws-pw .btn { width: 100%; box-sizing: border-box; }
+.ws-forgot { margin-top: .9rem; }
+.ws-forgot summary { cursor: pointer; font-size: .88rem; }
 #ws-code { font-size: .75rem; overflow-wrap: anywhere; }
 .gift-shelf-row { display: grid; grid-template-columns: 110px minmax(0,1fr); gap: .8rem; padding: .85rem 0; border-bottom: 1px solid var(--line); }
 .gift-shelf-row:last-child { border-bottom: 0; }
@@ -4819,7 +4825,20 @@ function wsReadDraft() {
 }
 function renderWorkshop() {
   if (!workshopAllowed()) { screen = 'title'; render(); return; }
+  const lock = wsLockGet();
+  if (lock && !WORKSHOP.key) {
+    app.innerHTML = `<main class="setup workshop ws-gate"><div class="nav"><a class="btn ghost" href="${esc(location.pathname)}">게임으로</a></div><p class="ws-eyebrow">TOWER · ATELIER</p><h1>제작자 작업실</h1>
+    <section class="panel"><form class="ws-pw" onsubmit="return false"><label>비밀번호<input type="password" id="ws-pw" autocomplete="current-password" autofocus></label><button type="submit" class="btn primary" data-act="ws-unlock"${WORKSHOP.busy ? ' disabled' : ''}>${WORKSHOP.busy ? '여는 중' : '열기'}</button></form>
+    <details class="ws-forgot"><summary>비밀번호를 잊었어요</summary><p class="soft small">발급용 키 파일로 열 수 있습니다. 연 뒤에 새 비밀번호를 다시 정해 주세요.</p><label>키 파일<input type="file" accept=".json,application/json" data-ws-key></label></details></section></main>`;
+    const pw = app.querySelector('#ws-pw'); if (pw) pw.focus();
+    return;
+  }
   const d = WORKSHOP.draft || (WORKSHOP.draft = wsDefault());
+  const signHtml = !WORKSHOP.key
+    ? `<label>발급용 키 파일 불러오기 (처음 한 번)<input type="file" accept=".json,application/json" data-ws-key></label><p class="soft small">키 파일을 한 번 불러온 뒤 비밀번호를 정해 두면, 이 기기에서는 다음부터 비밀번호만으로 작업실을 열 수 있습니다.</p>`
+    : WORKSHOP.pendingJwk
+      ? `<form class="ws-pw" onsubmit="return false"><p class="small">이 기기에서 쓸 비밀번호를 정해 주세요. 키는 비밀번호로 잠긴 채 이 브라우저에만 저장됩니다.</p><label>새 비밀번호 (8자 이상)<input type="password" id="ws-pw1" autocomplete="new-password"></label><label>한 번 더<input type="password" id="ws-pw2" autocomplete="new-password"></label><button type="submit" class="btn" data-act="ws-lock-save">이 기기에 비밀번호로 잠가 두기</button></form><p class="soft small">정하지 않으면 이 탭을 닫을 때 키가 잊혀서, 다음에 다시 키 파일이 필요합니다.</p>`
+      : `<p class="soft small">작업실이 열려 있습니다. 이 탭을 닫으면 다시 비밀번호를 입력해야 합니다.</p>${lock ? `<button class="btn ghost small-btn" data-act="ws-lock-clear">${UI.wsClearConfirm ? '한 번 더 누르면 이 기기의 잠금을 지웁니다' : '이 기기의 비밀번호 잠금 지우기'}</button>` : ''}`;
   const sigOpts = cur => '<option value="">없음</option>' + Object.entries(SIGILS).map(([k,s]) => opt(k, s.name, cur)).join('');
   const chars = ROSTER.chars.length ? ROSTER.chars : presetRoster().chars;
   app.innerHTML = `<main class="setup workshop"><div class="nav"><a class="btn ghost" href="${esc(location.pathname)}">게임으로</a></div><p class="ws-eyebrow">TOWER · ATELIER</p><h1>제작자 작업실</h1><p class="soft">연출을 살펴보고, 누군가를 위한 카드를 만듭니다.</p>
@@ -4829,18 +4848,46 @@ function renderWorkshop() {
   <section class="panel"><h2>선물 카드 만들기</h2><p class="soft small">기본 덱 카드 한 장을 바탕으로 만듭니다. 비용과 주머니 감정은 유지하며, 공격·체력·인장·이름·그림을 바꿀 수 있습니다. 같은 원본의 선물은 한 번에 하나만 사용할 수 있습니다.</p>
   <form data-ws-form onsubmit="return false"><label>바탕 카드<select name="base" data-ws-base>${[...new Set(START_DECK)].map(k=>opt(k,CARDS[k].name,d.base)).join('')}</select></label><div class="ws-fields"><label>카드 이름<input name="name" maxlength="24" value="${esc(d.name)}"></label><label>공격<input name="atk" type="number" min="0" max="8" value="${d.atk}"></label><label>체력<input name="hp" type="number" min="1" max="12" value="${d.hp}"></label><label>인장 1<select name="sig1">${sigOpts(d.sig[0])}</select></label><label>인장 2<select name="sig2">${sigOpts(d.sig[1])}</select></label></div><label>카드에 담을 말<textarea name="note" rows="3" maxlength="180">${esc(d.note)}</textarea></label><label>작은 그림 (선택)<input type="file" accept="image/*" data-ws-image></label><p class="soft small">그림은 작게 압축합니다. 그림을 넣으면 전달할 코드가 길어집니다.</p><div class="res-btns"><button type="button" class="btn" data-act="ws-card-preview">카드 미리보기</button><button type="button" class="btn ghost" data-act="ws-clear-image">그림 지우기</button></div></form>
   <div class="ws-card-preview">${cardHtml({key:d.base,gift:signedCard({...d,id:'preview-000'})})}<p>${esc(d.note)}</p></div>
-  <div class="ws-sign"><label>발급용 키 파일 불러오기<input type="file" accept=".json,application/json" data-ws-key></label><p class="soft small">${WORKSHOP.key ? '키를 확인했습니다. 이 탭을 닫으면 다시 불러와야 합니다.' : '받은 키 파일을 선택해 주세요. 키는 업로드되거나 브라우저에 저장되지 않습니다.'}</p><button class="btn primary" data-act="ws-sign"${WORKSHOP.key && !WORKSHOP.busy ? '' : ' disabled'}>선물 코드 발급</button></div>
+  <div class="ws-sign">${signHtml}<button class="btn primary" data-act="ws-sign"${WORKSHOP.key && !WORKSHOP.busy ? '' : ' disabled'}>선물 코드 발급</button></div>
   ${WORKSHOP.code ? `<label>전달할 코드<textarea id="ws-code" readonly rows="4">${esc(WORKSHOP.code)}</textarea></label><button class="btn" data-act="ws-copy">코드 복사</button><p class="soft small">친구에게 기존 ‘받은 유품 코드 넣기’에 붙여넣으라고 알려 주세요.</p>` : ''}</section></main>`;
 }
 async function wsImportKey(file) {
   if (!file || file.size > 4096) throw Error('전달받은 키 파일을 선택해 주세요');
   const data = JSON.parse(await file.text()), jwk = data.privateKey;
-  if (data.format !== 'tower-workshop-key-v1' || !jwk || jwk.x !== GIFT_PUBLIC_KEY.x || jwk.y !== GIFT_PUBLIC_KEY.y) throw Error('이 게임의 발급용 키가 아닙니다');
+  if (data.format !== 'tower-workshop-key-v1' || !jwk) throw Error('이 게임의 발급용 키가 아닙니다');
+  await wsUseJwk(jwk);
+  WORKSHOP.pendingJwk = jwk; // 비밀번호로 잠가 두기 전까지만 이 탭 메모리에 둡니다
+}
+async function wsUseJwk(jwk) {
+  if (!jwk || jwk.x !== GIFT_PUBLIC_KEY.x || jwk.y !== GIFT_PUBLIC_KEY.y) throw Error('이 게임의 발급용 키가 아닙니다');
   const key = await crypto.subtle.importKey('jwk', jwk, {name:'ECDSA',namedCurve:'P-256'}, false, ['sign']);
   const challenge = crypto.getRandomValues(new Uint8Array(32));
   const sig = await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key,challenge);
   if (!await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},await giftVerifyKey(),sig,challenge)) throw Error('키를 확인하지 못했습니다');
   WORKSHOP.key = key;
+}
+/* 비밀번호 잠금: 키를 비밀번호로 암호화해 이 기기(브라우저)에만 보관합니다. 저장소나 서버에는 올라가지 않습니다 */
+const WS_LOCK_KEY = 'tower_ws_lock_v1';
+const wsB = { enc: u => btoa(String.fromCharCode(...u)), dec: s => Uint8Array.from(atob(s), c => c.charCodeAt(0)) };
+function wsLockGet() { try { const d = JSON.parse(localStorage.getItem(WS_LOCK_KEY) || 'null'); return d && d.v === 1 && d.ct ? d : null; } catch (e) { return null; } }
+async function wsPwKey(pw, salt, iter) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function wsLockSave(pw) {
+  if (!WORKSHOP.pendingJwk) throw Error('먼저 키 파일을 불러와 주세요');
+  if (String(pw).length < 8) throw Error('비밀번호는 8자 이상으로 정해 주세요');
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12)), iter = 310000;
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await wsPwKey(pw, salt, iter), new TextEncoder().encode(JSON.stringify(WORKSHOP.pendingJwk))));
+  localStorage.setItem(WS_LOCK_KEY, JSON.stringify({ v: 1, iter, salt: wsB.enc(salt), iv: wsB.enc(iv), ct: wsB.enc(ct) }));
+  WORKSHOP.pendingJwk = null;
+}
+async function wsUnlock(pw) {
+  const d = wsLockGet(); if (!d) throw Error('이 기기에 잠가 둔 키가 없습니다');
+  let jwk;
+  try { jwk = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: wsB.dec(d.iv) }, await wsPwKey(pw, wsB.dec(d.salt), d.iter), wsB.dec(d.ct)))); }
+  catch (e) { throw Error('비밀번호가 맞지 않습니다'); }
+  await wsUseJwk(jwk);
 }
 async function wsIssue() {
   if (!workshopAllowed() || !WORKSHOP.key || WORKSHOP.busy) return;
@@ -4883,10 +4930,28 @@ function onWorkshopAct(act,d) {
   if(act==='ws-joint-replay' && UI.workshopJoint) { replayWorkshopJoint(); return true; }
   if (!workshopAllowed()) return true;
   if(act==='ws-preview') { wsPreview(d.kind); return true; }
-  if(act==='ws-close-preview') { const frame=app.querySelector('#ws-preview'); if(frame) frame.srcdoc=''; app.querySelector('.ws-preview-wrap').hidden=true; return true; }
+  if(act==='ws-close-preview') { const frame=app.querySelector('#ws-preview'); if(frame) frame.replaceWith(wsFreshFrame(frame)); app.querySelector('.ws-preview-wrap').hidden=true; return true; }
   if(act==='ws-card-preview') { wsReadDraft(); render(); return true; }
   if(act==='ws-clear-image') { wsReadDraft(); WORKSHOP.draft.image=''; render(); return true; }
   if(act==='ws-sign') { wsIssue(); return true; }
+  if(act==='ws-unlock') {
+    const pw=(app.querySelector('#ws-pw')||{}).value||''; if(!pw || WORKSHOP.busy) return true;
+    WORKSHOP.busy=true; render();
+    wsUnlock(pw).then(()=>{WORKSHOP.busy=false;render();},err=>{WORKSHOP.busy=false;render();flash(err.message);});
+    return true;
+  }
+  if(act==='ws-lock-save') {
+    const a=(app.querySelector('#ws-pw1')||{}).value||'', b=(app.querySelector('#ws-pw2')||{}).value||'';
+    if(a!==b) { flash('두 비밀번호가 다릅니다'); return true; }
+    wsReadDraft();
+    wsLockSave(a).then(()=>{render();flash('이 기기에 잠가 두었습니다. 다음부터 비밀번호로 열 수 있습니다');},err=>flash(err.message||'저장하지 못했습니다'));
+    return true;
+  }
+  if(act==='ws-lock-clear') {
+    if(!UI.wsClearConfirm) { UI.wsClearConfirm=true; wsReadDraft(); render(); return true; }
+    UI.wsClearConfirm=false; try { localStorage.removeItem(WS_LOCK_KEY); } catch(e) {}
+    wsReadDraft(); render(); flash('이 기기의 잠금을 지웠습니다. 다음에는 키 파일이 필요합니다'); return true;
+  }
   if(act==='ws-copy') {
     wsReadDraft(); const box=app.querySelector('#ws-code'); if(!box) return true;
     if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(box.value).then(()=>flash('코드를 복사했습니다'),()=>{flash('선택된 코드를 길게 눌러 복사해 주세요');app.querySelector('#ws-code')?.select()});
@@ -4898,13 +4963,21 @@ function wsPreview(kind) {
   wsReadDraft();
   WORKSHOP.a=app.querySelector('#ws-a').value; WORKSHOP.b=app.querySelector('#ws-b').value; WORKSHOP.theme=app.querySelector('#ws-theme').value;
   const config={kind,a:WORKSHOP.a,b:WORKSHOP.b,theme:WORKSHOP.theme,relationship:WORKSHOP.relationship || 'lover',chars:ROSTER.chars,draft:WORKSHOP.draft};
-  const frame=app.querySelector('#ws-preview'), wrap=app.querySelector('.ws-preview-wrap'); wrap.hidden=false;
+  // 같은 iframe의 srcdoc을 바꾸면 뒤로가기 기록이 쌓이므로, 매번 새 iframe으로 갈아 끼웁니다
+  const old=app.querySelector('#ws-preview'), wrap=app.querySelector('.ws-preview-wrap'); wrap.hidden=false;
+  const frame=wsFreshFrame(old);
   const storageScript='const previewStorage={};Object.defineProperty(window,"localStorage",{value:{getItem:k=>previewStorage[k]??null,setItem:(k,v)=>previewStorage[k]=String(v),removeItem:k=>delete previewStorage[k]}});';
   const script=document.querySelector('script[data-game-script]') || document.querySelector('body > script');
   const safe=s=>s.replace(/<\/script/gi,'<\\/script');
   const fonts=[...document.querySelectorAll('link[rel="stylesheet"]')].map(l=>l.outerHTML).join('');
   frame.srcdoc='<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'+fonts+'<style>'+document.querySelector('style').textContent+'</style><body><div id="app"></div><script>'+storageScript+'<\/script><script>'+safe(script.textContent)+'<\/script><script>runWorkshopPreview('+JSON.stringify(config).replace(/</g,'\\u003c')+');<\/script></body></html>';
+  old.replaceWith(frame);
   wrap.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function wsFreshFrame(old) {
+  const f=document.createElement('iframe');
+  f.id='ws-preview'; f.title=old ? old.title : '게임 연출 미리보기'; f.setAttribute('sandbox','allow-scripts');
+  return f;
 }
 function runWorkshopPreview(cfg) {
   const originals=cfg.chars.length?cfg.chars:presetRoster().chars;
