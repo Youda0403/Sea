@@ -5916,7 +5916,9 @@ function unitInfo(u, side, lane) {
   const whyTxt = why.map(([nm, n]) => `${esc(nm)} ${n > 0 ? '+' : '−'}${Math.abs(n)}`).join(', ');
   const parts = [`<b class="nm">${esc(u.name)}</b> 공격 ${atk}${why.length && side !== 't' ? ` <span class="soft">(기본 ${u.atk}, ${whyTxt})</span>` : ''}, 체력 ${u.hp} (최대 ${u.maxHp})`];
   const kws = u.comp ? kwsOf(compById(u.comp)) : [];
-  parts.push(`<ul class="rlist">${rangeLines(u.sig, atk, kws).map(l => `<li>${l}</li>`).join('')}</ul>`);
+  // 판 위 카드도 손패 카드처럼 공격 범위 그림을 함께 보여 줍니다(예고 줄 적은 목록만)
+  const rl = `<ul class="rlist">${rangeLines(u.sig, atk, kws).map(l => `<li>${l}</li>`).join('')}</ul>`;
+  parts.push(side === 't' ? rl : `<div class="range-box">${miniHtml(u.sig, atk, kws)}${rl}</div>`);
   const other = u.sig.filter(x => !['fly', 'split', 'guard', 'watch', 'thorn', 'cheer', 'pierce'].includes(x));
   if (other.length) parts.push(`<ul>${sigDescList(other)}</ul>`);
   parts.push('<div class="soft small">보드에 표시된 칸이 이 카드가 닿는 범위입니다.</div>');
