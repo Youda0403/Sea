@@ -5989,9 +5989,9 @@ const CAPTION = {
   grit: f => `근성: ${f.name} 체력 1로 버팀`,
   absorb: f => `흡수: ${f.name}, 스트레스 −${f.n}`,
 };
-function hintHtml() {
+function hintHtml(noInfo) {
   if (UI.playing && UI.fx) return `<b class="caption">${esc(CAPTION[UI.fx.type](UI.fx))}</b>`;
-  if (UI.info) return UI.info;
+  if (UI.info && !noInfo) return UI.info;
   if (UI.mode === 'exchange') return UI.exTok ? '바꿀 감정을 고르세요.' : '보급 1로 바꿀 토큰을 누르세요.';
   if (UI.mode === 'cmd') {
     const t = COMMANDS[S.pro.cmd].target;
@@ -6050,6 +6050,9 @@ function renderBattle() {
   // 설명 창: 손패 카드를 골랐을 때만 손패 바로 아래, 그 밖(판 위 카드·안내)은 원래 자리(토큰 아래)
   const handInfo = UI.mode === 'play' && UI.sel != null && !UI.playing;
   const infoSec = `<section class="info"><div class="info-row"><div>${hintHtml()}</div><button class="btn small-btn gloss-btn" data-act="gloss">용어</button></div></section>`;
+  // 손패 카드를 골라도 위쪽 안내 글은 그대로 두고(깜빡임 방지), 카드 설명만 손패 아래에 따로
+  const baseSec = `<section class="info"><div class="info-row"><div>${hintHtml(true)}</div><button class="btn small-btn gloss-btn" data-act="gloss">용어</button></div></section>`;
+  const handSec = `<section class="info hand-info"><div class="info-row"><div>${hintHtml()}</div></div></section>`;
   app.innerHTML = `<main class="battle${UI.playing ? ' playing' : ''}${S.enc.boss ? ' boss-fight' : ''}">`
     + bossBanner + `
     ${workshopJointHtml()}
@@ -6057,10 +6060,10 @@ function renderBattle() {
     ${TUT ? tutGuideHtml() : ''}
     ${boardHtml()}
     ${tokensHtml()}
-    ${handInfo ? '' : infoSec}
+    ${handInfo ? baseSec : infoSec}
     ${actionsHtml()}
     ${handHtml()}
-    ${handInfo ? infoSec : ''}
+    ${handInfo ? handSec : ''}
     ${logHtml()}
     ${!S.enc.boss && !TUT ? '<p class="reserve-note">새 적은 예고 칸에 먼저 나타납니다. 증원은 무한하지 않아요.</p>' : ''}
     ${retryHtml()}
