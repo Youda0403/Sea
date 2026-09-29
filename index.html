@@ -1146,6 +1146,14 @@ main.battle.tut { padding-bottom: 13rem; }
 .gift-panel .gift-shelf h3 { font-size: .95rem; margin: 0 0 .5rem; }
 .gift-shelf-btns { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
 .gift-shelf-btns .btn { flex: 0 1 auto; }
+.break-sheet .sheet-body { text-align: center; display: grid; gap: .45rem; }
+.break-sheet small { letter-spacing: .12em; font-weight: 700; color: var(--ink-soft); }
+.break-sheet h2 { margin: 0; font-size: 1.8rem; }
+.break-sheet .awaken h2 { color: var(--good); }
+.break-sheet .collapse h2 { color: var(--bad); }
+.break-sheet .break-eff { font-weight: 700; margin: .2rem 0; }
+.break-sheet .btn { width: 100%; box-sizing: border-box; }
+.toast-float.stress-toast { border-color: color-mix(in srgb, var(--fear) 70%, transparent); }
 .relic-offer { text-align: center; display: grid; gap: .4rem; }
 .relic-offer > small { color: var(--brass); font-weight: 700; letter-spacing: .1em; }
 .relic-offer h2 { margin: 0; }
@@ -2299,6 +2307,7 @@ function addStress(n, why) {
   if (S.stats) S.stats.maxStress = Math.max(S.stats.maxStress, S.stress);
   const d = S.stress - before;
   if (d) log(`스트레스 ${d > 0 ? '+' : ''}${d}(${why}) → ${S.stress}`, d > 0 ? 'bad' : 'good');
+  { const step = hasRelic('candle') ? 35 : 25; if (d > 0 && S.stress < 100 && Math.floor(S.stress / step) > Math.floor(before / step)) S.stressNote = Math.floor(S.stress / step) * step; }
   if (S.stress >= 100 && !S.over) {
     if (!S.brokeOnce) { S.brokeOnce = true; breakRoll(); S.stress = 60; }
     else { S.over = 'runover'; S.overReason = '정신력이 두 번째 한계에 도달해 주인공이 쓰러졌습니다'; log(S.overReason, 'bad'); }
@@ -2316,6 +2325,7 @@ function breakRoll() {
   const o = opts[rint(3)];
   S.effects[o] = true;
   S.lastBreak = { awaken, o, turn: S.turn };
+  S.breakNote = { awaken, o };
   log(`정신력 한계! ${BREAK_TEXT[o]}. 스트레스가 60으로 돌아갑니다`, awaken ? 'good' : 'bad');
   say(S.pro, awaken ? 'awaken' : 'collapse');
 }
@@ -2757,6 +2767,7 @@ function runAddStress(run, n) {
       const opts = awaken ? ['sig2', 'bustImmune', 'crisisAlways'] : ['fear3', 'noSig', 'handMinus'];
       const o = opts[Math.floor(Math.random() * 3)];
       run.effects[o] = true; run.stress = 60;
+      run.breakNote = { awaken, o };
       return `정신력 한계! ${BREAK_TEXT[o]}`;
     }
     run.over = '정신력이 두 번째 한계에 도달해 주인공이 쓰러졌습니다';
@@ -3991,6 +4002,7 @@ function onRunAct(act, d) {
     case 'next-stage': { const r = advanceStage(RUN); if (!r.ok) return true; placeLegacy(RUN); UI.mapScrolled = false; screen = 'map'; render(); window.scrollTo(0, 0); flash(r.text); return true; }
     case 'buy-card': { const had = deckCids(); const r = buyCard(RUN, +d.i); UI.cinfo = null; if (!r.ok) flash(r.msg); else { gainReveal(had); render(); } return true; }
     case 'buy-relic': { const r = buyRelic(RUN); if (!r.ok) flash(r.msg); else render(); return true; }
+    case 'break-ok': { if (S) S.breakNote = null; if (RUN) RUN.breakNote = null; render(); return true; }
     case 'relic-take': case 'relic-leave': { const k = RUN.pendingRelic; takePendingRelic(RUN, act === 'relic-take'); if (k) flash(fixJosa(act === 'relic-take' ? `${RELICS[k].name}을(를) 챙겼습니다` : `${RELICS[k].name}을(를) 두고 갑니다`)); render(); return true; }
     case 'relic-drop': { if (UI.relicDropAsk !== d.k) { UI.relicDropAsk = d.k; render(); return true; } UI.relicDropAsk = null; const r = discardRelic(RUN, d.k); if (r.ok) flash(fixJosa(`${RELICS[d.k].name}을(를) 버렸습니다`)); render(); return true; }
     case 'shop-refresh': { const r = refreshShop(RUN); if (!r.ok) flash(r.msg); else render(); return true; }
@@ -6128,6 +6140,7 @@ function render() {
     document.documentElement.dataset.pageSkin = selectedSkin('page');
   }
   (SCREENS[screen] || renderBattle)();
+  stressNotices();
   saveRunState();
   if (UI.lastScreen !== screen) {
     UI.lastScreen = screen;
@@ -6136,6 +6149,22 @@ function render() {
   }
 }
 
+/* 스트레스 알림: 공포가 늘어나는 단계를 넘으면 짧은 알림, 100에 닿아 붕괴·각성하면 확인창 */
+function stressNotices() {
+  if (UI.playing) return;
+  const holder = screen === 'battle' && S ? S : RUN;
+  if (!holder) return;
+  if (holder.breakNote) {
+    const { awaken, o } = holder.breakNote;
+    const [head, body] = BREAK_TEXT[o].split(': ');
+    app.insertAdjacentHTML('beforeend', `<div class="sheet break-sheet"><div class="sheet-body ${awaken ? 'awaken' : 'collapse'}"><small>정신력 한계</small><h2>${awaken ? '각성' : '붕괴'}</h2><p class="break-eff">${esc(body || head)}</p><p class="soft small">${awaken ? '한계를 넘어서며 오히려 단단해졌습니다.' : '마음 한구석이 무너졌습니다.'} 스트레스는 60으로 돌아옵니다. 이 효과는 원정이 끝날 때까지 이어집니다.<br><b>한 번 더 100에 닿으면 주인공이 쓰러지고 원정이 끝납니다.</b></p><button class="btn primary" data-act="break-ok">확인</button></div></div>`);
+    return;
+  }
+  if (screen === 'battle' && S && S.stressNote) {
+    const lv = S.stressNote; S.stressNote = null;
+    showFx('stress', `<div class="toast-float stress-toast" role="status">스트레스 ${lv} 돌파 · 주머니의 공포 토큰 +1${lv >= 75 ? ' · 100에 닿으면 정신력 한계' : ''}</div>`, 2800);
+  }
+}
 function renderSnap(sn) {
   const bak = { p: S.p, e: S.e, tele: S.tele, front: S.front, stress: S.stress, turn: S.turn, phase: S.phase, enemyRage: S.enemyRage };
   Object.assign(S, sn);
