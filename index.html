@@ -163,6 +163,7 @@ h2 { font-size: 1.1rem; margin: 0 0 .6rem; }
 .tok small { font-size: .62rem; font-weight: 500; }
 .t-anger { background: var(--anger); } .t-calm { background: var(--calm); } .t-hope { background: var(--hope); }
 .t-fear { background: var(--fear); } .t-bond { background: var(--bond); } .t-mourn { background: var(--mourn); }
+.t-noise { background: repeating-linear-gradient(135deg, #6f6a62 0 5px, #8a847a 5px 10px); color: #f3efe6; }
 .tok.extra { border-style: dashed; border-color: var(--ink); }
 .tok.keep { outline: 3px solid var(--brass); outline-offset: 1px; }
 .tok.target { box-shadow: 0 0 0 3px var(--brass); }
@@ -619,6 +620,12 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 
 /* 덱 정보 */
 .hand-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; font-size: .85rem; margin-bottom: -.2rem; }
+.hh-btns { display: flex; gap: .35rem; align-items: stretch; flex-wrap: wrap; justify-content: flex-end; }
+.btn.draw-card { display: grid; gap: 0; line-height: 1.15; text-align: center; }
+.btn.draw-card small { font-size: .62rem; font-weight: 500; opacity: .8; }
+.doom-note { margin: .45rem 0 0; padding: .4rem .55rem; border-left: 3px solid var(--bad); background: rgba(163, 62, 42, .08); font-size: .8rem; line-height: 1.4; }
+.hcard.doomed { box-shadow: 0 0 0 2px var(--bad); }
+.hcard.doomed.sel { box-shadow: 0 0 0 3px var(--brass), 0 0 0 5px var(--bad); }
 .pile-cols { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
 .pile-cols h3 { font-size: .9rem; margin: .2rem 0 .3rem; }
 .pile-cols ul { margin: 0; padding-left: 1rem; font-size: .85rem; }
@@ -1202,7 +1209,7 @@ let _uid = 0;
 const uid = () => ++_uid;
 
 /* ================= 데이터 ================= */
-const EMO = { anger: '분노', calm: '냉정', hope: '희망', fear: '공포', bond: '유대', mourn: '추모' };
+const EMO = { anger: '분노', calm: '냉정', hope: '희망', fear: '공포', bond: '유대', mourn: '추모', noise: '잡음' };
 const BASIC = ['anger', 'calm', 'hope'];
 const RULE = { battleSupply: 1, eliteSupply: 3, frontMax: 6, frontPush: 3, randomDraw: 3, minHand: 3, frontStress: 2, threatStress: 4, baseFear: 1, cardLossStress: 2, winRelief: 3 };
 
@@ -1224,6 +1231,9 @@ const SIGILS = {
   execute: { name: '처단', desc: '체력이 깎인 적 카드를 공격하면 피해 +2.' },
   armor: { name: '철갑', desc: '한 번에 2 이상 받는 피해를 1 줄입니다.' },
   mend: { name: '응급', desc: '바로 옆 칸(양옆)에 있는 아군 카드의 체력이 +1 됩니다. 응급 카드가 사라지면 다시 빠지지만 1 아래로는 내려가지 않습니다.' },
+  // v6: 적 전용 방해 인장
+  weaken: { name: '약화', enemyOnly: true, desc: '이 적에게 맞고 버틴 아군 카드는 다음 공격이 1 약해집니다.' },
+  noise: { name: '잡음', enemyOnly: true, desc: '이 적이 공격하면 다음 턴에 받는 토큰 1개가 잡음 토큰(어디에도 못 씀)으로 바뀝니다. 한 턴에 최대 2개. 보급 교환으로 바꿀 수 있습니다.' },
 };
 
 const KEYWORDS = {
@@ -1388,6 +1398,9 @@ const ENEMIES = {
   clock: { name: '멈춘 시계', atk: 0, hp: 8, sig: ['watch'] },
   mirror: { name: '비명 거울', atk: 1, hp: 4, sig: ['threat'] },
   eater: { name: '기억 먹는 개', atk: 2, hp: 3, sig: ['poison'] },
+  // v6: 방해하는 적(약화·잡음)
+  drape: { name: '늘어진 외투', atk: 1, hp: 5, sig: ['weaken'] },
+  radio: { name: '지직대는 라디오', atk: 1, hp: 3, sig: ['noise'] },
   keeper: { name: '기록 관리인', atk: 2, hp: 11, sig: ['guard', 'thorn'], elite: true },
   jailer: { name: '녹슨 간수', atk: 3, hp: 9, sig: ['pierce'], elite: true },
   devourer: { name: '기억을 삼킨 자', atk: 2, hp: 16, sig: ['watch'], boss: true },
@@ -1400,6 +1413,8 @@ const ENEMIES = {
   weeper: { name: '우는 조각상', atk: 2, hp: 6, sig: ['threat'] },
   glutton: { name: '부푼 망각', atk: 3, hp: 5, sig: [] },
   needle: { name: '바늘 까마귀', atk: 1, hp: 3, sig: ['fly', 'poison'] },
+  hollow: { name: '무게 없는 손', atk: 2, hp: 6, sig: ['weaken'] },
+  hush: { name: '웅얼대는 그림자', atk: 1, hp: 5, sig: ['split', 'noise'] },
   gemini: { name: '쌍둥이 기억', atk: 2, hp: 9, sig: ['split'], elite: true },
   mourner: { name: '조문객의 왕', atk: 2, hp: 11, sig: ['threat', 'guard'], elite: true },
   titan: { name: '잠든 거인', atk: 3, hp: 12, sig: [], elite: true },
@@ -1453,19 +1468,19 @@ const ENCOUNTERS = {
     loop2: ['shade', 'raider', 'snake', 'toad', 'hawk', 'wraith'] },
   // 스테이지 2
   s2early: { name: '잊힌 방: 초반 전투', target: '4~6턴', front: 7, loop: ['moth', 'eater', 'husk', 'doll', 'mimic'], variants: [
-    { board: ['doll', 'husk', null, 'moth'], waves: [[[2, 'eater']], [], [[0, 'mimic']], [[3, 'moth']], [], [[1, 'husk']]] },
-    { board: [null, 'eater', 'doll', 'husk'], waves: [[[0, 'moth']], [[3, 'mimic']], [], [[2, 'eater']], [], [[1, 'moth']]] },
-    { board: ['husk', null, 'moth', 'doll'], waves: [[[1, 'eater']], [], [[3, 'moth']], [[0, 'husk']], [], [[2, 'mimic']]] },
+    { board: ['drape', 'husk', null, 'moth'], waves: [[[2, 'eater']], [], [[0, 'mimic']], [[3, 'moth']], [], [[1, 'husk']]] },
+    { board: [null, 'eater', 'doll', 'husk'], waves: [[[0, 'radio']], [[3, 'mimic']], [], [[2, 'eater']], [], [[1, 'moth']]] },
+    { board: ['husk', null, 'moth', 'doll'], waves: [[[1, 'eater']], [], [[3, 'radio']], [[0, 'husk']], [], [[2, 'mimic']]] },
   ] },
   s2late: { name: '잊힌 방: 중반 전투', target: '5~7턴', front: 8, loop: ['lurker', 'mirror', 'husk', 'mimic', 'eater', 'clock'], variants: [
-    { board: ['mirror', 'clock', 'lurker', 'moth'], waves: [[[3, 'mimic']], [], [[0, 'husk'], [2, 'eater']], [[1, 'lurker']], [], [[3, 'mirror']]] },
-    { board: ['lurker', 'husk', 'clock', 'mirror'], waves: [[[0, 'moth']], [[2, 'mimic']], [], [[1, 'eater'], [3, 'lurker']], [], [[0, 'mirror']]] },
-    { board: ['moth', 'mimic', null, 'doll'], waves: [[[2, 'eater']], [], [[0, 'lurker']], [[3, 'husk'], [1, 'mirror']], [], [[2, 'mimic']]] },
+    { board: ['mirror', 'clock', 'lurker', 'radio'], waves: [[[3, 'mimic']], [], [[0, 'husk'], [2, 'eater']], [[1, 'lurker']], [], [[3, 'mirror']]] },
+    { board: ['lurker', 'husk', 'clock', 'mirror'], waves: [[[0, 'radio']], [[2, 'mimic']], [], [[1, 'eater'], [3, 'lurker']], [], [[0, 'mirror']]] },
+    { board: ['moth', 'mimic', null, 'drape'], waves: [[[2, 'eater']], [], [[0, 'lurker']], [[3, 'husk'], [1, 'mirror']], [], [[2, 'mimic']]] },
   ] },
   s2late2: { name: '잊힌 방: 후반 전투', target: '5~7턴', front: 8, loop: ['lurker', 'mirror', 'husk', 'mimic', 'eater', 'clock', 'jailer'], variants: [
-    { board: ['mirror', 'clock', 'lurker', null], waves: [[[0, 'mimic']], [[3, 'moth']], [], [[1, 'husk'], [2, 'lurker']], [], [[0, 'mirror']]] },
-    { board: ['lurker', 'doll', null, 'mirror'], waves: [[[2, 'eater']], [[3, 'lurker']], [], [[1, 'husk'], [0, 'mirror']], [], [[2, 'mimic']]] },
-    { board: [null, 'husk', null, 'moth'], waves: [[[0, 'eater']], [], [[3, 'mimic']], [[1, 'lurker'], [2, 'moth']], [], [[0, 'clock']]] },
+    { board: ['mirror', 'clock', 'lurker', null], waves: [[[0, 'mimic']], [[3, 'radio']], [], [[1, 'husk'], [2, 'lurker']], [], [[0, 'mirror']]] },
+    { board: ['lurker', 'drape', null, 'mirror'], waves: [[[2, 'eater']], [[3, 'lurker']], [], [[1, 'husk'], [0, 'mirror']], [], [[2, 'mimic']]] },
+    { board: [null, 'husk', null, 'radio'], waves: [[[0, 'eater']], [], [[3, 'mimic']], [[1, 'lurker'], [2, 'moth']], [], [[0, 'clock']]] },
   ] },
   s2elite: { name: '엘리트: 기록 관리인', target: '7~9턴', front: 9, elite: true, loop: ['husk', 'moth', 'mimic', 'doll'], variants: [
     { board: ['doll', 'keeper', 'eater', null], waves: [[[0, 'mimic']], [], [[3, 'moth']], [[2, 'eater']], [], [[0, 'husk']], [], [[3, 'lurker']]] },
@@ -1494,19 +1509,19 @@ const ENCOUNTERS = {
     loop2: ['lurker', 'mirror', 'husk', 'mimic', 'moth', 'eater'] },
   // 스테이지 3
   s3early: { name: '망각의 꼭대기: 초반 전투', target: '4~6턴', front: 8, loop: ['echoer', 'thief', 'needle', 'weeper'], variants: [
-    { board: ['sentinel', 'thief', null, 'echoer'], waves: [[[2, 'needle']], [], [[0, 'weeper']], [[3, 'thief']], [], [[1, 'glutton']]] },
-    { board: [null, 'echoer', 'weeper', 'thief'], waves: [[[0, 'needle']], [[3, 'echoer']], [], [[2, 'thief']], [], [[1, 'glutton']]] },
-    { board: ['thief', null, 'sentinel', 'needle'], waves: [[[1, 'weeper']], [], [[3, 'echoer']], [[0, 'thief']], [], [[2, 'glutton']]] },
+    { board: ['sentinel', 'thief', null, 'hush'], waves: [[[2, 'needle']], [], [[0, 'weeper']], [[3, 'thief']], [], [[1, 'glutton']]] },
+    { board: [null, 'echoer', 'hollow', 'thief'], waves: [[[0, 'needle']], [[3, 'echoer']], [], [[2, 'thief']], [], [[1, 'glutton']]] },
+    { board: ['thief', null, 'sentinel', 'needle'], waves: [[[1, 'hollow']], [], [[3, 'hush']], [[0, 'thief']], [], [[2, 'glutton']]] },
   ] },
   s3late: { name: '망각의 꼭대기: 중반 전투', target: '5~7턴', front: 9, loop: ['glutton', 'weeper', 'thief', 'needle', 'echoer', 'sentinel'], variants: [
-    { board: ['weeper', 'sentinel', null, 'thief'], waves: [[[0, 'needle']], [], [[3, 'echoer'], [2, 'thief']], [[1, 'glutton']], [], [[0, 'weeper']]] },
-    { board: ['glutton', null, 'sentinel', 'weeper'], waves: [[[3, 'needle']], [[1, 'echoer']], [], [[0, 'thief'], [2, 'glutton']], [], [[3, 'weeper']]] },
-    { board: ['thief', 'echoer', null, 'sentinel'], waves: [[[2, 'glutton']], [], [[0, 'needle']], [[3, 'thief'], [1, 'weeper']], [], [[2, 'echoer']]] },
+    { board: ['hollow', 'sentinel', null, 'thief'], waves: [[[0, 'needle']], [], [[3, 'echoer'], [2, 'thief']], [[1, 'glutton']], [], [[0, 'weeper']]] },
+    { board: ['glutton', null, 'sentinel', 'weeper'], waves: [[[3, 'needle']], [[1, 'hush']], [], [[0, 'thief'], [2, 'glutton']], [], [[3, 'weeper']]] },
+    { board: ['thief', 'hush', null, 'sentinel'], waves: [[[2, 'glutton']], [], [[0, 'needle']], [[3, 'thief'], [1, 'weeper']], [], [[2, 'echoer']]] },
   ] },
   s3late2: { name: '망각의 꼭대기: 후반 전투', target: '5~7턴', front: 8, loop: ['glutton', 'weeper', 'thief', 'needle', 'sentinel', 'gemini'], variants: [
-    { board: ['weeper', 'sentinel', null, null], waves: [[[3, 'thief']], [[0, 'needle']], [], [[1, 'glutton'], [2, 'weeper']], [], [[3, 'echoer']]] },
-    { board: ['glutton', null, 'sentinel', null], waves: [[[1, 'thief']], [[0, 'echoer']], [], [[2, 'glutton'], [1, 'weeper']], [], [[3, 'thief']]] },
-    { board: [null, 'weeper', null, 'thief'], waves: [[[0, 'sentinel']], [], [[3, 'needle']], [[1, 'glutton'], [2, 'thief']], [], [[0, 'weeper']]] },
+    { board: ['weeper', 'sentinel', null, null], waves: [[[3, 'thief']], [[0, 'needle']], [], [[1, 'glutton'], [2, 'weeper']], [], [[3, 'hush']]] },
+    { board: ['glutton', null, 'sentinel', null], waves: [[[1, 'thief']], [[0, 'hush']], [], [[2, 'glutton'], [1, 'weeper']], [], [[3, 'thief']]] },
+    { board: [null, 'hollow', null, 'thief'], waves: [[[0, 'sentinel']], [], [[3, 'needle']], [[1, 'glutton'], [2, 'thief']], [], [[0, 'weeper']]] },
   ] },
   s3elite: { name: '엘리트: 쌍둥이 기억', target: '7~9턴', front: 10, elite: true, loop: ['thief', 'echoer', 'needle', 'weeper'], variants: [
     { board: ['echoer', 'gemini', null, null], waves: [[[3, 'thief']], [], [[0, 'needle']], [[3, 'weeper']], [], [[2, 'glutton']]] },
@@ -1523,12 +1538,14 @@ const ENCOUNTERS = {
     { board: ['needle', null, 'titan', 'sentinel'], waves: [[[1, 'thief']], [], [[0, 'echoer']], [[3, 'weeper']], [], [[1, 'glutton']]] },
     { board: [null, 'titan', 'sentinel', 'thief'], waves: [[[0, 'needle']], [], [[3, 'echoer']], [[2, 'weeper']], [], [[0, 'glutton']]] },
   ] },
-  s3boss: { name: '보스: 망각의 주인', target: '10~12턴', front: 9, boss: true, board: ['sentinel', 'oblivion', null, null], rule2: ['fear', 'forget'],
+  s3boss: { name: '보스: 망각의 주인', target: '10~12턴', front: 9, boss: true, board: ['sentinel', 'oblivion', null, null], rule2: ['fear', 'forget'], rule2v6: ['fear', 'steal'],
     evolve: ['oblivion', 'oblivion2'],
     banner: '마지막 보스입니다. 1페이즈에서 전선을 끝까지 밀면 망각의 주인이 이름 없는 것으로 변하고, 전선이 0으로 돌아가 2페이즈가 시작됩니다. 2페이즈에서 한 번 더 끝까지 밀면 탑을 넘습니다.',
     phaseCap: '망각의 주인이 이름을 버립니다. 2페이즈 시작',
     phase2Text: '전선이 0으로 돌아갔습니다. 이제 매 적 턴마다 주머니에 공포 토큰이 1개씩 늘고, 손패 1장을 잊어버립니다. 전선을 한 번 더 끝까지 밀면 탑을 넘습니다.',
     phaseLog: '망각의 주인이 이름을 버리고 이름 없는 것이 됩니다. 2페이즈: 공포가 늘고 손패를 잊어버립니다',
+    phase2TextV6: '전선이 0으로 돌아갔습니다. 이제 매 적 턴마다 주머니에 공포 토큰이 1개씩 늘고, 두 턴에 한 번 이름 없는 것이 손패 1장을 노립니다. 노린 카드를 그 턴에 내면 지킬 수 있고, 두면 빼앗겨 적이 됩니다(쓰러뜨리면 되찾음). 전선을 한 번 더 끝까지 밀면 탑을 넘습니다.',
+    phaseLogV6: '망각의 주인이 이름을 버리고 이름 없는 것이 됩니다. 2페이즈: 공포가 늘고, 손패를 빼앗아 적으로 돌립니다',
     waves: [[[3, 'thief']], [], [[0, 'needle']], [[3, 'weeper']], [], [[0, 'echoer']]],
     loop: ['thief', 'needle', 'echoer', 'weeper'],
     waves2: [[[0, 'glutton'], [3, 'echoer']], [], [[3, 'weeper']], [[0, 'thief']], []],
@@ -1811,7 +1828,9 @@ function enemyBonus() {
   // v5: 층마다 붙는 적 체력이 4층마다 → 3층마다
   return { hp: Math.floor((f - 1) / (((S && S.wrv) || 1) >= 5 ? 3 : 4)), atk };
 }
-function mkEnemy(k) { const d = ENEMIES[k]; const bn = enemyBonus(); const df = (S && S.diff) || 0; const v4 = ((S && S.wrv) || 1) >= 4; bn.hp += (d.boss ? (df >= (v4 ? 3 : 4) ? 3 : 0) + (v4 && df >= 5 ? 3 : 0) + (v4 ? bossStageHp() : 0) : d.elite ? (df >= (v4 ? 2 : 4) ? 2 : 0) : 0) + (((S && S.floor) || 1) >= 6 && (v4 ? (S && S.enc && S.enc.boss ? df >= 5 : df >= 4) : df >= 5) ? 1 : 0); return { uid: uid(), key: k, name: d.name, atk: d.atk + (d.atk > 0 && !(((S && S.wrv) || 1) >= 4 && (d.elite || d.atk >= 3)) ? bn.atk : 0), hp: d.hp + bn.hp, maxHp: d.hp + bn.hp, sig: d.sig.concat(d.elite && df >= 2 && ((S && S.wrv) || 1) >= 3 && !d.sig.includes('thorn') ? ['thorn'] : []), enemy: true, boss: !!d.boss, elite: !!d.elite, poison: false, tempAtk: 0, wall: 0, bonus: 0, delay: 0 }; }
+/* v6에서 조우표 일부 칸을 방해하는 적으로 바꿨습니다. v5 이하로 시작한 원정은 원래 적이 나옵니다 */
+const V6_LEGACY = { drape: 'doll', radio: 'moth', hollow: 'weeper', hush: 'echoer' };
+function mkEnemy(k) { if (((S && S.wrv) || 1) < 6 && V6_LEGACY[k]) k = V6_LEGACY[k]; const d = ENEMIES[k]; const bn = enemyBonus(); const df = (S && S.diff) || 0; const v4 = ((S && S.wrv) || 1) >= 4; bn.hp += (d.boss ? (df >= (v4 ? 3 : 4) ? 3 : 0) + (v4 && df >= 5 ? 3 : 0) + (v4 ? bossStageHp() : 0) : d.elite ? (df >= (v4 ? 2 : 4) ? 2 : 0) : 0) + (((S && S.floor) || 1) >= 6 && (v4 ? (S && S.enc && S.enc.boss ? df >= 5 : df >= 4) : df >= 5) ? 1 : 0); return { uid: uid(), key: k, name: d.name, atk: d.atk + (d.atk > 0 && !(((S && S.wrv) || 1) >= 4 && (d.elite || d.atk >= 3)) ? bn.atk : 0), hp: d.hp + bn.hp, maxHp: d.hp + bn.hp, sig: d.sig.concat(d.elite && df >= 2 && ((S && S.wrv) || 1) >= 3 && !d.sig.includes('thorn') ? ['thorn'] : []), enemy: true, boss: !!d.boss, elite: !!d.elite, poison: false, tempAtk: 0, wall: 0, bonus: 0, delay: 0 }; }
 function mkUnit(card, info, bonus) {
   let hp = info.hp;
   if (info.sig.includes('coward') && S.stress >= 50) hp += 2;
@@ -1848,7 +1867,7 @@ function newBattle(cfg) {
     momentum: false, counterBuff: false, holdFront: false, phaseBreak: false,
     log: [], over: null, overflow: 0, lastBreak: null, events: [], recording: false,
     rels: (cfg.rels || []).map(r => ({ ...r })), ultUsed: {}, gritUsed: {}, crushRage: {}, ultShield: false,
-    relics: (cfg.relics || []).slice(), cardKills: {}, charmUsed: false, diff: cfg.diff || 0, wrv: cfg.wrv || 5,
+    relics: (cfg.relics || []).slice(), cardKills: {}, charmUsed: false, diff: cfg.diff || 0, wrv: cfg.wrv || 6,
   };
   const deckKeys = cfg.deck || START_DECK;
   S.master = deckKeys.map(k => (typeof k === 'string' ? { key: k } : { ...k })).concat(S.comps.filter(c => c.status !== 'dead').map(c => ({ comp: c.id })));
@@ -1897,7 +1916,7 @@ function startTurn() {
   const rage = S.front >= S.frontPush;
   if (rage && !S.enemyRage && S.turn > 1) log(`적이 궁지에 몰려 발악합니다. 이번 턴부터 적 공격 +${rageAtk()}`, 'bad');
   S.enemyRage = rage;
-  S.actionTaken = false; S.extraCount = 0; S.extraIds = []; S.exchangeUsed = false;
+  S.actionTaken = false; S.extraCount = 0; S.extraIds = []; S.exchangeUsed = false; S.cardDrawUsed = false;
   S.momentum = false; S.counterBuff = false; S.phaseBreak = false;
   S.p.forEach(u => { if (u) u.tempAtk = 0; });
   if (S.cmdCd > 0) S.cmdCd--;
@@ -1907,6 +1926,7 @@ function startTurn() {
   const g = S.effects.noSig ? 0 : S.effects.sig2 ? 2 : 1;
   for (let i = 0; i < g; i++) S.tokens.push(mkTok(core));
   for (let i = 0; i < RULE.randomDraw + (hasRelic('letter') ? 1 : 0) && S.bag.length; i++) S.tokens.push(mkTok(S.bag.pop()));
+  applyNoise(g);
   S.kept.forEach(t => S.tokens.push(mkTok(t)));
   S.kept = [];
   for (const u of S.p) if (bond3Role(u) === 'sup') { const e = KEYWORDS[compById(u.comp).core].emo; S.tokens.push(mkTok(e)); log(`북돋움: ${jo(u.name, '이', '가')} ${EMO[e]} 토큰 1개를 건넵니다`, 'good'); }
@@ -1917,6 +1937,68 @@ function startTurn() {
   let filled = 0;
   while (!S.over && S.hand.length < target && drawCard()) filled++;
   if (filled) log(fallen >= 2 ? `아군 ${fallen}장이 쓰러져 손패를 ${S.hand.length}장까지 보충했습니다` : `손패가 부족해 ${S.hand.length}장까지 보충했습니다`, 'sys');
+  if (bossRule('steal')) stealMark();
+}
+
+/* v6 잡음: 지난 적 턴에 잡음 적이 공격한 만큼, 이번 턴에 뽑은 토큰(고유 토큰 제외)이 잡음으로 바뀝니다 */
+function applyNoise(g) {
+  const n = Math.min(2, S.noiseNext || 0); S.noiseNext = 0;
+  if (!n) return;
+  const pool = S.tokens.slice(g).filter(t => t.t !== 'fear' && t.t !== 'noise');
+  let done = 0;
+  for (let i = 0; i < n && pool.length; i++) { const t = pool.splice(rint(pool.length), 1)[0]; t.t = 'noise'; done++; }
+  if (done) log(`잡음: 토큰 ${done}개가 잡음으로 바뀌었습니다(보급 교환으로 바꿀 수 있음)`, 'bad');
+}
+
+/* v6 보스 2페이즈 규칙. 3스테이지 보스는 v6부터 '망각' 대신 '빼앗기'를 씁니다 */
+function bossRule(r) {
+  if (!S.enc.boss || S.phase !== 2) return false;
+  const rs = ((S.wrv || 1) >= 6 && S.enc.rule2v6) || S.enc.rule2 || [];
+  return [].concat(rs).includes(r);
+}
+function encText(k) { return ((S.wrv || 1) >= 6 && S.enc[k + 'V6']) || S.enc[k]; }
+const STEAL_SIGS = ['split', 'pierce', 'poison', 'thorn', 'guard'];
+/* 빼앗기 예고: 두 턴에 한 번, 동료가 아닌 손패 중 가장 강한 1장을 노립니다. 이번 턴에 내면 지킬 수 있습니다 */
+function stealMark() {
+  if (S.stealCd > 0) { S.stealCd--; return; }
+  const pool = S.hand.filter(c => !c.comp);
+  if (!pool.length) return;
+  // 가장 아끼는 기억(공격+체력이 가장 큰 카드)을 노립니다. 같으면 무작위
+  const val = c => { const i = cardInfo(c); return i.atk + i.hp; };
+  const best = Math.max(...pool.map(val)); const top = pool.filter(c => val(c) === best);
+  S.doomRef = top[rint(top.length)];
+  log(`이름 없는 것이 ${jo(cardInfo(S.doomRef).name, '을', '를')} 노립니다. 이번 턴에 내면 지킬 수 있고, 두면 빼앗겨 적이 됩니다`, 'bad');
+}
+function stolenEnemy(card) {
+  const info = cardInfo(card);
+  const hp = Math.max(1, Math.min(5, info.hp));
+  return { uid: uid(), key: 'stolen', name: '빼앗긴 ' + info.name.replace(/^각성한 /, ''), atk: Math.min(3, info.atk), hp, maxHp: hp,
+    sig: info.sig.filter(x => STEAL_SIGS.includes(x)), enemy: true, boss: false, elite: false, poison: false, tempAtk: 0, wall: 0, bonus: 0, delay: 0, stolen: card };
+}
+function stealResolve() {
+  const c = S.doomRef; S.doomRef = null; S.stealCd = 1;
+  const hi = S.hand.indexOf(c);
+  if (hi < 0) { log('이름 없는 것이 노린 카드를 지켜 냈습니다', 'good'); return; }
+  S.hand.splice(hi, 1);
+  const nm = cardInfo(c).name;
+  const free = [0, 1, 2, 3].filter(i => !S.tele[i]);
+  if (!free.length) { S.discard.push(c); log(`망각: ${jo(nm, '을', '를')} 잊어버렸습니다(버린 더미로)`, 'bad'); return; }
+  const l = free[rint(free.length)];
+  S.tele[l] = stolenEnemy(c);
+  log(`이름 없는 것이 ${jo(nm, '을', '를')} 빼앗았습니다. ${l + 1}번 레인 예고 줄에서 적이 되어 내려옵니다. 쓰러뜨리면 되찾습니다`, 'bad');
+  rec('steal', { lane: l, name: nm });
+}
+
+/* v6 카드 뽑기: 보급 1로 덱에서 카드 1장을 더 뽑습니다. 보급 교환과 합쳐 턴마다 1번. 뽑은 뒤에도 '한 번 더'는 쓸 수 있습니다 */
+function canDrawCard() { return !!S && !S.over && !S.cardDrawUsed && !S.exchangeUsed && S.supply >= 1 && (S.deck.length > 0 || S.discard.length > 0); }
+function drawExtraCard() {
+  if (!canDrawCard()) return { ok: false, msg: '지금은 카드를 더 뽑을 수 없습니다' };
+  UNDO = [];
+  S.supply--; S.cardDrawUsed = true; S.exchangeUsed = true;
+  drawCard();
+  const c = S.hand[S.hand.length - 1];
+  log(`보급 1로 ${jo(cardInfo(c).name, '을', '를')} 뽑았습니다`, 'sys');
+  return { ok: true, card: c };
 }
 
 function canExtra() { return !S.over && !S.actionTaken && S.extraCount < 3 && S.bag.length > 0; }
@@ -2058,6 +2140,7 @@ function effAtk(u, side, lane, why) {
     if (kws.includes('timid') && S.front <= -S.frontPush) add(-1, '소심');
     if (hasRelic('shoes') && S.front <= -S.frontPush) add(2, '뒤꿈치 닳은 신발');
     if (u.shield) add(-1, '금 간 방패');
+    if (u.weak) add(-1, '약화');
     if (u.comp && hasRelic('photo')) { const pc = compById(u.comp); if (pc && pc.status === 'saseon') add(3, '반쪽 사진'); }
     if (u.comp) {
       if (boardPartners(u, 'crushTo').length) add(1 + (hasTsun(u.comp) ? 1 : 0), '잘 보이고 싶어');
@@ -2174,6 +2257,7 @@ function strike(att, side, aLane, t, a) {
   }
   if (d.sig.includes('thorn') || (defSide === 'p' && d.hp > 0 && bond3Role(d) === 'def')) { const hb = att.hp; damageUnit(att, 1, side, aLane); rec('thorn', { side, aLane, dmg: hb - att.hp, name: att.name }); }
   if (d.hp > 0 && att.sig.includes('poison')) d.poison = true;
+  if (defSide === 'p' && d.hp > 0 && att.sig.includes('weaken') && !d.weak) { d.weak = 1; log(`약화: ${d.name}의 다음 공격이 1 약해집니다`, 'bad'); rec('debuff', { lane: t, label: '약화', text: `약화: ${d.name} 다음 공격 −1` }); }
   if (d.hp <= 0) {
     onKill(att, side);
     if (att.sig.includes('pierce') && a > before) hitFront(side, a - before, aLane, att.name, att);
@@ -2209,6 +2293,7 @@ function attackPhase(side) {
     const a = effAtk(u, side, lane);
     if (a <= 0) continue;
     if (side === 'p') { addResolve(u); if (u.sig.includes('absorb')) absorbFx(u, lane); }
+    if (side === 'e' && u.sig.includes('noise') && (S.noiseNext || 0) < 2) { S.noiseNext = (S.noiseNext || 0) + 1; log(`잡음: ${u.name}의 소리에 다음 턴 토큰 1개가 잡음이 됩니다`, 'bad'); rec('debuff', { lane: -1, label: '잡음', text: `잡음: ${u.name} → 다음 턴 토큰 1개가 잡음으로` }); }
     const targets = u.sig.includes('split') ? [lane - 1, lane + 1].filter(n => n >= 0 && n < 4) : [lane];
     for (const t of targets) {
       strike(u, side, lane, t, a);
@@ -2235,7 +2320,7 @@ function cleanup() {
   }
   for (let l = 0; l < 4; l++) {
     const u = S.e[l];
-    if (u && u.hp <= 0) { rec('die', { side: 'e', lane: l, name: u.name }); S.e[l] = null; log(`적 ${u.name} 처치`, 'good'); }
+    if (u && u.hp <= 0) { rec('die', { side: 'e', lane: l, name: u.name }); S.e[l] = null; log(`적 ${u.name} 처치`, 'good'); if (u.stolen) { S.discard.push(u.stolen); log(`${jo(cardInfo(u.stolen).name, '을', '를')} 되찾았습니다(버린 더미로)`, 'good'); } }
   }
   refreshMend();
 }
@@ -2488,8 +2573,9 @@ function enemyTurn() {
     }
   }
   S.ultShield = false;
-  if (S.enc.boss && S.phase === 2 && [].concat(S.enc.rule2 || []).includes('fear')) { S.bossFear++; log(`${S.e.find(u => u && u.boss) ? S.e.find(u => u && u.boss).name : '보스'}의 시선: 공포 토큰이 주머니에 1개 늘어납니다`, 'bad'); }
-  if (S.enc.boss && S.phase === 2 && [].concat(S.enc.rule2 || []).includes('forget') && S.hand.length) {
+  if (bossRule('fear')) { S.bossFear++; log(`${S.e.find(u => u && u.boss) ? S.e.find(u => u && u.boss).name : '보스'}의 시선: 공포 토큰이 주머니에 1개 늘어납니다`, 'bad'); }
+  if (bossRule('steal') && S.doomRef) stealResolve();
+  if (bossRule('forget') && S.hand.length) {
     const [c] = S.hand.splice(rint(S.hand.length), 1); S.discard.push(c);
     log(`망각: ${jo(cardInfo(c).name, '을', '를')} 잊어버렸습니다(버린 더미로)`, 'bad');
   }
@@ -2508,6 +2594,7 @@ function endTurnInner() {
   S.keepMark = null; S.keepMark2 = null; S.tokens = [];
   attackPhase('p');
   S.phaseBreak = false;
+  S.p.forEach(u => { if (u) u.weak = 0; });
   if (S.over) return;
   S.counterBuff = false; S.momentum = false;
   const alliesBeforeEnemy = S.p.filter(Boolean).length;
@@ -2540,7 +2627,7 @@ function reachEnemyEnd() {
     }
     S.waves = S.enc.waves2; S.loop = S.enc.loop2; S.waveIdx = 0; S.phaseBreak = true;
     rec('phase', {});
-    log(S.enc.phaseLog, 'bad');
+    log(encText('phaseLog'), 'bad');
     return;
   }
   S.overflow = Math.min(2, S.front - S.frontMax); S.front = S.frontMax;
@@ -2599,7 +2686,7 @@ function newRun(cfg) {
     mode: cfg.mode || 'test', deck: (cfg.deck || START_DECK).map(k => newCard(k)), relics: [], notes: [],
     bench: (cfg.bench || []).map(c => ({ ...c, aux: c.aux.slice(), lines: { ...(c.lines || {}) } })),
     map: null, pos: null, floor: 0, usedEvents: [], eventThreads: {}, recruited: false, reward: null, event: null, shop: null, cleared: false,
-    stage: 1, diff: cfg.diff || 0, weightRulesVersion: 5, bossWins: 0, stageDone: false,
+    stage: 1, diff: cfg.diff || 0, weightRulesVersion: 6, bossWins: 0, stageDone: false,
   };
 }
 /* 배치 고르기: 같은 상대의 배치(좌우 반전 포함)를 한 바퀴 다 만날 때까지 겹치지 않게 돌립니다 */
@@ -4586,6 +4673,7 @@ const GLOSSARY = [
   ['한 번 더 · 버스트', '카드를 내기 전에 토큰을 더 뽑는 것. 공포가 나오면 버스트: 이번 턴에 더 뽑은 토큰을 잃고 스트레스 +5.'],
   ['공포 · 절박 카드', '공포 토큰은 비용에 공포가 적힌 절박 카드에만 쓸 수 있습니다. 스트레스가 25 오를 때마다 주머니에 하나씩 늘어납니다.'],
   ['인장', '카드마다 붙은 특수 능력(비행, 가시, 수호 등). 카드나 적을 누르면 설명이 나옵니다.'],
+  ['약화 · 잡음', '스테이지 2부터 나오는 방해하는 적의 인장. 약화에 맞은 아군은 다음 공격이 1 약해지고, 잡음은 다음 턴 토큰 하나를 어디에도 못 쓰는 잡음 토큰으로 바꿉니다. 잡음 토큰은 보급 교환으로 바꿀 수 있습니다.'],
   ['동료 카드 · 사선', '이름이 적힌 카드. 한 번 쓰러지면 사선, 사선에서 또 쓰러지면 그 런에서 죽습니다. 야영에서 치료하면 사선이 풀립니다.'],
   ['유대 · 궁극기', '주인공과 동료 사이의 친밀도. 2단계가 되면 궁극기가 열리고, 전투에서 결의 3칸이 차면 행동 버튼 아래에 궁극기 버튼이 나옵니다. 공격형은 궁극기를 쓴 턴에 일반 공격을 하지 않습니다.'],
   ['스트레스', '주인공의 체력 대신인 수치. 처음 100에 닿으면 붕괴하거나 각성하고, 두 번째로 닿으면 런이 끝납니다.'],
@@ -4621,6 +4709,7 @@ const HOWTO = [
   ['공포와 절박 카드', '공포 토큰은 비용에 공포가 적힌 절박 카드에만 쓸 수 있습니다. 절박 카드는 싸지만 강합니다.'],
   ['카드와 인장', '대부분의 카드는 자기 정면을 공격하고, 인장에 따라 범위가 달라집니다. 카드나 적을 누르면 공격 범위와 인장 설명이 나옵니다. 적을 세 번 쓰러뜨린 카드는 각성하고, 야영에서 두 장을 엮어 한 장으로 만들 수 있습니다.'],
   ['손패와 덱', '손패가 줄어든 즉시 카드를 뽑지는 않습니다. 새 턴 시작에 1장을 뽑고, 손패가 3장 미만이면 뽑을 수 있는 만큼 3장까지 보충합니다. 적의 반격에 아군 카드가 한 턴에 2장 이상 쓰러졌다면 다음 턴에는 4장까지 보충합니다. 덱에서 먼저 뽑고, 덱이 비었을 때만 버린 더미를 섞어 뽑습니다. 이때 스트레스가 한 번 3 오릅니다. 판에 살아 있는 카드는 뽑는 덱에 없습니다.'],
+  ['보급으로 카드 뽑기', '손패 위 "카드 1장 뽑기"를 누르면 보급 1로 덱에서 카드를 1장 더 뽑습니다. 보급 교환과 합쳐 한 턴에 한 번만 쓸 수 있고, 덱이 비면 평소처럼 버린 더미를 섞으며 스트레스가 오릅니다.'],
   ['예고와 증원', '예고 줄의 적은 반격 뒤 빈 칸으로 내려옵니다. 일반·엘리트 전투는 정해진 증원이 끝난 뒤에도 예비대가 한정된 수만 2턴 간격으로 1명씩 옵니다. 적과 예고를 합쳐 일반 전투는 최대 5명, 엘리트 전투는 최대 6명입니다.'],
   ['동료', '동료는 카드로 싸웁니다. 쓰러지면 사선 상태가 되고, 사선에서 또 쓰러지면 그 런에서 죽습니다. 유대를 쌓으면 대사와 궁극기가 열리고, 관계가 있는 동료끼리는 합동 인장이 발동합니다. 공격형 궁극기는 사용한 턴의 일반 공격을 대신합니다. 런에서 쌓은 유대의 절반은 다음 런으로 이어집니다.'],
   ['스트레스', '주인공은 체력 대신 스트레스를 가집니다. 전선이 밀리거나 아군이 쓰러지면 오르고, 승리와 휴식으로 내려갑니다. 처음 100에 닿으면 붕괴하거나 각성하고, 두 번째로 닿으면 런이 끝납니다.'],
@@ -5217,7 +5306,7 @@ function renderWorkshop() {
     : WORKSHOP.pendingJwk
       ? `<form class="ws-pw" onsubmit="return false"><p class="small">이 기기에서 쓸 비밀번호를 정해 주세요. 키는 비밀번호로 잠긴 채 이 브라우저에만 저장됩니다.</p><label>새 비밀번호 (8자 이상)<input type="password" id="ws-pw1" autocomplete="new-password"></label><label>한 번 더<input type="password" id="ws-pw2" autocomplete="new-password"></label><button type="submit" class="btn" data-act="ws-lock-save">이 기기에 비밀번호로 잠가 두기</button></form><p class="soft small">정하지 않으면 이 탭을 닫을 때 키가 잊혀서, 다음에 다시 키 파일이 필요합니다.</p>`
       : `<p class="soft small">작업실이 열려 있습니다. 이 탭을 닫으면 다시 비밀번호를 입력해야 합니다.</p>${lock ? `<button class="btn ghost small-btn" data-act="ws-lock-clear">${UI.wsClearConfirm ? '한 번 더 누르면 이 기기의 잠금을 지웁니다' : '이 기기의 비밀번호 잠금 지우기'}</button>` : ''}`;
-  const sigOpts = cur => '<option value="">없음</option>' + Object.entries(SIGILS).map(([k,s]) => opt(k, s.name, cur)).join('');
+  const sigOpts = cur => '<option value="">없음</option>' + Object.entries(SIGILS).filter(([, s]) => !s.enemyOnly).map(([k,s]) => opt(k, s.name, cur)).join('');
   const chars = ROSTER.chars.length ? ROSTER.chars : presetRoster().chars;
   app.innerHTML = `<main class="setup workshop"><div class="nav"><a class="btn ghost" href="${esc(location.pathname)}">게임으로</a></div><p class="ws-eyebrow">TOWER · ATELIER</p><h1>제작자 작업실</h1><p class="soft">연출을 살펴보고, 누군가를 위한 카드를 만듭니다.</p>
   <section class="panel"><h2>연출 미리보기</h2><p class="soft small">별도 시험 화면에서 재생합니다. 실제 원정·동료·재화는 바뀌지 않습니다. 합동은 발동 확률을 생략해 효과를 보여 줍니다.</p><div class="ws-fields"><label>첫 번째 인물<select id="ws-a">${chars.map((c,i)=>opt(c.id,c.name,WORKSHOP.a || chars[0].id)).join('')}</select></label><label>두 번째 인물<select id="ws-b">${chars.map(c=>opt(c.id,c.name,WORKSHOP.b || chars[Math.min(1,chars.length-1)].id)).join('')}</select></label><label>관계<select id="ws-rel">${Object.entries(PRO_LINKS).map(([k,r])=>opt(k,r.name,WORKSHOP.relationship || 'lover')).join('')}</select></label><label>화면 테마<select id="ws-theme">${[['none','기본'],['storybook','꽃빛 그림책'],['starlight','별빛 그림책']].map(([k,n])=>opt(k,n,WORKSHOP.theme || 'none')).join('')}</select></label></div>
@@ -5950,6 +6039,8 @@ function slotHtml(u, side, lane) {
     if (fx.type === 'joint' && fx.kind === 'comrade' && side === 'e' && fx.target === lane) { cls.push('fx-hit'); pop = '<span class="pop">−1</span>'; }
     if (fx.type === 'grit' && side === 'p' && fx.lane === lane) { cls.push('fx-joint'); pop = `<span class="pop good">${esc(fx.label || '근성!')}</span>`; }
     if (fx.type === 'absorb' && side === 'p' && fx.lane === lane) { cls.push('fx-buff'); pop = `<span class="pop good">스트레스 −${fx.n}</span>`; }
+    if (fx.type === 'debuff' && side === 'p' && fx.lane === lane) { cls.push('fx-hit'); pop = `<span class="pop">${esc(fx.label)}</span>`; }
+    if (fx.type === 'steal' && side === 't' && fx.lane === lane) { cls.push('fx-drop'); pop = '<span class="pop">빼앗김</span>'; }
   }
   let rtag = '';
   if (UI.focus && !UI.fx) {
@@ -5966,6 +6057,8 @@ function slotHtml(u, side, lane) {
   const badges = [];
   if (u.comp) { const pl = proLink(u.comp); badges.push(pl ? `<em class="bd link">${PRO_LINKS[pl].name}</em>` : compById(u.comp).merc ? '<em class="bd">용병</em>' : `<em class="bd comp">동료</em>`); if (u.saseonAtPlay) badges.push('<em class="bd bad">사선</em>'); }
   if (u.poison) badges.push('<em class="bd bad">독</em>');
+  if (u.weak) badges.push('<em class="bd bad">약화</em>');
+  if (u.stolen) badges.push('<em class="bd bad">빼앗김</em>');
   if (u.wall) badges.push('<em class="bd good">방벽</em>');
   if (u.delay) badges.push('<em class="bd">지연</em>');
   if (u.boss) badges.push('<em class="bd crown">보스</em>');
@@ -6019,6 +6112,7 @@ function tokensHtml() {
     <div class="pouch">
       <div class="pouch-head"><span>주머니 ${S.bag.length}개</span><span class="${pct >= 20 ? 'risk' : ''}">${left ? `다음 한 장 공포 ${pct}%${left > 1 ? `, 끝까지 ${left}장 뽑으면 ${pctAll}%` : ''}` : '이번 턴은 더 뽑을 수 없음'}</span></div>
       <div class="tok-note">${left && S.extraCount ? `<span class="warn-soft">지금 멈추면 추가 토큰 ${S.extraIds.length}개를 지킵니다. 공포가 나오면 이번 턴에 추가로 뽑은 토큰을 모두 잃고 스트레스 +5.</span>`
+        : S.tokens.some(t => t.t === 'noise') ? '<span class="fear-note">잡음 토큰은 어떤 비용에도 쓸 수 없습니다. 보급 교환으로 다른 감정으로 바꿀 수 있어요.</span>'
         : S.tokens.some(t => t.t === 'fear') ? `<span class="fear-note">공포 토큰은 <b>절박 카드</b>에만 쓸 수 있습니다. ${S.hand.some(c => cardInfo(c).cost.fear) ? '손패의 절박 카드에 쓸 수 있어요.' : '지금 손패에는 절박 카드가 없어서 보관해 두거나 버려집니다.'}</span>`
         : shields.length && left ? `<span class="soft">${esc(shields.join(', '))}</span>` : ''}</div>
       <div class="pouch-row">${pouch}</div>
@@ -6039,7 +6133,7 @@ function actionsHtml() {
   return `<section class="actions">
     <div class="act-grid">
       <button class="btn act" data-act="extra"${dis(canExtra())}><b>한 번 더</b><small>${S.actionTaken ? '카드를 낸 뒤라 불가' : `토큰 1개 더 뽑기(이번 턴 ${S.extraCount}회 · 최대 3회)`}</small></button>
-      <button class="btn act" data-act="exchange"${dis(!S.over && !S.exchangeUsed && S.supply >= 1 && S.tokens.length)}><b>보급 교환</b><small>${S.exchangeUsed ? '이번 턴에 사용함' : '보급 1로 토큰 감정 바꾸기'}</small></button>
+      <button class="btn act" data-act="exchange"${dis(!S.over && !S.exchangeUsed && S.supply >= 1 && S.tokens.length)}><b>보급 교환</b><small>${S.cardDrawUsed ? '이번 턴 카드 뽑기를 씀' : S.exchangeUsed ? '이번 턴에 사용함' : '보급 1로 토큰 감정 바꾸기'}</small></button>
       <button class="btn act" data-act="cmd"${dis(cmdReady())}><b>지휘: ${esc(cm.name)}</b><small>${esc(cmdState)}</small></button>
       <button class="btn act crisis" data-act="crisis"${dis(crisisReady())}><b>위기: ${esc(CRISIS[crisisK].name)}</b><small>${esc(crisisState)}</small></button>
     </div>
@@ -6075,7 +6169,9 @@ function costHtml(cost) {
 }
 function handHtml() {
   const drawHint = S.deck.length || S.discard.length ? '다음 턴 1장 · 손패 3장 미만이면 보충' : '덱과 버린 더미가 비어 추가로 뽑을 카드 없음';
-  const head = `<div class="hand-head"><span>손패 ${S.hand.length}장 <small class="soft">${drawHint}</small></span><button class="btn small-btn" data-act="pile-info">덱 ${S.deck.length}장 · 버린 더미 ${S.discard.length}장</button></div>`;
+  const drawBtn = `<button class="btn small-btn draw-card" data-act="drawcard"${canDrawCard() ? '' : ' disabled'}><b>카드 1장 뽑기</b><small>${S.cardDrawUsed ? '이번 턴에 뽑음' : S.exchangeUsed ? '이번 턴 교환을 씀' : S.supply < 1 ? '보급 부족' : !S.deck.length && !S.discard.length ? '뽑을 카드 없음' : `보급 1 · 교환과 합쳐 턴당 1번`}</small></button>`;
+  const doom = S.doomRef && S.hand.includes(S.doomRef) ? `<div class="doom-note">이름 없는 것이 <b>${esc(jo(cardInfo(S.doomRef).name, '을', '를'))}</b> 노립니다. 이번 턴에 내면 지킬 수 있고, 두면 빼앗겨 적이 됩니다.</div>` : '';
+  const head = `<div class="hand-head"><span>손패 ${S.hand.length}장 <small class="soft">${drawHint}</small></span><span class="hh-btns">${drawBtn}<button class="btn small-btn" data-act="pile-info">덱 ${S.deck.length}장 · 버린 더미 ${S.discard.length}장</button></span></div>${doom}`;
   if (!S.hand.length) return head + '<section class="hand empty-hand"><span class="soft small">손패가 비었습니다</span></section>';
   return head + `<section class="hand">${S.hand.map((card, i) => {
     const info = cardInfo(card);
@@ -6084,6 +6180,7 @@ function handHtml() {
     if (UI.mode === 'play' && UI.sel === i) cls.push('sel');
     if (info.comp) cls.push('comp');
     if (info.desperate) cls.push('desp');
+    if (card === S.doomRef) cls.push('doomed');
     const c = info.comp ? compById(info.comp) : null;
     const pc = info.comp ? charById(info.comp) : null;
     const pl = info.comp ? proLink(info.comp) : null;
@@ -6092,7 +6189,7 @@ function handHtml() {
       ${giftArt(card)}
       <span class="cost">${costHtml(info.cost)}</span>
       <span class="h-name">${esc(info.name)}</span>
-      <span class="h-sig">${esc(sigText(info.sig))}${pl ? ` <em class="bd link">${PRO_LINKS[pl].name}</em>` : ''}${c && c.status === 'saseon' ? ' <em class="bd bad">사선</em>' : ''}${info.desperate ? ' <em class="bd">절박</em>' : ''}</span>
+      <span class="h-sig">${esc(sigText(info.sig))}${pl ? ` <em class="bd link">${PRO_LINKS[pl].name}</em>` : ''}${c && c.status === 'saseon' ? ' <em class="bd bad">사선</em>' : ''}${info.desperate ? ' <em class="bd">절박</em>' : ''}${card === S.doomRef ? ' <em class="bd bad">노려짐</em>' : ''}</span>
       <span class="u-stats"><b class="atk">${info.atk}</b><span class="rng">${rangeWord(info.sig, info.atk)}</span><b class="hp">${info.hp}</b></span>
     </button>`;
   }).join('')}</section>`;
@@ -6122,6 +6219,8 @@ function unitInfo(u, side, lane) {
     if (side === 'p') parts.push(compExtraHtml(u, lane));
   }
   if (u.poison) parts.push('<div class="soft">독: 매 턴 체력 1을 잃습니다.</div>');
+  if (u.weak) parts.push('<div class="soft">약화: 다음 공격이 1 약해집니다. 한 번 공격하면 풀립니다.</div>');
+  if (u.stolen) parts.push('<div class="soft">이름 없는 것에게 빼앗긴 내 카드입니다. 쓰러뜨리면 되찾아 버린 더미로 돌아오고, 못 되찾아도 전투가 끝나면 덱에 그대로 남아 있습니다.</div>');
   if (u.delay) parts.push('<div class="soft">지연: 한 턴 늦게 내려옵니다.</div>');
   if (side === 't') parts.push('<div class="soft">다음 적 턴에 이 레인으로 내려옵니다. 칸이 차 있으면 기다립니다.</div>');
   return parts.join('');
@@ -6157,6 +6256,7 @@ function cardInfoHtml(card) {
   const other = info.sig.filter(x => !['fly', 'split', 'guard', 'watch', 'thorn', 'cheer', 'pierce'].includes(x));
   if (other.length) parts.push(`<ul>${sigDescList(other)}</ul>`);
   if (info.desperate) parts.push('<div class="soft">절박 카드: 공포 토큰으로만 낼 수 있는 비용이 들어 있습니다.</div>');
+  if (card === S.doomRef) parts.push('<div class="warn">이름 없는 것이 이 카드를 노립니다. 이번 턴에 내면 지킬 수 있고, 손에 두면 적 턴에 빼앗겨 적이 됩니다.</div>');
   if (info.comp) {
     const c = compById(info.comp);
     parts.push(c.merc ? '<div class="soft">떠돌이 용병: 관계, 궁극기, 유대가 없습니다. 유대 토큰으로 내도 보너스는 없습니다.</div>' : `<div class="soft">키워드: ${kwsOf(c).map(k => KEYWORDS[k].name).join(', ')}. 유대 토큰으로 내면 이번 전투 공격 +1${kwsOf(c).includes('cool') ? '(냉철이라 보너스 없음)' : ''}.</div>`);
@@ -6179,6 +6279,8 @@ const CAPTION = {
   joint: f => f.text,
   grit: f => `근성: ${f.name} 체력 1로 버팀`,
   absorb: f => `흡수: ${f.name}, 스트레스 −${f.n}`,
+  debuff: f => f.text,
+  steal: f => `이름 없는 것이 ${jo(f.name, '을', '를')} 빼앗았습니다`,
 };
 function hintHtml(noInfo) {
   if (UI.playing && UI.fx) return `<b class="caption">${esc(CAPTION[UI.fx.type](UI.fx))}</b>`;
@@ -6236,7 +6338,7 @@ function renderBattle() {
   let bossBanner = S.enc.boss && S.turn === 1 && !S.actionTaken && !UI.bossSeen && S.phase === 1 ? `<div class="reveal boss" data-act="boss-ok"><div class="rv-rays" aria-hidden="true"></div><div class="rv-text"><small class="phase-tag">보스 · 페이즈 1 / 2</small><b>${esc(S.enc.name.replace('보스: ', ''))}</b><span>전선 게이지 ±${S.frontMax}. ${esc(S.enc.banner || '')}</span><small>눌러서 시작</small></div></div>` : '';
   if (S.enc.boss && S.phase === 2 && UI.phase2IntroReady && !UI.phase2Seen && !UI.playing && !S.over) {
     const bu = S.e.find(u => u && u.boss);
-    bossBanner = `<div class="reveal boss phase2" data-act="phase-ok"><div class="rv-rays" aria-hidden="true"></div><div class="rv-text"><small class="phase-tag">페이즈 2 / 2</small><b>${esc(bu ? bu.name : '보스')}</b>${bu ? `<span class="evo-stats">공격 ${bu.atk} · 체력 ${bu.hp}${bu.sig.length ? ` · ${esc(sigText(bu.sig))}` : ''}</span>` : ''}<span>${esc(S.enc.phase2Text || '')}</span><small>눌러서 계속</small></div></div>`;
+    bossBanner = `<div class="reveal boss phase2" data-act="phase-ok"><div class="rv-rays" aria-hidden="true"></div><div class="rv-text"><small class="phase-tag">페이즈 2 / 2</small><b>${esc(bu ? bu.name : '보스')}</b>${bu ? `<span class="evo-stats">공격 ${bu.atk} · 체력 ${bu.hp}${bu.sig.length ? ` · ${esc(sigText(bu.sig))}` : ''}</span>` : ''}<span>${esc(encText('phase2Text') || '')}</span><small>눌러서 계속</small></div></div>`;
   }
   // 설명 창: 손패 카드를 골랐을 때만 손패 바로 아래, 그 밖(판 위 카드·안내)은 원래 자리(토큰 아래)
   const handInfo = UI.mode === 'play' && UI.sel != null && !UI.playing;
@@ -6316,7 +6418,7 @@ function renderSnap(sn) {
     caption.innerHTML = hintHtml();
   } finally { Object.assign(S, bak); }
 }
-const FX_MS = { absorb: 520, hit: 560, front: 560, hold: 520, thorn: 420, die: 440, descend: 480, guard: 440, poison: 480, phase: 1000, joint: 1600, grit: 800 };
+const FX_MS = { debuff: 620, steal: 900, absorb: 520, hit: 560, front: 560, hold: 520, thorn: 420, die: 440, descend: 480, guard: 440, poison: 480, phase: 1000, joint: 1600, grit: 800 };
 /* 관계 행동 연출: 판 위 두 사람의 얼굴과 행동 이름을 띠로 보여 줍니다 */
 function jointFxHtml(ev) {
   const j = JOINTS[ev.kind] || { name: '관계' };
@@ -6417,6 +6519,7 @@ app.addEventListener('click', e => {
         render(); return;
       }
       case 'exchange': resetUI(); UI.mode = 'exchange'; render(); return;
+      case 'drawcard': { const r = drawExtraCard(); resetUI(); if (!r.ok) flash(r.msg); else render(); return; }
       case 'cmd': {
         const t = COMMANDS[S.pro.cmd].target;
         if (t === 'none') return doCmd({});
