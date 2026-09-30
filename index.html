@@ -5825,7 +5825,8 @@ const SFX = {
 /* 녹음된 효과음(Kenney, CC0 · sfx/Kenney-LICENSE.txt). 여기 있는 소리는 파일로, 나머지는 위에서 만든 소리로 냅니다.
    파일이 아직 안 받아졌거나 못 받으면 만든 소리로 대신합니다. layer는 파일과 만든 소리를 함께 냅니다 */
 const SFX_FILES = {"tap": ["tap"], "place": ["place1", "place2", "place3"], "token": ["token"], "page": ["page1", "page2"], "hit": ["hit1", "hit2", "hit3"], "hurt": ["hurt1", "hurt2", "hurt3"], "die": ["die"], "drop": ["drop1", "drop2", "drop3"], "block": ["block1", "block2", "block3"], "tick": ["tick1", "tick2", "tick3"], "burst": ["burst1", "burst2", "burst3"], "stress": ["stress"], "breakdown": ["breakdown"], "phase": ["phase"]};
-const SFX_LEVEL = {"tap": 0.045, "place": 0.14, "token": 0.1, "page": 0.06, "hit": 0.22, "hurt": 0.2, "die": 0.12, "drop": 0.08, "block": 0.12, "tick": 0.08, "burst": 0.18, "stress": 0.15, "breakdown": 0.24, "phase": 0.2};
+/* 크기는 귀로 듣는 크기(0.1초 구간 에너지)를 재서 서로 비슷하게 맞춘 값입니다. 탭·토큰·넘김·독은 조금 작게, 궁극기·붕괴·2페이즈·승리는 조금 크게 */
+const SFX_LEVEL = {"tap": 1.513, "place": 0.1019, "token": 0.1198, "page": 0.2582, "hit": 0.0473, "hurt": 0.0482, "die": 0.0513, "drop": 0.1214, "block": 0.0994, "tick": 0.2215, "burst": 0.392, "stress": 0.1075, "breakdown": 0.0894, "phase": 0.0331};
 const SFX_FILE_OPT = { stress: { verb: true }, breakdown: { rate: 0.8, verb: true }, phase: { layer: true } };
 function sndLoadFiles() {
   if (SND.buf) return; SND.buf = {};
@@ -5846,7 +5847,7 @@ function sndPlayFile(name) {
   return !o.layer;
 }
 /* 소리마다 크기를 고르게 맞춘 배율 */
-const SFX_MUL = {"tap": 1.67, "place": 1.46, "token": 2.04, "page": 3.16, "hit": 1.05, "hurt": 1.19, "push": 3.16, "pushE": 3.24, "die": 1.62, "drop": 1.6, "block": 1.4, "tick": 1.95, "heal": 2.04, "debuff": 1.89, "popup": 1.39, "ready": 1.52, "cmd": 1.92, "ult": 1.47, "gain": 1.48, "burst": 1.29, "stress": 1.43, "breakdown": 0.97, "awaken": 1.48, "steal": 1.97, "phase": 1.31, "win": 1.54, "lose": 1.63};
+const SFX_MUL = {"tap": 1.67, "place": 1.46, "token": 2.04, "page": 3.16, "hit": 1.05, "hurt": 1.19, "push": 1.48, "pushE": 1.517, "die": 1.62, "drop": 1.6, "block": 1.4, "tick": 1.95, "heal": 0.951, "debuff": 1.053, "popup": 0.333, "ready": 0.523, "cmd": 0.436, "ult": 0.277, "gain": 0.308, "burst": 1.29, "stress": 1.43, "breakdown": 0.97, "awaken": 0.297, "steal": 0.7, "phase": 0.218, "win": 0.305, "lose": 0.366};
 /* 같은 소리가 한순간에 겹겹이 나지 않게 짧은 간격을 둡니다 */
 function sfx(name) {
   if (!SND.ctx || !SFX[name] || !sndPrefs().sfxOn || SND.ctx.state !== 'running') return;
