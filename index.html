@@ -5723,25 +5723,38 @@ function sndInit() {
   if (SND.ctx) { if (SND.ctx.state === 'suspended' && !document.hidden) SND.ctx.resume().catch(() => {}); return; }
   const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
   try {
-    const ctx = SND.ctx = new AC();
-    const master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
-    SND.sfx = ctx.createGain(); SND.bgm = ctx.createGain();
-    // 짧은 잔향: 소리가 딱 끊기지 않고 부드럽게 퍼지도록
-    const len = Math.floor(ctx.sampleRate * 0.9), ir = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
-    const conv = ctx.createConvolver(); conv.buffer = ir;
-    SND.verb = ctx.createGain(); SND.verb.gain.value = 0.22;
-    SND.verb.connect(conv); conv.connect(master);
-    SND.sfx.connect(master); SND.bgm.connect(master);
+    SND.ctx = new AC();
+    sndGraph(SND.ctx);
     sndApplyPrefs();
     sndLoadFiles();
   } catch (e) { SND.ctx = null; }
 }
+/* 효과음은 크게 키운 뒤 컴프레서로 눌러, 휴대폰 작은 볼륨에서도 들리고 여러 소리가 겹쳐도 찢어지지 않게 합니다 */
+const SFX_BOOST = 3.2, SFX_MAKEUP = 1.5;
+function sndGraph(ctx) {
+  const master = ctx.createGain(); master.gain.value = 1; master.connect(ctx.destination);
+  SND.sfx = ctx.createGain(); SND.bgm = ctx.createGain();
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -16; comp.knee.value = 8; comp.ratio.value = 5; comp.attack.value = 0.002; comp.release.value = 0.12;
+  const make = ctx.createGain(); make.gain.value = SFX_MAKEUP;
+  // 짧은 잔향: 소리가 딱 끊기지 않고 부드럽게 퍼지도록
+  const len = Math.floor(ctx.sampleRate * 0.9), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+  const conv = ctx.createConvolver(); conv.buffer = ir;
+  SND.verb = ctx.createGain(); SND.verb.gain.value = 0.22;
+  SND.verb.connect(conv); conv.connect(comp);
+  // 마지막에 부드럽게 눌러 주는 곡선: 1을 넘는 순간에도 딱딱하게 찢어지지 않게
+  const soft = ctx.createWaveShaper(), cv = new Float32Array(2049);
+  for (let i = 0; i < cv.length; i++) { const x = (i / 1024 - 1) * 1.6; cv[i] = Math.tanh(x) / Math.tanh(1.6) * 0.97; }
+  soft.curve = cv; soft.oversample = '2x';
+  SND.sfx.connect(comp); comp.connect(make); make.connect(soft); soft.connect(master);
+  SND.bgm.connect(master);
+}
 function sndApplyPrefs() {
   if (!SND.ctx) return;
   const p = sndPrefs(), t = SND.ctx.currentTime;
-  SND.sfx.gain.setTargetAtTime(p.sfxOn ? p.sfxVol : 0, t, 0.03);
-  SND.verb.gain.setTargetAtTime(p.sfxOn ? 0.22 * p.sfxVol : 0, t, 0.03);
+  SND.sfx.gain.setTargetAtTime(p.sfxOn ? p.sfxVol * SFX_BOOST : 0, t, 0.03);
+  SND.verb.gain.setTargetAtTime(p.sfxOn ? 0.22 * p.sfxVol * SFX_BOOST : 0, t, 0.03);
   SND.bgm.gain.setTargetAtTime(p.bgmOn ? p.bgmVol * 0.8 : 0, t, 0.08);
 }
 /* 음 하나: 주파수(끝 주파수로 미끄러질 수 있음), 음색, 길이, 크기 */
@@ -5812,7 +5825,7 @@ const SFX = {
 /* 녹음된 효과음(Kenney, CC0 · sfx/Kenney-LICENSE.txt). 여기 있는 소리는 파일로, 나머지는 위에서 만든 소리로 냅니다.
    파일이 아직 안 받아졌거나 못 받으면 만든 소리로 대신합니다. layer는 파일과 만든 소리를 함께 냅니다 */
 const SFX_FILES = {"tap": ["tap"], "place": ["place1", "place2", "place3"], "token": ["token"], "page": ["page1", "page2"], "hit": ["hit1", "hit2", "hit3"], "hurt": ["hurt1", "hurt2", "hurt3"], "die": ["die"], "drop": ["drop1", "drop2", "drop3"], "block": ["block1", "block2", "block3"], "tick": ["tick1", "tick2", "tick3"], "burst": ["burst1", "burst2", "burst3"], "stress": ["stress"], "breakdown": ["breakdown"], "phase": ["phase"]};
-const SFX_LEVEL = {"tap": 0.07, "place": 0.14, "token": 0.1, "page": 0.06, "hit": 0.22, "hurt": 0.2, "die": 0.12, "drop": 0.08, "block": 0.12, "tick": 0.08, "burst": 0.18, "stress": 0.15, "breakdown": 0.24, "phase": 0.2};
+const SFX_LEVEL = {"tap": 0.045, "place": 0.14, "token": 0.1, "page": 0.06, "hit": 0.22, "hurt": 0.2, "die": 0.12, "drop": 0.08, "block": 0.12, "tick": 0.08, "burst": 0.18, "stress": 0.15, "breakdown": 0.24, "phase": 0.2};
 const SFX_FILE_OPT = { stress: { verb: true }, breakdown: { rate: 0.8, verb: true }, phase: { layer: true } };
 function sndLoadFiles() {
   if (SND.buf) return; SND.buf = {};
