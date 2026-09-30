@@ -5814,7 +5814,10 @@ const SFX = {
   heal: () => { sndTone(520, 0, 0.22, { to: 780, gain: 0.08, verb: true, attack: 0.03 }); },
   debuff: () => { sndTone(520, 0, 0.22, { to: 290, gain: 0.09, type: 'triangle', lp: 1100, verb: true }); },
   popup: () => { sndBell(659.3, 0, 0.7, 0.11); sndBell(880, 0.09, 0.8, 0.1); },
-  ready: () => { sndBell(784, 0, 0.5, 0.08); sndBell(1046.5, 0.07, 0.6, 0.07); },
+  ready: () => { sndSoftBell(523.3, 0, 0.55, 0.08); sndSoftBell(659.3, 0.07, 0.65, 0.07); },
+  // 전투 시작: 짧게 빨려 들어가는 바람 뒤에 묵직한 한 방(녹음된 타격음이 함께 겹침)
+  start: () => { sndNoise(0, 0.26, { kind: 'bandpass', f: 280, to: 1400, q: 0.9, gain: 0.08, attack: 0.2 }); sndTone(95, 0.22, 0.55, { to: 42, gain: 0.3, type: 'triangle', lp: 320 }); sndNoise(0.22, 0.35, { f: 900, to: 150, gain: 0.12 }); sndSoftBell(130.8, 0.22, 0.9, 0.07); },
+  startBoss: () => { SFX.start(); sndSoftBell(98, 0.24, 1.5, 0.1); sndSoftBell(146.8, 0.3, 1.3, 0.06); sndTone(49, 0.22, 1.2, { gain: 0.14, attack: 0.05, lp: 200 }); },
   cmd: () => { sndNoise(0, 0.18, { kind: 'bandpass', f: 450, to: 1100, gain: 0.07, attack: 0.04 }); sndTone(587.3, 0.05, 0.55, { gain: 0.1, verb: true, attack: 0.012 }); sndTone(1174.7, 0.05, 0.28, { gain: 0.018, verb: true }); },
   ult: () => { sndTone(130.8, 0, 1.1, { gain: 0.1, attack: 0.25, type: 'triangle', lp: 700, verb: true }); [523.3, 659.3, 784, 1046.5].forEach((f, i) => sndBell(f, 0.08 + i * 0.07, 0.9, 0.09)); },
   gain: () => { [392, 493.9, 587.3, 784].forEach((f, i) => sndSoftBell(f, i * 0.07, 0.75, 0.09)); },
@@ -5829,10 +5832,10 @@ const SFX = {
 };
 /* 녹음된 효과음(Kenney, CC0 · sfx/Kenney-LICENSE.txt). 여기 있는 소리는 파일로, 나머지는 위에서 만든 소리로 냅니다.
    파일이 아직 안 받아졌거나 못 받으면 만든 소리로 대신합니다. layer는 파일과 만든 소리를 함께 냅니다 */
-const SFX_FILES = {"tap": ["tap"], "place": ["place1", "place2", "place3"], "token": ["token1", "token2", "token3"], "page": ["page1", "page2"], "hit": ["hit1", "hit2", "hit3"], "hurt": ["hurt1", "hurt2", "hurt3"], "die": ["die"], "drop": ["drop1", "drop2", "drop3"], "block": ["block1", "block2", "block3"], "tick": ["tick1", "tick2", "tick3"], "burst": ["burst1", "burst2", "burst3"], "stress": ["stress"], "breakdown": ["breakdown"], "phase": ["phase"]};
+const SFX_FILES = {"tap": ["tap"], "place": ["place1", "place2", "place3"], "token": ["token1", "token2", "token3"], "page": ["page1", "page2"], "hit": ["hit1", "hit2", "hit3"], "hurt": ["hurt1", "hurt2", "hurt3"], "die": ["die"], "drop": ["drop1", "drop2", "drop3"], "block": ["block1", "block2", "block3"], "tick": ["tick1", "tick2", "tick3"], "burst": ["burst1", "burst2", "burst3"], "stress": ["stress"], "breakdown": ["breakdown"], "phase": ["phase"], "start": ["start"], "startBoss": ["start"]};
 /* 크기는 귀로 듣는 크기(0.1초 구간 에너지)를 재서 서로 비슷하게 맞춘 값입니다. 탭·토큰·넘김·독은 조금 작게, 궁극기·붕괴·2페이즈·승리는 조금 크게 */
-const SFX_LEVEL = {"tap": 1.513, "place": 0.1019, "token": 0.1085, "page": 0.2582, "hit": 0.0473, "hurt": 0.0482, "die": 0.0513, "drop": 0.1214, "block": 0.0994, "tick": 0.2215, "burst": 0.392, "stress": 0.1075, "breakdown": 0.0894, "phase": 0.0331};
-const SFX_FILE_OPT = { stress: { verb: true }, breakdown: { rate: 0.8, verb: true }, phase: { layer: true } };
+const SFX_LEVEL = {"tap": 1.513, "place": 0.1019, "token": 0.1085, "page": 0.2582, "hit": 0.0473, "hurt": 0.0482, "die": 0.0513, "drop": 0.1214, "block": 0.0994, "tick": 0.2215, "burst": 0.392, "stress": 0.1075, "breakdown": 0.0894, "phase": 0.0331, "start": 0.0108, "startBoss": 0.0098};
+const SFX_FILE_OPT = { stress: { verb: true }, breakdown: { rate: 0.8, verb: true }, phase: { layer: true }, start: { layer: true, delay: 0.22 }, startBoss: { layer: true, delay: 0.22, rate: 0.85 } };
 function sndLoadFiles() {
   if (SND.buf) return; SND.buf = {};
   for (const [k, list] of Object.entries(SFX_FILES)) list.forEach((n, i) => {
@@ -5848,11 +5851,11 @@ function sndPlayFile(name) {
   src.playbackRate.value = (o.rate || 1) * (0.97 + Math.random() * 0.06);
   g.gain.value = (SFX_LEVEL[name] || 0.12) / 0.6; // 파일은 0.9 최대로 맞춰 두었고, 만든 소리와 비슷한 크기가 되도록 보정
   src.connect(g); g.connect(SND.sfx); if (o.verb) g.connect(SND.verb);
-  src.start(ctx.currentTime);
+  src.start(ctx.currentTime + (o.delay || 0));
   return !o.layer;
 }
 /* 소리마다 크기를 고르게 맞춘 배율 */
-const SFX_MUL = {"tap": 1.67, "place": 1.46, "token": 2.04, "page": 3.16, "hit": 1.05, "hurt": 1.19, "push": 1.48, "pushE": 1.517, "die": 1.62, "drop": 1.6, "block": 1.4, "tick": 1.95, "heal": 0.951, "debuff": 1.053, "popup": 0.333, "ready": 0.523, "cmd": 0.23, "ult": 0.277, "gain": 0.308, "burst": 1.29, "stress": 1.43, "breakdown": 0.97, "awaken": 0.297, "steal": 0.7, "phase": 0.218, "win": 0.305, "lose": 0.366};
+const SFX_MUL = {"tap": 1.67, "place": 1.46, "token": 2.04, "page": 3.16, "hit": 1.05, "hurt": 1.19, "push": 1.48, "pushE": 1.517, "die": 1.62, "drop": 1.6, "block": 1.4, "tick": 1.95, "heal": 0.951, "debuff": 1.053, "popup": 0.333, "ready": 0.445, "cmd": 0.23, "ult": 0.277, "gain": 0.308, "burst": 1.29, "stress": 1.43, "breakdown": 0.97, "awaken": 0.297, "steal": 0.7, "phase": 0.218, "win": 0.305, "lose": 0.366, "start": 0.215, "startBoss": 0.197};
 /* 같은 소리가 한순간에 겹겹이 나지 않게 짧은 간격을 둡니다 */
 function sfx(name) {
   if (!SND.ctx || !SFX[name] || !sndPrefs().sfxOn || SND.ctx.state !== 'running') return;
@@ -6732,6 +6735,7 @@ function render() {
   }
   (SCREENS[screen] || renderBattle)();
   bgmUpdate();
+  if (screen === 'battle' && S && !S.over && !S.startSnd) { S.startSnd = true; sfx(S.enc.boss ? 'startBoss' : 'start'); }
   if (screen === 'battle' && S && S.over && S.overSnd !== S.over) { S.overSnd = S.over; sfx(S.over === 'win' ? 'win' : 'lose'); }
   stressNotices();
   saveRunState();
