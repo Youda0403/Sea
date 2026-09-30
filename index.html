@@ -5058,13 +5058,14 @@ function tutChunks(text) {
   return out.map(c => c.t);
 }
 function tutGuideHtml() {
-  const st = tutStep(); if (!st || S.over) return '';
+  const st = tutStep(); if (!st || S.over || (st.final && TUT.guideHidden)) return '';
   const fresh = TUT.shown !== TUT.step; TUT.shown = TUT.step;
   const text = st.text(), chunks = tutChunks(text), key = TUT.step + '|' + text;
   if (TUT.partKey !== key) { TUT.partKey = key; TUT.part = 0; }
   const part = Math.min(TUT.part || 0, chunks.length - 1), more = part < chunks.length - 1;
   const btn = more ? `<button class="btn primary small-btn" data-act="tut-more">다음 설명 (${part + 1}/${chunks.length})</button>`
-    : tutNextShown(st) ? '<button class="btn primary small-btn" data-act="tut-next">다음</button>' : '';
+    : tutNextShown(st) ? '<button class="btn primary small-btn" data-act="tut-next">다음</button>'
+    : st.final ? '<button class="btn primary small-btn" data-act="tut-hide">알겠어요</button>' : '';
   return `<div class="tut-guide${fresh ? ' fresh' : ''}" role="status">
     <div class="tut-top"><small>훈련 ${TUT.step + 1}단계 (총 ${TUT_STEPS.length}단계)</small><button class="linkish" data-act="tut-quit">그만두기</button></div>
     <b>${esc(st.title)}</b><p>${emph(esc(chunks[part] || text))}</p>${btn ? `<div class="tut-btns">${btn}</div>` : ''}
@@ -5082,7 +5083,7 @@ function tutOverlayHtml() {
 }
 function tutAfterRender() {
   if (!TUT || screen !== 'battle') return;
-  const main = app.querySelector('main'); if (main) main.classList.add('tut');
+  const main = app.querySelector('main'); if (main && !TUT.guideHidden) main.classList.add('tut');
   const st = tutStep(); if (!st || S.over) return;
   let sel = null, tap = false;
   if (st.tap && !UI.playing) { sel = st.tap(); tap = true; }
@@ -5161,6 +5162,7 @@ function onTutAct(act, d) {
     case 'to-howto': UI.resetAsk = null; UI.howtoBack = d && d.back === 'base' ? 'base' : 'title'; screen = 'howto'; render(); window.scrollTo(0, 0); return true;
     case 'tut-start': { const back = TUT ? TUT.back : screen === 'howto' ? 'howto' : 'base'; startTutorial(back); return true; }
     case 'tut-more': if (TUT) { TUT.part = (TUT.part || 0) + 1; render(); } return true;
+    case 'tut-hide': if (TUT) { TUT.guideHidden = true; render(); } return true;
     case 'tut-next': if (TUT) { TUT.step = Math.min(TUT.step + 1, TUT_STEPS.length - 1); resetUI(); tutEnter(); render(); } return true;
     case 'tut-quit': case 'tut-leave': exitTutorial(TUT && TUT.back === 'howto' ? 'howto' : 'base'); return true;
     case 'tut-dismiss': { const m = meta(); m.tutorialDone = true; saveMeta(); render(); return true; }
