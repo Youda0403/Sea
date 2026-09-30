@@ -1174,6 +1174,7 @@ main.battle.tut { padding-bottom: 13rem; }
 .relic-drop li { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .5rem .6rem; border: 1px solid var(--line); border-radius: 8px; background: var(--table-2); }
 .relic-drop li div { display: grid; gap: .1rem; min-width: 0; }
 .relic-drop li small { color: var(--ink-soft); font-size: .76rem; }
+.relic-swap { text-align: left; margin: .2rem 0 .3rem; }
 .relic-drop li .btn { flex: 0 0 auto; }
 .trade .shop-refresh { display: block; width: 100%; box-sizing: border-box; margin-top: .8rem; }
 .deck-sheet .hcard.sel { box-shadow: 0 0 0 4px var(--brass), 0 0 16px color-mix(in srgb, var(--brass) 65%, transparent); transform: translateY(-4px); }
@@ -1370,6 +1371,10 @@ const RELICS = {
   photo: { name: '반쪽 사진', desc: '사선에 선 동료의 공격이 +3 됩니다' },
 };
 function relicPool(run) { return Object.keys(RELICS).filter(k => !RELICS[k].retired && !run.relics.includes(k)); }
+/* v7: 유물은 4개까지 들 수 있습니다. 가득 차면 가진 것과 바꾸거나 두고 갑니다. v6 이하로 시작한 원정은 한도 없음 */
+const RELIC_CAP = 4;
+function relicCap(run) { return (run.weightRulesVersion || 1) >= 7 ? RELIC_CAP : Infinity; }
+function relicFull(run) { return run.relics.length >= relicCap(run); }
 const START_DECK = ['blade', 'blade', 'scout', 'shieldboy', 'lamp', 'herb', 'hound', 'wire', 'flag', 'refugee'];
 
 const ENEMIES = {
@@ -2686,7 +2691,7 @@ function newRun(cfg) {
     mode: cfg.mode || 'test', deck: (cfg.deck || START_DECK).map(k => newCard(k)), relics: [], notes: [],
     bench: (cfg.bench || []).map(c => ({ ...c, aux: c.aux.slice(), lines: { ...(c.lines || {}) } })),
     map: null, pos: null, floor: 0, usedEvents: [], eventThreads: {}, recruited: false, reward: null, event: null, shop: null, cleared: false,
-    stage: 1, diff: cfg.diff || 0, weightRulesVersion: 6, bossWins: 0, stageDone: false,
+    stage: 1, diff: cfg.diff || 0, weightRulesVersion: 7, bossWins: 0, stageDone: false,
   };
 }
 /* 배치 고르기: 같은 상대의 배치(좌우 반전 포함)를 한 바퀴 다 만날 때까지 겹치지 않게 돌립니다 */
@@ -2963,9 +2968,17 @@ function offerRelic(run, k) { run.pendingRelic = k; }
 function takePendingRelic(run, take) {
   const k = run.pendingRelic; if (!k) return;
   run.pendingRelic = null;
+  if (take && relicFull(run)) take = false;
   if (take && !run.relics.includes(k)) run.relics.push(k);
   if (run.reward && run.reward.relic === k) run.reward.relicTaken = !!take;
   if (!take) gainSupply(run, 0);
+}
+/* 가진 유물 하나를 버리고, 발견한 유물을 챙깁니다 */
+function swapRelic(run, out) {
+  const k = run.pendingRelic; if (!k || !run.relics.includes(out)) return { ok: false };
+  discardRelic(run, out);
+  takePendingRelic(run, true);
+  return { ok: true, k };
 }
 function discardRelic(run, k) {
   const i = run.relics.indexOf(k); if (i < 0) return { ok: false };
@@ -3016,6 +3029,7 @@ function buyCard(run, i) {
 function buyRelic(run) {
   const o = run.shop && run.shop.relic;
   if (!o || o.sold) return { ok: false, msg: '살 수 있는 유물이 없습니다' };
+  if (relicFull(run)) return { ok: false, msg: `유물은 ${relicCap(run)}개까지 들 수 있습니다. 아래에서 하나를 버리면 살 수 있어요` };
   if (run.supply < o.price) return { ok: false, msg: '보급이 부족합니다' };
   run.supply -= o.price; o.sold = true; run.relics.push(o.key); return { ok: true };
 }
@@ -3958,7 +3972,7 @@ function renderTrade() {
   const cards = sh.cards.map((o, i) => o.sold ? '<div class="hcard deckcard sold">팔렸음</div>'
     : cardHtml({ key: o.key }, { act: 'card-info', data: ` data-ctx="shop" data-i="${i}"`, price: o.price, dim: RUN.supply < o.price })).join('');
   const relic = sh.relic ? (sh.relic.sold ? '<p class="soft small">유물을 샀습니다.</p>'
-    : `<button class="btn opt-btn" data-act="buy-relic"${RUN.supply >= sh.relic.price ? '' : ' disabled'}><span><b>${esc(RELICS[sh.relic.key].name)}</b><small>${esc(RELICS[sh.relic.key].desc)}. 보급 ${sh.relic.price}</small></span></button>`) : '<p class="soft small">팔 유물이 없습니다.</p>';
+    : `<button class="btn opt-btn" data-act="buy-relic"${RUN.supply >= sh.relic.price && !relicFull(RUN) ? '' : ' disabled'}><span><b>${esc(RELICS[sh.relic.key].name)}</b><small>${esc(RELICS[sh.relic.key].desc)}. 보급 ${sh.relic.price}</small></span></button>${relicFull(RUN) ? `<p class="soft small">유물이 ${relicCap(RUN)}개로 가득 찼습니다. 아래 유물 버리기에서 하나를 버리면 살 수 있어요.</p>` : ''}`) : '<p class="soft small">팔 유물이 없습니다.</p>';
   app.innerHTML = `<main class="setup trade">
     <h1>거래</h1>
     ${runHead()}
@@ -3969,7 +3983,7 @@ function renderTrade() {
     <section class="panel"><h2>카드 제거</h2>
       <p class="soft small">덱에서 카드 1장을 빼면 주머니 토큰도 함께 빠집니다. 보급 2, 한 번만 가능합니다.</p>
       <button class="btn" data-act="pick-remove"${sh.removed || RUN.supply < 2 || RUN.deck.length <= 5 ? ' disabled' : ''}>${sh.removed ? '제거했습니다' : '뺄 카드 고르기'}</button>
-      <h3 class="relic-drop-h">유물 버리기</h3>
+      <h3 class="relic-drop-h">유물 버리기${relicCap(RUN) < Infinity ? ` <small class="soft">${RUN.relics.length}/${relicCap(RUN)}</small>` : ''}</h3>
       <p class="soft small">대가가 있는 유물이 부담되면 버릴 수 있습니다. 보급은 들지 않고, 버린 유물은 돌아오지 않습니다.</p>
       ${RUN.relics.length ? `<ul class="relic-drop">${RUN.relics.map(k => `<li><div><b>${esc(RELICS[k].name)}</b><small>${esc(RELICS[k].desc)}</small></div><button class="btn small-btn${UI.relicDropAsk === k ? ' danger' : ''}" data-act="relic-drop" data-k="${k}">${UI.relicDropAsk === k ? '한 번 더' : '버리기'}</button></li>`).join('')}</ul>` : '<p class="soft small">가진 유물이 없습니다.</p>'}</section>
     <button class="btn primary big" data-act="to-map">떠나기</button>
@@ -4100,8 +4114,12 @@ function relicOfferHtml() {
     <div class="relic-choices">${ch.map(k => `<button class="btn opt-btn" data-act="relic-choose" data-k="${k}"><span><b>${esc(RELICS[k].name)}</b><small>${esc(RELICS[k].desc)}</small></span></button>`).join('')}</div>
     <button class="btn ghost" data-act="relic-choose" data-k="">모두 두고 가기</button></div></div>`;
   const k = RUN && RUN.pendingRelic; if (!k || !RELICS[k]) return '';
+  if (relicFull(RUN)) return `<div class="sheet"><div class="sheet-body relic-offer"><small>유물 발견</small><h2>${esc(RELICS[k].name)}</h2><p>${esc(RELICS[k].desc)}</p>
+    <p class="soft small">유물은 ${relicCap(RUN)}개까지 들 수 있습니다. 가진 유물 하나와 바꾸거나 두고 가세요.</p>
+    <ul class="relic-drop relic-swap">${RUN.relics.map(x => `<li><div><b>${esc(RELICS[x].name)}</b><small>${esc(RELICS[x].desc)}</small></div><button class="btn small-btn${UI.relicSwapAsk === x ? ' danger' : ''}" data-act="relic-swap" data-k="${x}">${UI.relicSwapAsk === x ? '한 번 더' : '이것과 바꾸기'}</button></li>`).join('')}</ul>
+    <button class="btn" data-act="relic-leave">두고 가기</button></div></div>`;
   return `<div class="sheet"><div class="sheet-body relic-offer"><small>유물 발견</small><h2>${esc(RELICS[k].name)}</h2><p>${esc(RELICS[k].desc)}</p>
-    ${RUN.relics.length ? `<p class="soft small">가진 유물: ${RUN.relics.map(x => esc(RELICS[x].name)).join(', ')}</p>` : ''}
+    ${RUN.relics.length ? `<p class="soft small">가진 유물${relicCap(RUN) < Infinity ? ` ${RUN.relics.length}/${relicCap(RUN)}` : ''}: ${RUN.relics.map(x => esc(RELICS[x].name)).join(', ')}</p>` : ''}
     <div class="res-btns"><button class="btn primary" data-act="relic-take">챙기기</button><button class="btn" data-act="relic-leave">두고 가기</button></div></div></div>`;
 }
 /* ---------- 덱 보기, 카드 고르기(제거, 엮기) ---------- */
@@ -4187,8 +4205,9 @@ function onRunAct(act, d) {
     case 'buy-card': { const had = deckCids(); const r = buyCard(RUN, +d.i); UI.cinfo = null; if (!r.ok) flash(r.msg); else { gainReveal(had); render(); } return true; }
     case 'buy-relic': { const r = buyRelic(RUN); if (!r.ok) flash(r.msg); else render(); return true; }
     case 'break-ok': { if (S) S.breakNote = null; if (RUN) RUN.breakNote = null; render(); return true; }
-    case 'relic-choose': { const k = d.k; if (k && RUN.pendingRelicChoices && RUN.pendingRelicChoices.includes(k) && !RUN.relics.includes(k)) { RUN.relics.push(k); flash(fixJosa(`${RELICS[k].name}을(를) 챙겼습니다`)); } RUN.pendingRelicChoices = null; render(); return true; }
+    case 'relic-choose': { const k = d.k; if (k && RUN.pendingRelicChoices && RUN.pendingRelicChoices.includes(k) && !RUN.relics.includes(k) && relicFull(RUN)) { RUN.pendingRelicChoices = null; offerRelic(RUN, k); render(); return true; } if (k && RUN.pendingRelicChoices && RUN.pendingRelicChoices.includes(k) && !RUN.relics.includes(k)) { RUN.relics.push(k); flash(fixJosa(`${RELICS[k].name}을(를) 챙겼습니다`)); } RUN.pendingRelicChoices = null; render(); return true; }
     case 'relic-take': case 'relic-leave': { const k = RUN.pendingRelic; takePendingRelic(RUN, act === 'relic-take'); if (k) flash(fixJosa(act === 'relic-take' ? `${RELICS[k].name}을(를) 챙겼습니다` : `${RELICS[k].name}을(를) 두고 갑니다`)); render(); return true; }
+    case 'relic-swap': { if (UI.relicSwapAsk !== d.k) { UI.relicSwapAsk = d.k; render(); return true; } UI.relicSwapAsk = null; const r = swapRelic(RUN, d.k); if (r.ok) flash(fixJosa(`${RELICS[d.k].name}을(를) 버리고 ${RELICS[r.k].name}을(를) 챙겼습니다`)); render(); return true; }
     case 'relic-drop': { if (UI.relicDropAsk !== d.k) { UI.relicDropAsk = d.k; render(); return true; } UI.relicDropAsk = null; const r = discardRelic(RUN, d.k); if (r.ok) flash(fixJosa(`${RELICS[d.k].name}을(를) 버렸습니다`)); render(); return true; }
     case 'shop-refresh': { const r = refreshShop(RUN); if (!r.ok) flash(r.msg); else render(); return true; }
     case 'pick-remove': UI.deckOpen = true; UI.picking = 'remove'; render(); return true;
