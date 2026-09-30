@@ -876,6 +876,10 @@ main.battle.tut { padding-bottom: 13rem; }
 .sw { position: relative; flex: 0 0 auto; width: 2.9rem; height: 1.6rem; border-radius: 999px; background: var(--line); transition: background .2s; }
 .sw::after { content: ""; position: absolute; top: .2rem; left: .2rem; width: 1.2rem; height: 1.2rem; border-radius: 50%; background: #fbf6ea; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); transition: transform .2s; }
 .sw.on { background: var(--good); }
+.vol-row { display: grid; grid-template-columns: 6.2rem 1fr 2.2rem; padding: 0 .2rem; align-items: center; gap: .6rem; margin: -.1rem 0 .5rem; font-size: .85rem; color: var(--ink-soft); }
+.vol-row input { width: 100%; accent-color: var(--brass); }
+.vol-row b { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+.vol-row.off { opacity: .5; }
 .sw.on::after { transform: translateX(1.3rem); }
 .tut-tap { position: relative; outline: 3px solid #e2a93b; outline-offset: -3px; z-index: 2; }
 .tut-pointer {
@@ -3980,6 +3984,7 @@ function gainReveal(had) {
 /* ---------- 엮기·각성 연출 ---------- */
 function revealHtml() {
   const rv = UI.revealQ && UI.revealQ[0]; if (!rv) return '';
+  if (UI.revealSnd !== rv) { UI.revealSnd = rv; sfx(rv.kind === 'awaken' ? 'awaken' : 'gain'); }
   const src = rv.from ? `<div class="rv-src">${rv.from.map((c, i) => `<div class="rv-from rv-from-${i}">${cardHtml(c)}</div>`).join('')}</div>` : '';
   return `<div class="reveal ${rv.kind}" data-act="reveal-next">
     <div class="rv-rays" aria-hidden="true"></div>
@@ -4307,11 +4312,11 @@ function onRunAct(act, d) {
     case 'to-map': if (RUN && (RUN.pendingRelic || (RUN.pendingRelicChoices && RUN.pendingRelicChoices.length))) { render(); return true; } UI.deckOpen = false; screen = RUN.over ? 'runend' : RUN.stageDone ? 'stage' : 'map'; render(); window.scrollTo(0, 0); return true;
     case 'next-stage': { const r = advanceStage(RUN); if (!r.ok) return true; placeLegacy(RUN); UI.mapScrolled = false; screen = 'map'; render(); window.scrollTo(0, 0); flash(r.text); return true; }
     case 'buy-card': { const had = deckCids(); const r = buyCard(RUN, +d.i); UI.cinfo = null; if (!r.ok) flash(r.msg); else { gainReveal(had); render(); } return true; }
-    case 'buy-relic': { const r = buyRelic(RUN); if (!r.ok) flash(r.msg); else render(); return true; }
+    case 'buy-relic': { const r = buyRelic(RUN); if (!r.ok) flash(r.msg); else { sfx('gain'); render(); } return true; }
     case 'break-ok': { if (S) S.breakNote = null; if (RUN) RUN.breakNote = null; render(); return true; }
-    case 'relic-choose': { const k = d.k; if (k && RUN.pendingRelicChoices && RUN.pendingRelicChoices.includes(k) && !RUN.relics.includes(k) && relicFull(RUN)) { RUN.pendingRelicChoices = null; offerRelic(RUN, k); render(); return true; } if (k && RUN.pendingRelicChoices && RUN.pendingRelicChoices.includes(k) && !RUN.relics.includes(k)) { RUN.relics.push(k); flash(fixJosa(`${RELICS[k].name}을(를) 챙겼습니다`)); } RUN.pendingRelicChoices = null; render(); return true; }
-    case 'relic-take': case 'relic-leave': { const k = RUN.pendingRelic; takePendingRelic(RUN, act === 'relic-take'); if (k) flash(fixJosa(act === 'relic-take' ? `${RELICS[k].name}을(를) 챙겼습니다` : `${RELICS[k].name}을(를) 두고 갑니다`)); render(); return true; }
-    case 'relic-swap': { if (UI.relicSwapAsk !== d.k) { UI.relicSwapAsk = d.k; render(); return true; } UI.relicSwapAsk = null; const r = swapRelic(RUN, d.k); if (r.ok) flash(fixJosa(`${RELICS[d.k].name}을(를) 버리고 ${RELICS[r.k].name}을(를) 챙겼습니다`)); render(); return true; }
+    case 'relic-choose': { const k = d.k; if (k && RUN.pendingRelicChoices && RUN.pendingRelicChoices.includes(k) && !RUN.relics.includes(k) && relicFull(RUN)) { RUN.pendingRelicChoices = null; offerRelic(RUN, k); render(); return true; } if (k && RUN.pendingRelicChoices && RUN.pendingRelicChoices.includes(k) && !RUN.relics.includes(k)) { RUN.relics.push(k); sfx('gain'); flash(fixJosa(`${RELICS[k].name}을(를) 챙겼습니다`)); } RUN.pendingRelicChoices = null; render(); return true; }
+    case 'relic-take': case 'relic-leave': { const k = RUN.pendingRelic; takePendingRelic(RUN, act === 'relic-take'); if (act === 'relic-take') sfx('gain'); if (k) flash(fixJosa(act === 'relic-take' ? `${RELICS[k].name}을(를) 챙겼습니다` : `${RELICS[k].name}을(를) 두고 갑니다`)); render(); return true; }
+    case 'relic-swap': { if (UI.relicSwapAsk !== d.k) { UI.relicSwapAsk = d.k; render(); return true; } UI.relicSwapAsk = null; const r = swapRelic(RUN, d.k); if (r.ok) sfx('gain'); if (r.ok) flash(fixJosa(`${RELICS[d.k].name}을(를) 버리고 ${RELICS[r.k].name}을(를) 챙겼습니다`)); render(); return true; }
     case 'relic-drop': { if (UI.relicDropAsk !== d.k) { UI.relicDropAsk = d.k; render(); return true; } UI.relicDropAsk = null; const r = discardRelic(RUN, d.k); if (r.ok) flash(fixJosa(`${RELICS[d.k].name}을(를) 버렸습니다`)); render(); return true; }
     case 'shop-refresh': { const r = refreshShop(RUN); if (!r.ok) flash(r.msg); else render(); return true; }
     case 'pick-remove': UI.deckOpen = true; UI.picking = 'remove'; render(); return true;
@@ -4333,7 +4338,7 @@ function onRunAct(act, d) {
       UI.revealQ = [{ kind: 'fuse', from: [ca, cb], card: r.card, title: '엮기 완료', sub: fixJosa(`${cardInfo(r.card).name}이(가) 태어났습니다`) }];
       render(); return true;
     }
-    case 'take-card': { takeRewardCard(RUN, d.k); UI.cinfo = null; render(); return true; }
+    case 'take-card': { const r = takeRewardCard(RUN, d.k); if (r.ok) sfx('gain'); UI.cinfo = null; render(); return true; }
     case 'skip-card': { const r = skipRewardCard(RUN); if (!r.ok && r.msg) flash(r.msg); render(); return true; }
     case 'to-reward': {
       syncOnce();
@@ -4652,7 +4657,7 @@ function onGameAct(act, d) {
     case 'pack-buy': { const r = buyPack(d.k); if (!r.ok) flash(r.msg); else { flash(fixJosa(`${PACK_ITEMS[d.k].name}을(를) 챙겼습니다`)); render(); } return true; }
     case 'gift-ticket-buy': { const r = buyGiftTicket(); if (!r.ok) flash(r.msg); else { flash('선물 카드 제작권을 샀습니다'); render(); } return true; }
     case 'to-craft': if ((meta().giftTickets || 0) < 1) { flash('제작권이 없습니다'); return true; } UI.craft = { draft: wsDefault('blade'), code: '', imageName: '' }; screen = 'craft'; render(); window.scrollTo(0, 0); return true;
-    case 'unlock': { const r = buyUnlock(d.k); if (!r.ok) flash(r.msg); else { flash(`${UNLOCKS[d.k].name} 해금!`); render(); } return true; }
+    case 'unlock': { const r = buyUnlock(d.k); if (!r.ok) flash(r.msg); else { sfx('gain'); flash(`${UNLOCKS[d.k].name} 해금!`); render(); } return true; }
     case 'deck-pick': PREP.picks[+d.i] = d.k; render(); return true;
     case 'gift-send': {
       if (!UI.giftConfirm) { UI.giftConfirm = true; render(); return true; }
@@ -4892,6 +4897,14 @@ function renderSettings() {
       <button class="btn switch-btn" data-act="fx-toggle" role="switch" aria-checked="${!meta().fxOff}"><span>연출 효과<small>${meta().fxOff ? '관계·지휘·궁극기 연출을 띄우지 않습니다. 기록에는 남습니다' : '관계 등장, 관계 행동, 지휘·궁극기 연출을 보여 줍니다'}</small></span><i class="sw${meta().fxOff ? '' : ' on'}" aria-hidden="true"></i></button>
       <button class="btn switch-btn" data-act="tips-toggle" role="switch" aria-checked="${meta().tipsOn !== false}"><span>화면별 도움말<small>${meta().tipsOn !== false ? '처음 보는 화면마다 안내가 뜹니다' : '안내를 띄우지 않습니다'}</small></span><i class="sw${meta().tipsOn !== false ? ' on' : ''}" aria-hidden="true"></i></button>
     </section>
+    <section class="panel howto-btns sound-panel"><h2>소리</h2>
+      ${(() => { const p = sndPrefs(); const row = (k, name, on, vol, sub) => `<button class="btn switch-btn" data-act="snd-toggle" data-k2="${k}" role="switch" aria-checked="${on}"><span>${name}<small>${sub}</small></span><i class="sw${on ? ' on' : ''}" aria-hidden="true"></i></button>
+        <label class="vol-row${on ? '' : ' off'}"><span>${name} 크기</span><input type="range" min="0" max="100" step="5" value="${Math.round(vol * 100)}" data-vol="${k}" aria-label="${name} 크기"${on ? '' : ' disabled'}><b>${Math.round(vol * 100)}</b></label>`;
+        const hasBgm = Object.values(BGM_FILES).some(Boolean);
+        return row('sfx', '효과음', p.sfxOn, p.sfxVol, p.sfxOn ? '버튼, 공격, 팝업, 획득할 때 소리가 납니다' : '효과음을 끕니다')
+          + row('bgm', '배경음악', p.bgmOn, p.bgmVol, hasBgm ? (p.bgmOn ? '화면에 맞는 곡이 흐릅니다' : '배경음악을 끕니다') : '곡을 준비하고 있어요'); })()}
+      <p class="soft small">휴대폰에서는 화면을 한 번 누른 뒤부터 소리가 납니다. 무음 모드에서는 들리지 않을 수 있어요.</p>
+    </section>
     <section class="panel gift-panel"><h2>선물 카드</h2>
       <p class="soft small">제작자가 만든 선물 카드 코드(TCG1:로 시작)를 넣으면 받을 수 있습니다. 받은 카드는 다음 원정부터 원래 카드 한 장을 대신하고, 언제든 끄거나 지울 수 있습니다.</p>
       <details class="gift-recv"${UI.signedOpen === false ? '' : ' open'}><summary>받은 선물 카드 코드 넣기</summary>
@@ -5115,7 +5128,7 @@ function tutAllow(el) {
 /* ---------- 입력 ---------- */
 function onTutAct(act, d) {
   switch (act) {
-    case 'story-next': if ((UI.storyPage || 0) >= PROLOGUE.length - 1) storyDone(); else { UI.storyPage = (UI.storyPage || 0) + 1; render(); } return true;
+    case 'story-next': sfx('page'); if ((UI.storyPage || 0) >= PROLOGUE.length - 1) storyDone(); else { UI.storyPage = (UI.storyPage || 0) + 1; render(); } return true;
     case 'story-skip': storyDone(); return true;
     case 'fc-role': fcSaveName(); UI.fc.role = d.v; render(); return true;
     case 'fc-core': fcSaveName(); UI.fc.core = d.v; render(); return true;
@@ -5147,7 +5160,7 @@ function onTutAct(act, d) {
     }
     case 'gloss': UI.glossOpen = true; render(); return true;
     case 'gloss-close': UI.glossOpen = false; render(); return true;
-    case 'ending-next': {
+    case 'ending-next': { sfx('page');
       const preview = screen === 'ending-preview';
       if ((UI.endPage || 0) >= endingPages(preview ? UI.previewRun : RUN).length - 1) {
         screen = preview ? (UI.previewBack || 'title') : 'runend';
@@ -5168,6 +5181,7 @@ function onTutAct(act, d) {
     case 'tut-dismiss': { const m = meta(); m.tutorialDone = true; saveMeta(); render(); return true; }
     case 'tip-ok': { const m = meta(); m.tips = { ...(m.tips || {}), [d.k]: true }; saveMeta(); render(); return true; }
     case 'fx-toggle': { const m = meta(); m.fxOff = !m.fxOff; saveMeta(); render(); return true; }
+    case 'snd-toggle': { const m = meta(); const k = d.k2 === 'bgm' ? 'bgmOn' : 'sfxOn'; m[k] = m[k] === false; saveMeta(); sndInit(); sndApplyPrefs(); render(); if (k === 'sfxOn' && m[k]) sfx('token'); return true; }
     case 'tips-toggle': { const m = meta(); const on = m.tipsOn === false; m.tipsOn = on; if (on) m.tips = {}; saveMeta(); render(); return true; }
   }
   return false;
@@ -5699,9 +5713,150 @@ fxLayer.id = 'fx-layer';
 document.body.appendChild(fxLayer);
 const FXT = {};
 /* 끌 수 있는 연출: 관계 등장·관계 행동·지휘·위기·궁극기 띠. 안내 글(토스트)과 누르는 창은 그대로 */
+/* ================= 소리: 효과음(코드로 합성)과 브금 =================
+   효과음은 파일 없이 Web Audio로 만듭니다. 부드러운 사인·삼각파 위주에 짧은 울림을 얹어 어느 스킨에도 무난하게 어울리게 했습니다.
+   브금은 BGM_FILES에 파일 경로를 넣으면 화면에 맞춰 바뀝니다(일반 / 전투 / 보스). 휴대폰은 첫 터치 뒤부터 소리가 납니다. */
+const BGM_FILES = { main: '', battle: '', boss: '' };
+const SND = { ctx: null, sfx: null, bgm: null, verb: null, cur: null, tracks: {}, last: {} };
+function sndPrefs() { const m = meta(); return { sfxOn: m.sfxOn !== false, sfxVol: m.sfxVol ?? 0.7, bgmOn: m.bgmOn !== false, bgmVol: m.bgmVol ?? 0.5 }; }
+function sndInit() {
+  if (SND.ctx) { if (SND.ctx.state === 'suspended' && !document.hidden) SND.ctx.resume().catch(() => {}); return; }
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  try {
+    const ctx = SND.ctx = new AC();
+    const master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+    SND.sfx = ctx.createGain(); SND.bgm = ctx.createGain();
+    // 짧은 잔향: 소리가 딱 끊기지 않고 부드럽게 퍼지도록
+    const len = Math.floor(ctx.sampleRate * 0.9), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+    const conv = ctx.createConvolver(); conv.buffer = ir;
+    SND.verb = ctx.createGain(); SND.verb.gain.value = 0.22;
+    SND.verb.connect(conv); conv.connect(master);
+    SND.sfx.connect(master); SND.bgm.connect(master);
+    sndApplyPrefs();
+  } catch (e) { SND.ctx = null; }
+}
+function sndApplyPrefs() {
+  if (!SND.ctx) return;
+  const p = sndPrefs(), t = SND.ctx.currentTime;
+  SND.sfx.gain.setTargetAtTime(p.sfxOn ? p.sfxVol : 0, t, 0.03);
+  SND.verb.gain.setTargetAtTime(p.sfxOn ? 0.22 * p.sfxVol : 0, t, 0.03);
+  SND.bgm.gain.setTargetAtTime(p.bgmOn ? p.bgmVol * 0.8 : 0, t, 0.08);
+}
+/* 음 하나: 주파수(끝 주파수로 미끄러질 수 있음), 음색, 길이, 크기 */
+function sndTone(f, at, dur, o = {}) {
+  const ctx = SND.ctx, t = ctx.currentTime + at;
+  const osc = ctx.createOscillator(), g = ctx.createGain();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(f, t);
+  if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + (o.glide || dur));
+  const peak = (o.gain ?? 0.2) * (SND.mul || 1), atk = o.attack ?? 0.005;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + atk);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  let node = osc;
+  if (o.lp) { const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = o.lp; osc.connect(lp); node = lp; }
+  node.connect(g); g.connect(SND.sfx); if (o.verb) g.connect(SND.verb);
+  osc.start(t); osc.stop(t + dur + 0.05);
+}
+/* 종소리 음색: 기본음에 약한 배음 두 개 */
+function sndBell(f, at, dur, gain = 0.14) {
+  sndTone(f, at, dur, { gain, verb: true, attack: 0.004 });
+  sndTone(f * 2, at, dur * 0.6, { gain: gain * 0.28, verb: true });
+  sndTone(f * 3.01, at, dur * 0.35, { gain: gain * 0.1, verb: true });
+}
+/* 잡음 한 번: 종이 스치는 소리, 타격감, 바람 소리 */
+function sndNoise(at, dur, o = {}) {
+  const ctx = SND.ctx, t = ctx.currentTime + at;
+  const n = Math.max(1, Math.floor(ctx.sampleRate * dur)), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const flt = ctx.createBiquadFilter(); flt.type = o.kind || 'lowpass'; flt.Q.value = o.q || 0.7;
+  flt.frequency.setValueAtTime(o.f || 1500, t);
+  if (o.to) flt.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+  const g = ctx.createGain(), peak = (o.gain ?? 0.12) * (SND.mul || 1), atk = o.attack ?? 0.004;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + atk); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(flt); flt.connect(g); g.connect(SND.sfx); if (o.verb) g.connect(SND.verb);
+  src.start(t); src.stop(t + dur + 0.02);
+}
+const SFX = {
+  tap: () => { sndTone(740, 0, 0.07, { to: 560, gain: 0.07, glide: 0.05 }); },
+  place: () => { sndNoise(0, 0.09, { f: 1400, to: 500, gain: 0.16 }); sndTone(190, 0, 0.12, { to: 120, gain: 0.14 }); },
+  token: () => { sndBell(1320, 0, 0.18, 0.06); },
+  page: () => { sndNoise(0, 0.14, { kind: 'bandpass', f: 1800, to: 3200, q: 0.6, gain: 0.05, attack: 0.03 }); },
+  hit: () => { sndTone(150, 0, 0.14, { to: 70, gain: 0.3 }); sndNoise(0, 0.07, { f: 2600, to: 700, gain: 0.14 }); },
+  hurt: () => { sndTone(115, 0, 0.18, { to: 55, gain: 0.3, type: 'triangle', lp: 600 }); sndNoise(0, 0.08, { f: 1400, to: 400, gain: 0.12 }); },
+  push: () => { sndNoise(0, 0.24, { kind: 'bandpass', f: 500, to: 1900, q: 1.2, gain: 0.13, attack: 0.05 }); sndTone(440, 0.06, 0.18, { to: 660, gain: 0.05 }); },
+  pushE: () => { sndNoise(0, 0.26, { kind: 'bandpass', f: 1500, to: 350, q: 1.2, gain: 0.13, attack: 0.05 }); sndTone(330, 0.06, 0.2, { to: 220, gain: 0.05, type: 'triangle', lp: 900 }); },
+  die: () => { sndTone(330, 0, 0.3, { to: 110, gain: 0.12, type: 'triangle', lp: 1200 }); sndNoise(0.02, 0.2, { f: 900, to: 200, gain: 0.08 }); },
+  drop: () => { sndTone(220, 0, 0.14, { to: 150, gain: 0.08, lp: 800 }); },
+  block: () => { sndBell(520, 0, 0.25, 0.09); sndNoise(0, 0.05, { f: 3000, gain: 0.05 }); },
+  tick: () => { sndTone(420, 0, 0.1, { to: 300, gain: 0.07, type: 'triangle', lp: 900 }); },
+  heal: () => { sndTone(520, 0, 0.22, { to: 780, gain: 0.08, verb: true, attack: 0.03 }); },
+  debuff: () => { sndTone(520, 0, 0.22, { to: 290, gain: 0.09, type: 'triangle', lp: 1100, verb: true }); },
+  popup: () => { sndBell(659.3, 0, 0.7, 0.11); sndBell(880, 0.09, 0.8, 0.1); },
+  ready: () => { sndBell(784, 0, 0.5, 0.08); sndBell(1046.5, 0.07, 0.6, 0.07); },
+  cmd: () => { sndNoise(0, 0.18, { kind: 'bandpass', f: 700, to: 1800, gain: 0.07, attack: 0.04 }); sndBell(880, 0.05, 0.6, 0.1); },
+  ult: () => { sndTone(130.8, 0, 1.1, { gain: 0.1, attack: 0.25, type: 'triangle', lp: 700, verb: true }); [523.3, 659.3, 784, 1046.5].forEach((f, i) => sndBell(f, 0.08 + i * 0.07, 0.9, 0.09)); },
+  gain: () => { [587.3, 740, 880, 1174.7].forEach((f, i) => sndBell(f, i * 0.07, 0.7, 0.09)); },
+  burst: () => { sndTone(196, 0, 0.35, { gain: 0.14, type: 'triangle', lp: 700 }); sndTone(207.7, 0, 0.35, { gain: 0.12, type: 'triangle', lp: 700 }); sndNoise(0, 0.12, { f: 900, to: 200, gain: 0.1 }); },
+  stress: () => { sndBell(233.1, 0, 0.9, 0.12); sndTone(116.5, 0, 0.8, { gain: 0.08, attack: 0.05, lp: 500 }); },
+  breakdown: () => { [110, 164.8, 220].forEach((f, i) => sndBell(f, i * 0.05, 1.6, 0.12)); sndTone(55, 0, 1.4, { gain: 0.14, attack: 0.1, lp: 300 }); },
+  awaken: () => { [392, 523.3, 659.3, 784, 1046.5].forEach((f, i) => sndBell(f, i * 0.08, 1.1, 0.08)); },
+  steal: () => { sndNoise(0, 0.5, { kind: 'bandpass', f: 300, to: 2400, q: 2, gain: 0.1, attack: 0.35 }); sndTone(660, 0.35, 0.4, { to: 220, gain: 0.08, type: 'triangle', lp: 1200, verb: true }); },
+  phase: () => { sndBell(98, 0, 1.8, 0.16); sndBell(146.8, 0.06, 1.6, 0.1); sndNoise(0, 0.9, { kind: 'bandpass', f: 200, to: 900, gain: 0.07, attack: 0.4 }); },
+  win: () => { [523.3, 659.3, 784, 1046.5].forEach((f, i) => sndBell(f, i * 0.1, 1.1, 0.1)); sndTone(261.6, 0.3, 1.2, { gain: 0.06, attack: 0.1, verb: true }); },
+  lose: () => { [440, 349.2, 293.7].forEach((f, i) => sndBell(f, i * 0.16, 1, 0.09)); },
+};
+/* 소리마다 크기를 고르게 맞춘 배율 */
+const SFX_MUL = {"tap": 1.67, "place": 1.46, "token": 2.04, "page": 3.16, "hit": 1.05, "hurt": 1.19, "push": 3.16, "pushE": 3.24, "die": 1.62, "drop": 1.6, "block": 1.4, "tick": 1.95, "heal": 2.04, "debuff": 1.89, "popup": 1.39, "ready": 1.52, "cmd": 1.92, "ult": 1.47, "gain": 1.48, "burst": 1.29, "stress": 1.43, "breakdown": 0.97, "awaken": 1.48, "steal": 1.97, "phase": 1.31, "win": 1.54, "lose": 1.63};
+/* 같은 소리가 한순간에 겹겹이 나지 않게 짧은 간격을 둡니다 */
+function sfx(name) {
+  if (!SND.ctx || !SFX[name] || !sndPrefs().sfxOn || SND.ctx.state !== 'running') return;
+  const now = performance.now(); if (now - (SND.last[name] || 0) < 45) return; SND.last[name] = now;
+  SND.mul = SFX_MUL[name] || 1;
+  try { SFX[name](); } catch (e) { /* 소리는 실패해도 게임은 계속 */ }
+  SND.mul = 1;
+}
+/* 브금: 화면에 맞는 곡으로 천천히 바꿉니다. 파일이 비어 있으면 조용히 넘어갑니다 */
+function bgmKey() {
+  if (screen === 'workshop') return null;
+  if (screen === 'battle' && S && S.enc) return S.enc.boss ? 'boss' : 'battle';
+  return 'main';
+}
+function bgmUpdate() {
+  if (!SND.ctx) return;
+  const key = bgmKey(), want = key && BGM_FILES[key] ? key : null;
+  if (want === SND.cur) return;
+  const t = SND.ctx.currentTime;
+  if (SND.cur && SND.tracks[SND.cur]) { const tr = SND.tracks[SND.cur], el = tr.el; tr.g.gain.cancelScheduledValues(t); tr.g.gain.setTargetAtTime(0, t, 0.4); clearTimeout(tr.stop); tr.stop = setTimeout(() => el.pause(), 2200); }
+  SND.cur = want;
+  if (!want) return;
+  let tr = SND.tracks[want];
+  if (!tr) {
+    const el = new Audio(BGM_FILES[want]); el.loop = true; el.preload = 'auto';
+    const g = SND.ctx.createGain(); g.gain.value = 0;
+    try { SND.ctx.createMediaElementSource(el).connect(g); g.connect(SND.bgm); } catch (e) { return; }
+    tr = SND.tracks[want] = { el, g, stop: null };
+  }
+  clearTimeout(tr.stop);
+  tr.g.gain.cancelScheduledValues(t); tr.g.gain.setTargetAtTime(1, t, 0.5);
+  const pr = tr.el.play(); if (pr && pr.catch) pr.catch(() => {});
+}
+document.addEventListener('pointerdown', () => { sndInit(); bgmUpdate(); }, true);
+document.addEventListener('visibilitychange', () => { if (!SND.ctx) return; if (document.hidden) SND.ctx.suspend().catch(() => {}); else SND.ctx.resume().catch(() => {}); });
+/* 누를 수 있는 것을 누르면 작은 소리 */
+document.addEventListener('click', e => {
+  const el = e.target.closest && e.target.closest('button, [data-act], [data-hand], [data-tok], .slot, summary');
+  if (el && !el.disabled) sfx('tap');
+}, true);
+const SFX_EVENT = { hit: ev => ev.side === 'p' ? 'hit' : 'hurt', front: ev => ev.side === 'p' ? 'push' : 'pushE', die: ev => ev.side === 'e' ? 'die' : 'hurt', thorn: () => 'tick',
+  poison: () => 'tick', descend: () => 'drop', guard: () => 'block', hold: () => 'block', joint: () => 'popup', grit: () => 'popup', absorb: () => 'heal', phase: () => 'phase', debuff: () => 'debuff', steal: () => 'steal', dodge: () => 'block' };
+
 const FX_OPTIONAL = ['cutin', 'cast', 'joint'];
 function showFx(key, html, ms) {
   if (FX_OPTIONAL.includes(key) && meta().fxOff) return;
+  if (key === 'cutin') sfx('popup'); else if (key === 'stress') sfx('stress');
   const old = fxLayer.querySelector(`[data-fx="${key}"]`); if (old) old.remove();
   clearTimeout(FXT[key]); clearTimeout(FXT[key + '2']);
   const w = document.createElement('div'); w.dataset.fx = key; w.innerHTML = html; fxLayer.appendChild(w);
@@ -5713,6 +5868,7 @@ function timedFx(key, val, ms) {
 }
 function castFx(kind, title, sub, extra) {
   const c = { kind, title, sub, ...(extra || {}) };
+  sfx(kind === 'ult' ? 'ult' : 'cmd');
   const ms = kind === 'ult' ? 2000 : 1400;
   showFx('cast', castHtml(c), ms);
   timedFx('castTarget', c.target || null, ms);
@@ -6313,7 +6469,7 @@ function ultNotice() {
   S.ultNoticed = S.ultNoticed || {};
   for (const u of S.p) {
     if (!ultReady(u) || S.ultNoticed[u.comp]) continue;
-    S.ultNoticed[u.comp] = true;
+    S.ultNoticed[u.comp] = true; sfx('ready');
     showFx('toast', `<div class="toast-float ult-toast" role="status">${esc(jo(compById(u.comp).name, '이', '가'))} 궁극기를 쓸 수 있어요!</div>`, 2600);
   }
 }
@@ -6531,6 +6687,8 @@ function render() {
     document.documentElement.dataset.pageSkin = selectedSkin('page');
   }
   (SCREENS[screen] || renderBattle)();
+  bgmUpdate();
+  if (screen === 'battle' && S && S.over && S.overSnd !== S.over) { S.overSnd = S.over; sfx(S.over === 'win' ? 'win' : 'lose'); }
   stressNotices();
   saveRunState();
   if (UI.lastScreen !== screen) {
@@ -6547,6 +6705,7 @@ function stressNotices() {
   if (!holder) return;
   if (holder.breakNote) {
     const { awaken, o } = holder.breakNote;
+    if (!holder.breakNote.snd) { holder.breakNote.snd = true; sfx(awaken ? 'awaken' : 'breakdown'); }
     const [head, body] = BREAK_TEXT[o].split(': ');
     app.insertAdjacentHTML('beforeend', `<div class="sheet break-sheet"><div class="sheet-body ${awaken ? 'awaken' : 'collapse'}"><small>정신력 한계</small><h2>${awaken ? '각성' : '붕괴'}</h2><p class="break-eff">${esc(body || head)}</p><p class="soft small">${awaken ? '한계를 넘어서며 오히려 단단해졌습니다.' : '마음 한구석이 무너졌습니다.'} 스트레스는 60으로 돌아옵니다. 이 효과는 원정이 끝날 때까지 이어집니다.<br><b>한 번 더 100에 닿으면 주인공이 쓰러지고 원정이 끝납니다.</b></p><button class="btn primary" data-act="break-ok">확인</button></div></div>`);
     return;
@@ -6591,6 +6750,7 @@ async function playEvents(previewDuration = 0) {
       if (UI.skip) break;
       UI.fx = ev;
       renderSnap(ev.snap);
+      { const sn = SFX_EVENT[ev.type]; if (sn) sfx(sn(ev)); }
       if (ev.type === 'joint') showFx('joint', jointFxHtml(ev), (previewDuration || FX_MS.joint) * (REDUCED ? 0.6 : 1));
       await sleep(previewDuration || FX_MS[ev.type] * (REDUCED ? 0.6 : 1));
     }
@@ -6618,6 +6778,7 @@ function onSlot(side, lane) {
     if (side !== 'p') { flash('아군 줄의 빈 칸에만 낼 수 있습니다'); return; }
     const r = playCard(UI.sel, lane);
     if (!r.ok) { flash(r.msg || '낼 수 없습니다'); return; }
+    sfx('place');
     resetUI();
     if (S.cutin) { showFx('cutin', cutinHtml(S.cutin), 1800); S.cutin = null; }
     render(); return;
@@ -6666,12 +6827,13 @@ app.addEventListener('click', e => {
       case 'undo': { const lb = undo(); resetUI(); if (lb) flash(`되돌림: ${lb}`); else render(); return; }
       case 'extra': {
         const r = extraDraw();
+        if (r.ok) sfx(r.bust ? 'burst' : r.saved ? 'block' : 'token');
         if (r.bust) flash('버스트! 추가로 뽑은 토큰을 잃었습니다');
         else if (r.saved) flash('공포가 나왔지만 버스트를 면했습니다');
         render(); return;
       }
       case 'exchange': resetUI(); UI.mode = 'exchange'; render(); return;
-      case 'drawcard': { const r = drawExtraCard(); resetUI(); if (!r.ok) flash(r.msg); else render(); return; }
+      case 'drawcard': { const r = drawExtraCard(); resetUI(); if (!r.ok) flash(r.msg); else { sfx('page'); render(); } return; }
       case 'cmd': {
         const t = COMMANDS[S.pro.cmd].target;
         if (t === 'none') return doCmd({});
@@ -6704,7 +6866,7 @@ app.addEventListener('click', e => {
   if (d.side) { onSlot(d.side, +d.lane); return; }
   if (d.tok) { onTok(+d.tok); return; }
   if (d.emo && UI.mode === 'cmd') { doCmd({ tok: UI.exTok, emo: d.emo }); return; }
-  if (d.emo) { const r = exchange(UI.exTok, d.emo); resetUI(); if (!r.ok) flash(r.msg); else render(); return; }
+  if (d.emo) { const r = exchange(UI.exTok, d.emo); resetUI(); if (!r.ok) flash(r.msg); else { sfx('token'); render(); } return; }
   if (d.sac) { sacrifice(d.sac); render(); }
 });
 
@@ -6790,6 +6952,14 @@ app.addEventListener('input', e => {
   }
   if (t.dataset.f === 'import') UI.importText = t.value;
 });
+app.addEventListener('input', e => {
+  const t = e.target; if (!t.dataset || !t.dataset.vol) return;
+  const v = Math.max(0, Math.min(100, +t.value)) / 100, m = meta();
+  m[t.dataset.vol === 'bgm' ? 'bgmVol' : 'sfxVol'] = v;
+  const b = t.parentElement && t.parentElement.querySelector('b'); if (b) b.textContent = Math.round(v * 100);
+  sndInit(); sndApplyPrefs();
+});
+app.addEventListener('change', e => { const t = e.target; if (!t.dataset || !t.dataset.vol) return; saveMeta(); if (t.dataset.vol === 'sfx') sfx('token'); });
 app.addEventListener('toggle', e => { if (e.target.matches && e.target.matches('details.log')) UI.logOpen = e.target.open; }, true);
 
 render();
