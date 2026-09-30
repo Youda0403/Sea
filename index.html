@@ -5810,7 +5810,7 @@ const SFX = {
   debuff: () => { sndTone(520, 0, 0.22, { to: 290, gain: 0.09, type: 'triangle', lp: 1100, verb: true }); },
   popup: () => { sndBell(659.3, 0, 0.7, 0.11); sndBell(880, 0.09, 0.8, 0.1); },
   ready: () => { sndBell(784, 0, 0.5, 0.08); sndBell(1046.5, 0.07, 0.6, 0.07); },
-  cmd: () => { sndNoise(0, 0.18, { kind: 'bandpass', f: 700, to: 1800, gain: 0.07, attack: 0.04 }); sndBell(880, 0.05, 0.6, 0.1); },
+  cmd: () => { sndNoise(0, 0.18, { kind: 'bandpass', f: 450, to: 1100, gain: 0.07, attack: 0.04 }); sndTone(587.3, 0.05, 0.55, { gain: 0.1, verb: true, attack: 0.012 }); sndTone(1174.7, 0.05, 0.28, { gain: 0.018, verb: true }); },
   ult: () => { sndTone(130.8, 0, 1.1, { gain: 0.1, attack: 0.25, type: 'triangle', lp: 700, verb: true }); [523.3, 659.3, 784, 1046.5].forEach((f, i) => sndBell(f, 0.08 + i * 0.07, 0.9, 0.09)); },
   gain: () => { [587.3, 740, 880, 1174.7].forEach((f, i) => sndBell(f, i * 0.07, 0.7, 0.09)); },
   burst: () => { sndTone(196, 0, 0.35, { gain: 0.14, type: 'triangle', lp: 700 }); sndTone(207.7, 0, 0.35, { gain: 0.12, type: 'triangle', lp: 700 }); sndNoise(0, 0.12, { f: 900, to: 200, gain: 0.1 }); },
@@ -5847,7 +5847,7 @@ function sndPlayFile(name) {
   return !o.layer;
 }
 /* 소리마다 크기를 고르게 맞춘 배율 */
-const SFX_MUL = {"tap": 1.67, "place": 1.46, "token": 2.04, "page": 3.16, "hit": 1.05, "hurt": 1.19, "push": 1.48, "pushE": 1.517, "die": 1.62, "drop": 1.6, "block": 1.4, "tick": 1.95, "heal": 0.951, "debuff": 1.053, "popup": 0.333, "ready": 0.523, "cmd": 0.436, "ult": 0.277, "gain": 0.308, "burst": 1.29, "stress": 1.43, "breakdown": 0.97, "awaken": 0.297, "steal": 0.7, "phase": 0.218, "win": 0.305, "lose": 0.366};
+const SFX_MUL = {"tap": 1.67, "place": 1.46, "token": 2.04, "page": 3.16, "hit": 1.05, "hurt": 1.19, "push": 1.48, "pushE": 1.517, "die": 1.62, "drop": 1.6, "block": 1.4, "tick": 1.95, "heal": 0.951, "debuff": 1.053, "popup": 0.333, "ready": 0.523, "cmd": 0.23, "ult": 0.277, "gain": 0.308, "burst": 1.29, "stress": 1.43, "breakdown": 0.97, "awaken": 0.297, "steal": 0.7, "phase": 0.218, "win": 0.305, "lose": 0.366};
 /* 같은 소리가 한순간에 겹겹이 나지 않게 짧은 간격을 둡니다 */
 function sfx(name) {
   if (!SND.ctx || !SFX[name] || !sndPrefs().sfxOn || SND.ctx.state !== 'running') return;
