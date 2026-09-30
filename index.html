@@ -620,9 +620,10 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 
 /* 덱 정보 */
 .hand-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; font-size: .85rem; margin-bottom: -.2rem; }
-.hh-btns { display: flex; gap: .35rem; align-items: stretch; flex-wrap: wrap; justify-content: flex-end; }
-.btn.draw-card { display: grid; gap: 0; line-height: 1.15; text-align: center; }
-.btn.draw-card small { font-size: .62rem; font-weight: 500; opacity: .8; }
+.hh-btns { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-top: .55rem; }
+.btn.hh-btn { display: grid; gap: .05rem; line-height: 1.2; text-align: center; padding: .35rem .4rem; }
+.btn.hh-btn b { font-size: .82rem; }
+.btn.hh-btn small { font-size: .66rem; font-weight: 500; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .doom-note { margin: .45rem 0 0; padding: .4rem .55rem; border-left: 3px solid var(--bad); background: rgba(163, 62, 42, .08); font-size: .8rem; line-height: 1.4; }
 .hcard.doomed { box-shadow: 0 0 0 2px var(--bad); }
 .hcard.doomed.sel { box-shadow: 0 0 0 3px var(--brass), 0 0 0 5px var(--bad); }
@@ -6188,9 +6189,9 @@ function costHtml(cost) {
 }
 function handHtml() {
   const drawHint = S.deck.length || S.discard.length ? '다음 턴 1장 · 손패 3장 미만이면 보충' : '덱과 버린 더미가 비어 추가로 뽑을 카드 없음';
-  const drawBtn = `<button class="btn small-btn draw-card" data-act="drawcard"${canDrawCard() ? '' : ' disabled'}><b>카드 1장 뽑기</b><small>${S.cardDrawUsed ? '이번 턴에 뽑음' : S.exchangeUsed ? '이번 턴 교환을 씀' : S.supply < 1 ? '보급 부족' : !S.deck.length && !S.discard.length ? '뽑을 카드 없음' : `보급 1 · 교환과 합쳐 턴당 1번`}</small></button>`;
+  const drawBtn = `<button class="btn small-btn hh-btn" data-act="drawcard"${canDrawCard() ? '' : ' disabled'}><b>카드 1장 뽑기</b><small>${S.cardDrawUsed ? '이번 턴에 뽑음' : S.exchangeUsed ? '이번 턴 교환을 씀' : S.supply < 1 ? '보급 부족' : !S.deck.length && !S.discard.length ? '뽑을 카드 없음' : '보급 1 · 턴당 1번'}</small></button>`;
   const doom = S.doomRef && S.hand.includes(S.doomRef) ? `<div class="doom-note">이름 없는 것이 <b>${esc(jo(cardInfo(S.doomRef).name, '을', '를'))}</b> 노립니다. 이번 턴에 내면 지킬 수 있고, 두면 빼앗겨 적이 됩니다.</div>` : '';
-  const head = `<div class="hand-head"><span>손패 ${S.hand.length}장 <small class="soft">${drawHint}</small></span><span class="hh-btns">${drawBtn}<button class="btn small-btn" data-act="pile-info">덱 ${S.deck.length}장 · 버린 더미 ${S.discard.length}장</button></span></div>${doom}`;
+  const head = `<div class="hand-head"><span>손패 ${S.hand.length}장 <small class="soft">${drawHint}</small></span></div><div class="hh-btns">${drawBtn}<button class="btn small-btn hh-btn" data-act="pile-info"><b>덱 보기</b><small>덱 ${S.deck.length}장 · 버린 더미 ${S.discard.length}장</small></button></div>${doom}`;
   if (!S.hand.length) return head + '<section class="hand empty-hand"><span class="soft small">손패가 비었습니다</span></section>';
   return head + `<section class="hand">${S.hand.map((card, i) => {
     const info = cardInfo(card);
@@ -6377,7 +6378,6 @@ function renderBattle() {
     ${handHtml()}
     ${handInfo ? handSec : ''}
     ${logHtml()}
-    ${!S.enc.boss && !TUT ? '<p class="reserve-note">새 적은 예고 칸에 먼저 나타납니다. 증원은 무한하지 않아요.</p>' : ''}
     ${retryHtml()}
     ${TUT && S.over ? tutOverlayHtml() : overlayHtml()}
     ${pileSheet()}${glossSheet()}
