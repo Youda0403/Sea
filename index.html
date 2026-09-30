@@ -4339,7 +4339,7 @@ function onRunAct(act, d) {
       render(); return true;
     }
     case 'take-card': { const r = takeRewardCard(RUN, d.k); if (r.ok) sfx('gain'); UI.cinfo = null; render(); return true; }
-    case 'skip-card': { const r = skipRewardCard(RUN); if (!r.ok && r.msg) flash(r.msg); render(); return true; }
+    case 'skip-card': { const r = skipRewardCard(RUN); if (r.ok) sfx('gain'); if (!r.ok && r.msg) flash(r.msg); render(); return true; }
     case 'to-reward': {
       syncOnce();
       if (RUN.over) { screen = 'runend'; render(); return true; }
@@ -5834,7 +5834,7 @@ const SFX = {
    파일이 아직 안 받아졌거나 못 받으면 만든 소리로 대신합니다. layer는 파일과 만든 소리를 함께 냅니다 */
 const SFX_FILES = {"tap": ["tap"], "place": ["place1", "place2", "place3"], "token": ["token1", "token2", "token3"], "page": ["page1", "page2"], "hit": ["hit1", "hit2", "hit3"], "hurt": ["hurt1", "hurt2", "hurt3"], "die": ["die"], "drop": ["drop1", "drop2", "drop3"], "block": ["block1", "block2", "block3"], "tick": ["tick1", "tick2", "tick3"], "burst": ["burst1", "burst2", "burst3"], "stress": ["stress"], "breakdown": ["breakdown"], "phase": ["phase"], "start": ["start"], "startBoss": ["start"]};
 /* 크기는 귀로 듣는 크기(0.1초 구간 에너지)를 재서 서로 비슷하게 맞춘 값입니다. 탭·토큰·넘김·독은 조금 작게, 궁극기·붕괴·2페이즈·승리는 조금 크게 */
-const SFX_LEVEL = {"tap": 1.513, "place": 0.1019, "token": 0.1085, "page": 0.2582, "hit": 0.0473, "hurt": 0.0482, "die": 0.0513, "drop": 0.1214, "block": 0.0994, "tick": 0.2215, "burst": 0.392, "stress": 0.1075, "breakdown": 0.0894, "phase": 0.0331, "start": 0.0108, "startBoss": 0.0098};
+const SFX_LEVEL = {"tap": 1.513, "place": 0.1019, "token": 0.2028, "page": 0.2582, "hit": 0.0473, "hurt": 0.0482, "die": 0.0513, "drop": 0.1214, "block": 0.0994, "tick": 0.2215, "burst": 0.392, "stress": 0.1075, "breakdown": 0.0894, "phase": 0.0331, "start": 0.0108, "startBoss": 0.0098};
 const SFX_FILE_OPT = { stress: { verb: true }, breakdown: { rate: 0.8, verb: true }, phase: { layer: true }, start: { layer: true, delay: 0.22 }, startBoss: { layer: true, delay: 0.22, rate: 0.85 } };
 function sndLoadFiles() {
   if (SND.buf) return; SND.buf = {};
