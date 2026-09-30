@@ -1158,6 +1158,8 @@ main.battle.tut { padding-bottom: 13rem; }
 .relic-offer > small { color: var(--brass); font-weight: 700; letter-spacing: .1em; }
 .relic-offer h2 { margin: 0; }
 .relic-offer .res-btns .btn { flex: 1; }
+.relic-choices { display: grid; gap: .5rem; text-align: left; margin: .3rem 0; }
+.pack-panel .ul-row .bd { flex: 0 0 auto; }
 .relic-drop-h { font-size: .95rem; margin: 1.1rem 0 .2rem; }
 .relic-drop { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .45rem; }
 .relic-drop li { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .5rem .6rem; border: 1px solid var(--line); border-radius: 8px; background: var(--table-2); }
@@ -3440,6 +3442,35 @@ const UNLOCKS = {
 const FRAME_STYLES = { silver: { name: '달빛 은테', unlock: 'frameSilver' }, forest: { name: '숲빛 테두리', unlock: 'frameForest' }, rose: { name: '장밋빛 테두리', unlock: 'frameRose' } };
 const CARD_SKINS = { petal: { unlock: 'cardPetal' }, starlight: { unlock: 'cardStarlight' } };
 const PAGE_SKINS = { storybook: { unlock: 'pageStorybook' }, starlight: { unlock: 'pageStarlight' } };
+/* 원정 준비물: 기억 조각으로 사서 다음 원정 한 번에만 쓰는 물건. 종류마다 한 개씩 챙길 수 있습니다 */
+const PACK_ITEMS = {
+  supply: { name: '여벌 보급 꾸러미', desc: '다음 원정을 보급 +3으로 시작합니다', cost: 25 },
+  card: { name: '기억의 책갈피', desc: '다음 원정 시작에 카드 3장 중 1장을 골라 덱에 넣습니다', cost: 35 },
+  bond: { name: '함께 쓴 일기', desc: '다음 원정에 데려가는 동료들의 유대가 +2로 시작합니다', cost: 45 },
+  relic: { name: '낡은 지도 조각', desc: '다음 원정 시작에 유물 3개 중 1개를 골라 챙깁니다', cost: 60 },
+};
+const GIFT_TICKET_COST = 150;
+function buyPack(k) {
+  const it = PACK_ITEMS[k], m = meta(); m.pack = m.pack || {};
+  if (!it) return { ok: false, msg: '없는 물건입니다' };
+  if (m.pack[k]) return { ok: false, msg: '이미 챙겨 두었습니다. 다음 원정에서 쓰입니다' };
+  if (m.shards < it.cost) return { ok: false, msg: '기억 조각이 부족합니다' };
+  m.shards -= it.cost; m.pack[k] = true; saveMeta(); return { ok: true };
+}
+function buyGiftTicket() {
+  const m = meta(); if (m.shards < GIFT_TICKET_COST) return { ok: false, msg: '기억 조각이 부족합니다' };
+  m.shards -= GIFT_TICKET_COST; m.giftTickets = (m.giftTickets || 0) + 1; saveMeta(); return { ok: true };
+}
+function applyPack(run) {
+  const m = meta(), pk = m.pack || {}; const used = [];
+  if (pk.supply) { gainSupply(run, 3); used.push('보급 +3'); }
+  if (pk.bond) { run.comps.forEach(c => { if (!c.merc) c.bondPts = (c.bondPts || 0) + 2; }); used.push('동료 유대 +2'); }
+  if (pk.relic) { const pool = relicPool(run); if (pool.length) run.pendingRelicChoices = pickN(pool, Math.min(3, pool.length)); }
+  if (pk.card) run.reward = { cards: pickN(cardPool(), 3), relic: null, done: false, fromPack: true };
+  if (used.length) (run.notes = run.notes || []).push(`원정 준비물: ${used.join(', ')}`);
+  m.pack = {}; saveMeta();
+  return !!pk.card;
+}
 const ROLE_EXTRA_SIGIL = { atk: 'execute', def: 'armor', sup: 'mend' };
 const SHARD_RULE = { floor: 1, elite: 2, boss: 10 };
 let META = null;
@@ -3793,7 +3824,7 @@ function renderMap() {
       ${floorLabels}${btns}
     </section>
     ${r.fromPrep ? '<button class="btn ghost" data-act="to-title">타이틀로<small>진행 상황은 저장됩니다</small></button>' : '<button class="btn ghost" data-act="setup">런 그만두기</button>'}
-    ${deckOverlay()}${cardSheet()}
+    ${deckOverlay()}${cardSheet()}${relicOfferHtml()}
   </main>`;
   const cur = app.querySelector('.node.reach') || app.querySelector('.node.current');
   if (cur && !UI.mapScrolled) { cur.scrollIntoView({ block: 'center' }); UI.mapScrolled = true; }
@@ -3923,8 +3954,48 @@ function renderRunEnd() {
   </main>`;
 }
 
+/* ---------- 선물 카드 공방 ---------- */
+function craftReadDraft() {
+  const f = app.querySelector('[data-craft-form]'); const c = UI.craft; if (!f || !c) return c ? c.draft : wsDefault();
+  const fd = new FormData(f), d = { ...c.draft };
+  d.base = String(fd.get('base')); d.name = String(fd.get('name')).trim(); d.note = String(fd.get('note')).trim();
+  d.atk = Number(fd.get('atk')); d.hp = Number(fd.get('hp')); d.sig = [...new Set([fd.get('sig1'), fd.get('sig2')].filter(Boolean))];
+  c.from = String(fd.get('from') || '').trim().slice(0, 24);
+  c.draft = d; return d;
+}
+function craftClamp(d) { const b = CARDS[d.base]; d.atk = Math.max(0, Math.min(b.atk + 2, d.atk | 0)); d.hp = Math.max(1, Math.min(b.hp + 3, d.hp | 0)); return d; }
+function craftPreviewHtml(d) { return `${cardHtml({ key: d.base, gift: signedCard({ ...d, id: 'preview-000' }) })}<p>${esc(d.note)}</p>`; }
+function renderCraft() {
+  const c = UI.craft || (UI.craft = { draft: wsDefault('blade'), code: '', imageName: '' });
+  const d = c.draft, b = CARDS[d.base], m = meta();
+  const opt2 = (k, n, cur) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(n)}</option>`;
+  const sigOpts = cur => '<option value="">없음</option>' + FRIEND_SIGILS.map(k => opt2(k, SIGILS[k].name, cur)).join('');
+  app.innerHTML = `<main class="setup workshop craft"><div class="nav"><button class="btn ghost" data-act="to-base">거점으로</button></div>
+    <h1>선물 카드 공방</h1><p class="soft">남은 제작권 ${m.giftTickets || 0}장. 코드를 만들 때 제작권 1장을 씁니다.</p>
+    <section class="panel"><form data-craft-form onsubmit="return false">
+      <label>바탕 카드<select name="base" data-craft-base>${[...new Set(START_DECK)].map(k => opt2(k, CARDS[k].name, d.base)).join('')}</select></label>
+      <div class="ws-fields"><label>카드 이름<input name="name" maxlength="24" value="${esc(d.name)}"></label>
+        <label>공격 (최대 ${b.atk + 2})<input name="atk" type="number" min="0" max="${b.atk + 2}" value="${d.atk}"></label>
+        <label>체력 (최대 ${b.hp + 3})<input name="hp" type="number" min="1" max="${b.hp + 3}" value="${d.hp}"></label>
+        <label>인장 1<select name="sig1">${sigOpts(d.sig[0])}</select></label><label>인장 2<select name="sig2">${sigOpts(d.sig[1])}</select></label></div>
+      <label>카드에 담을 말<textarea name="note" rows="3" maxlength="180">${esc(d.note)}</textarea></label>
+      <label>보내는 사람<input name="from" maxlength="24" value="${esc(c.from || '')}" placeholder="받는 사람에게 보일 이름"></label>
+      <label>작은 그림 (선택)<input type="file" accept="image/*" data-craft-image>${d.image ? `<span class="soft small ws-file-name">적용된 그림: ${esc(c.imageName || '선택한 그림')}</span>` : ''}</label>
+      ${d.image ? '<button type="button" class="btn ghost small-btn" data-act="craft-clear-image">그림 지우기</button>' : ''}
+    </form>
+    <p class="soft small">공격은 바탕 카드 +2, 체력은 +3까지 올릴 수 있습니다. 비용과 주머니 감정은 바탕 카드 그대로입니다.</p>
+    <div class="ws-card-preview">${craftPreviewHtml(d)}</div>
+    <div class="ws-sign"><button class="btn primary big ws-sign-btn" data-act="craft-issue"${(m.giftTickets || 0) > 0 ? '' : ' disabled'}>제작권 1장으로 선물 코드 만들기</button>
+    ${c.code ? `<div class="ws-code-box"><label>전달할 코드<textarea id="craft-code" readonly rows="4">${esc(c.code)}</textarea></label><button class="btn primary" data-act="craft-copy">코드 복사</button><p class="soft small">받는 사람에게 설정 → 선물 카드에 붙여 넣으라고 알려 주세요.</p></div>` : ''}</div></section>
+  </main>`;
+}
+
 /* ---------- 유물 발견: 챙길지 고르기 ---------- */
 function relicOfferHtml() {
+  const ch = RUN && RUN.pendingRelicChoices;
+  if (ch && ch.length) return `<div class="sheet"><div class="sheet-body relic-offer"><small>낡은 지도 조각</small><h2>유물 하나를 고르세요</h2>
+    <div class="relic-choices">${ch.map(k => `<button class="btn opt-btn" data-act="relic-choose" data-k="${k}"><span><b>${esc(RELICS[k].name)}</b><small>${esc(RELICS[k].desc)}</small></span></button>`).join('')}</div>
+    <button class="btn ghost" data-act="relic-choose" data-k="">모두 두고 가기</button></div></div>`;
   const k = RUN && RUN.pendingRelic; if (!k || !RELICS[k]) return '';
   return `<div class="sheet"><div class="sheet-body relic-offer"><small>유물 발견</small><h2>${esc(RELICS[k].name)}</h2><p>${esc(RELICS[k].desc)}</p>
     ${RUN.relics.length ? `<p class="soft small">가진 유물: ${RUN.relics.map(x => esc(RELICS[x].name)).join(', ')}</p>` : ''}
@@ -4008,11 +4079,12 @@ function onRunAct(act, d) {
       return true;
     }
     case 'ev-choose': { const had = deckCids(); const r = chooseEvent(RUN, +d.i); if (!r.ok && r.msg) flash(r.msg); if (RUN.over) { screen = 'runend'; } else gainReveal(had); render(); return true; }
-    case 'to-map': if (RUN && RUN.pendingRelic) { render(); return true; } UI.deckOpen = false; screen = RUN.over ? 'runend' : RUN.stageDone ? 'stage' : 'map'; render(); window.scrollTo(0, 0); return true;
+    case 'to-map': if (RUN && (RUN.pendingRelic || (RUN.pendingRelicChoices && RUN.pendingRelicChoices.length))) { render(); return true; } UI.deckOpen = false; screen = RUN.over ? 'runend' : RUN.stageDone ? 'stage' : 'map'; render(); window.scrollTo(0, 0); return true;
     case 'next-stage': { const r = advanceStage(RUN); if (!r.ok) return true; placeLegacy(RUN); UI.mapScrolled = false; screen = 'map'; render(); window.scrollTo(0, 0); flash(r.text); return true; }
     case 'buy-card': { const had = deckCids(); const r = buyCard(RUN, +d.i); UI.cinfo = null; if (!r.ok) flash(r.msg); else { gainReveal(had); render(); } return true; }
     case 'buy-relic': { const r = buyRelic(RUN); if (!r.ok) flash(r.msg); else render(); return true; }
     case 'break-ok': { if (S) S.breakNote = null; if (RUN) RUN.breakNote = null; render(); return true; }
+    case 'relic-choose': { const k = d.k; if (k && RUN.pendingRelicChoices && RUN.pendingRelicChoices.includes(k) && !RUN.relics.includes(k)) { RUN.relics.push(k); flash(fixJosa(`${RELICS[k].name}을(를) 챙겼습니다`)); } RUN.pendingRelicChoices = null; render(); return true; }
     case 'relic-take': case 'relic-leave': { const k = RUN.pendingRelic; takePendingRelic(RUN, act === 'relic-take'); if (k) flash(fixJosa(act === 'relic-take' ? `${RELICS[k].name}을(를) 챙겼습니다` : `${RELICS[k].name}을(를) 두고 갑니다`)); render(); return true; }
     case 'relic-drop': { if (UI.relicDropAsk !== d.k) { UI.relicDropAsk = d.k; render(); return true; } UI.relicDropAsk = null; const r = discardRelic(RUN, d.k); if (r.ok) flash(fixJosa(`${RELICS[d.k].name}을(를) 버렸습니다`)); render(); return true; }
     case 'shop-refresh': { const r = refreshShop(RUN); if (!r.ok) flash(r.msg); else render(); return true; }
@@ -4161,6 +4233,10 @@ function renderBase() {
       <li class="ul-row ${m.frame ? 'owned' : 'locked'}"><div><b>초상화 금테</b><small>캐릭터 초상화에 금테를 두릅니다. 보스를 처음 쓰러뜨리면 열립니다</small></div>${m.frame
         ? (() => { const goldOn = m.frameOn && (m.frameStyle || 'gold') === 'gold'; return `<button class="btn small-btn${goldOn ? ' primary' : ''}" data-act="frame-select" data-k="${goldOn ? 'none' : 'gold'}">${goldOn ? '사용 중 (끄기)' : '적용'}</button>`; })()
         : '<span class="soft small">보스 첫 처치</span>'}</li>${decor.map(unlockRowHtml).join('')}</ul></section>
+    <section class="panel pack-panel"><h2>원정 준비물</h2><p class="soft small">다음 원정 한 번에만 쓰는 물건입니다. 종류마다 하나씩 챙겨 둘 수 있고, 원정을 시작하면 사용됩니다.</p>
+      <ul class="ul-list">${Object.entries(PACK_ITEMS).map(([k, it]) => { const has = (m.pack || {})[k]; return `<li class="ul-row ${has ? 'owned' : m.shards >= it.cost ? 'ready' : 'short'}"><div><b>${esc(it.name)}</b><small>${esc(it.desc)}</small></div>${has ? '<span class="bd good">챙겨 둠</span>' : `<button class="btn small-btn${m.shards >= it.cost ? ' primary' : ''}" data-act="pack-buy" data-k="${k}"${m.shards >= it.cost ? '' : ' disabled'}>조각 ${it.cost}</button>`}</li>`; }).join('')}</ul></section>
+    <section class="panel"><h2>선물 카드 공방</h2><p class="soft small">기억 조각으로 제작권을 사서, 다른 사람에게 줄 카드 한 장을 직접 만들 수 있습니다. 제작권 하나로 카드 하나를 만듭니다.</p>
+      <div class="res-btns"><button class="btn" data-act="gift-ticket-buy"${m.shards >= GIFT_TICKET_COST ? '' : ' disabled'}>제작권 사기 · 조각 ${GIFT_TICKET_COST}</button><button class="btn primary" data-act="to-craft"${(m.giftTickets || 0) > 0 ? '' : ' disabled'}>카드 만들기 (제작권 ${m.giftTickets || 0})</button></div></section>
     <section class="panel"><h2>유품</h2>${legacyAll}</section>`}
     <button class="btn primary big" data-act="to-prep">출정 준비</button>
   </main>`;
@@ -4294,8 +4370,9 @@ function startGameRun() {
   clearRunState();
   r.perks = { campComfort: metaHas('campComfort'), stairCache: metaHas('stairCache') };
   RUN = r;
+  const cardPick = applyPack(r);
   UI.mapScrolled = false; UI.deckOpen = false; UI.picking = null; UI.confirmNew = false;
-  screen = 'map'; resetUI(); render(); window.scrollTo(0, 0);
+  screen = cardPick ? 'reward' : 'map'; resetUI(); render(); window.scrollTo(0, 0);
 }
 
 /* ---------- 타이틀 ---------- */
@@ -4336,6 +4413,19 @@ function onGameAct(act, d) {
     case 'to-title': screen = 'title'; resetUI(); UI.confirmNew = false; render(); window.scrollTo(0, 0); return true;
     case 'to-prep': screen = 'prep'; UI.confirmNew = false; UI.cinfo = null; render(); window.scrollTo(0, 0); return true;
     case 'to-base': screen = meta().seenPrologue ? 'base' : 'story'; UI.storyPage = 0; UI.storyNext = 'base'; UI.giftConfirm = false; UI.giftCloseConfirm = false; resetUI(); UI.confirmNew = false; UI.cinfo = null; render(); window.scrollTo(0, 0); return true;
+    case 'craft-clear-image': craftReadDraft(); UI.craft.draft.image = ''; UI.craft.imageName = ''; render(); return true;
+    case 'craft-issue': {
+      const m = meta(); if ((m.giftTickets || 0) < 1) { flash('제작권이 없습니다'); return true; }
+      const dd = craftClamp(craftReadDraft()); if (!dd.name) { flash('카드 이름을 적어 주세요'); return true; }
+      const p = { v: 1, id: crypto.randomUUID(), base: dd.base, name: dd.name, note: dd.note, atk: dd.atk, hp: dd.hp, sig: dd.sig, image: dd.image || '', friend: 1, from: UI.craft.from || '' };
+      if (!friendCardOk(p)) { flash('이름, 능력치, 인장을 확인해 주세요'); return true; }
+      m.giftTickets -= 1; if (!saveMeta()) { m.giftTickets += 1; flash('저장하지 못했습니다'); return true; }
+      UI.craft.code = friendCode(p); render(); flash('선물 코드를 만들었습니다'); return true;
+    }
+    case 'craft-copy': { const t = app.querySelector('#craft-code'); if (t) { t.select(); (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(() => flash('코드를 복사했습니다'), () => { document.execCommand('copy'); flash('코드를 복사했습니다'); }); } return true; }
+    case 'pack-buy': { const r = buyPack(d.k); if (!r.ok) flash(r.msg); else { flash(fixJosa(`${PACK_ITEMS[d.k].name}을(를) 챙겼습니다`)); render(); } return true; }
+    case 'gift-ticket-buy': { const r = buyGiftTicket(); if (!r.ok) flash(r.msg); else { flash('선물 카드 제작권을 샀습니다'); render(); } return true; }
+    case 'to-craft': if ((meta().giftTickets || 0) < 1) { flash('제작권이 없습니다'); return true; } UI.craft = { draft: wsDefault('blade'), code: '', imageName: '' }; screen = 'craft'; render(); window.scrollTo(0, 0); return true;
     case 'unlock': { const r = buyUnlock(d.k); if (!r.ok) flash(r.msg); else { flash(`${UNLOCKS[d.k].name} 해금!`); render(); } return true; }
     case 'deck-pick': PREP.picks[+d.i] = d.k; render(); return true;
     case 'gift-send': {
@@ -4550,7 +4640,7 @@ function renderSettings() {
     <section class="panel gift-panel"><h2>선물 카드</h2>
       <p class="soft small">제작자가 만든 선물 카드 코드(TCG1:로 시작)를 넣으면 받을 수 있습니다. 받은 카드는 다음 원정부터 원래 카드 한 장을 대신하고, 언제든 끄거나 지울 수 있습니다.</p>
       <details class="gift-recv"${UI.signedOpen === false ? '' : ' open'}><summary>받은 선물 카드 코드 넣기</summary>
-        <div class="gift-recv-body"><textarea rows="3" data-signed-in aria-label="받은 선물 카드 코드" placeholder="TCG1:로 시작하는 코드"></textarea>
+        <div class="gift-recv-body"><textarea rows="3" data-signed-in aria-label="받은 선물 카드 코드" placeholder="TCG1: 또는 FCG1:로 시작하는 코드"></textarea>
         <button class="btn gift-recv-submit" data-act="signed-recv"${UI.signedBusy ? ' disabled' : ''}>선물 카드 받기</button></div></details>
       ${giftShelfHtml()}
     </section>
@@ -5007,6 +5097,24 @@ async function verifySignedGift(code) {
   if (!validSignedCard(p)) throw Error('지원하지 않는 카드 데이터입니다');
   return p;
 }
+/* 공방에서 만든 선물 카드(FCG1). 서명이 없으므로 받는 쪽에서 능력치 한도를 다시 확인합니다 */
+const FRIEND_SIGILS = [...new Set(Object.values(CARDS).flatMap(c => c.sig))].filter(k => Object.hasOwn(SIGILS, k));
+function friendCardOk(p) {
+  if (!validSignedCard(p) || p.friend !== 1) return false;
+  const b = CARDS[p.base];
+  if (p.atk > b.atk + 2 || p.hp > b.hp + 3) return false;
+  if (!p.sig.every(k => FRIEND_SIGILS.includes(k))) return false;
+  if (p.from != null && (typeof p.from !== 'string' || p.from.length > 24)) return false;
+  return true;
+}
+function friendCode(p) { return 'FCG1:' + giftB64(giftBytes(JSON.stringify(p))); }
+function readFriendCode(code) {
+  const s = String(code || '').trim();
+  if (s.length > 40000 || !s.startsWith('FCG1:')) throw Error('선물 코드 형식이 올바르지 않습니다');
+  let p; try { p = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(giftUnb64(s.slice(5)))); } catch (e) { throw Error('코드가 잘렸거나 손상되었습니다. 전체를 복사해 주세요'); }
+  if (!friendCardOk(p)) throw Error('카드 능력치가 허용 범위를 넘었거나 지원하지 않는 카드입니다');
+  return p;
+}
 function signedCard(p) {
   const base = CARDS[p.base];
   return { id: p.id, name: p.name, note: p.note, image: p.image, atk: p.atk, hp: p.hp, sig: p.sig.slice(), cost: { ...base.cost }, emo: base.emo };
@@ -5053,12 +5161,12 @@ function giftShelfHtml() {
 }
 function giftReceiptHtml() {
   const p = UI.signedPending; if (!p) return '';
-  return `<div class="sheet top"><div class="sheet-body"><h2>카드가 도착했어요</h2><div class="ws-card-preview">${cardHtml({ key: p.base, gift: signedCard(p) })}</div><p>${esc(p.note)}</p><p class="small">다음 원정부터 ${esc(CARDS[p.base].name)} 한 장을 대신합니다. 진행 중인 원정에는 영향을 주지 않습니다.</p><p class="soft small">비용과 주머니 감정은 원래 카드와 같습니다. 거점에서 언제든 사용을 끌 수 있습니다.</p><div class="res-btns"><button class="btn primary" data-act="signed-accept">받고 사용하기</button><button class="btn" data-act="signed-store">보관만 하기</button><button class="btn ghost" data-act="signed-cancel">닫기</button></div></div></div>`;
+  return `<div class="sheet top"><div class="sheet-body"><h2>카드가 도착했어요</h2>${p.friend ? `<p class="small">${esc(fixJosa((p.from || '누군가') + '이(가) 공방에서 만든 카드'))}</p>` : ''}<div class="ws-card-preview">${cardHtml({ key: p.base, gift: signedCard(p) })}</div><p>${esc(p.note)}</p><p class="small">다음 원정부터 ${esc(CARDS[p.base].name)} 한 장을 대신합니다. 진행 중인 원정에는 영향을 주지 않습니다.</p><p class="soft small">비용과 주머니 감정은 원래 카드와 같습니다. 거점에서 언제든 사용을 끌 수 있습니다.</p><div class="res-btns"><button class="btn primary" data-act="signed-accept">받고 사용하기</button><button class="btn" data-act="signed-store">보관만 하기</button><button class="btn ghost" data-act="signed-cancel">닫기</button></div></div></div>`;
 }
 async function receiveSignedGiftUI(code) {
   if (UI.signedBusy) return;
   UI.signedBusy = true;
-  try { const p = await verifySignedGift(code); if (screen === 'settings') { UI.signedPending = p; render(); } }
+  try { const p = String(code).trim().startsWith('FCG1:') ? readFriendCode(code) : await verifySignedGift(code); if (screen === 'settings') { UI.signedPending = p; render(); } }
   catch (e) { flash(e.message || '코드를 읽지 못했습니다'); }
   finally { UI.signedBusy = false; }
 }
@@ -6142,7 +6250,7 @@ function renderBattle() {
   if (!TUT) ultNotice();
 }
 
-const SCREENS = { settings: () => renderSettings(), report: () => renderArchivedReport(), firstchar: () => renderFirstChar(), ending: () => renderEnding(), 'ending-preview': () => renderEnding(), stage: () => renderStage(), title: () => renderTitle(), story: () => renderStory(), howto: () => renderHowTo(), base: () => renderBase(), prep: () => renderPrep(), setup: () => renderSetup(), roster: () => renderRoster(), edit: () => renderEditor(), camp: () => renderCamp(),
+const SCREENS = { craft: () => renderCraft(), settings: () => renderSettings(), report: () => renderArchivedReport(), firstchar: () => renderFirstChar(), ending: () => renderEnding(), 'ending-preview': () => renderEnding(), stage: () => renderStage(), title: () => renderTitle(), story: () => renderStory(), howto: () => renderHowTo(), base: () => renderBase(), prep: () => renderPrep(), setup: () => renderSetup(), roster: () => renderRoster(), edit: () => renderEditor(), camp: () => renderCamp(),
   map: () => renderMap(), event: () => renderEvent(), trade: () => renderTrade(), reward: () => renderReward(), runend: () => renderRunEnd() };
 function render() {
   // 턴 재생 중에는 연출 타이머 등이 결과 화면을 끼워 그리지 않게 막습니다(재생이 끝나면 다시 그림)
@@ -6373,8 +6481,15 @@ function onMenuAct(act, d) {
   return false;
 }
 
+app.addEventListener('input', e => {
+  if (screen !== 'craft' || !e.target.closest('[data-craft-form]') || e.target.matches('[type=file]')) return;
+  const d = craftReadDraft(); const pv = app.querySelector('.ws-card-preview'); if (pv) pv.innerHTML = craftPreviewHtml(craftClamp({ ...d }));
+  if (UI.craft.code) { UI.craft.code = ''; const cb = app.querySelector('.ws-code-box'); if (cb) cb.remove(); }
+});
 app.addEventListener('change', e => {
   const t = e.target;
+  if (screen === 'craft' && t.matches && t.matches('[data-craft-base]')) { UI.craft.draft = wsDefault(t.value); UI.craft.code = ''; render(); return; }
+  if (screen === 'craft' && t.matches && t.matches('[data-craft-image]') && t.files && t.files[0]) { const f = t.files[0]; craftReadDraft(); wsImage(f).then(img => { UI.craft.draft.image = img; UI.craft.imageName = f.name; UI.craft.code = ''; render(); }, err => flash(err.message || '그림을 읽지 못했습니다')); return; }
   if (t.matches && t.matches('[data-save-file]') && t.files && t.files[0]) {
     if (t.files[0].size > 20 * 1024 * 1024) { flash('파일이 너무 큽니다'); return; }
     const fname = t.files[0].name;
