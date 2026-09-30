@@ -1091,6 +1091,104 @@ main.battle.tut { padding-bottom: 13rem; }
   background:radial-gradient(ellipse 90% 80% at 50% 45%,#35324e 0%,#191a2c 100%)
 }
 
+/* 파스텔 도트 스킨(화면·카드·글씨 한 벌). 글꼴: 갈무리(Galmuri, SIL OFL 1.1, fonts/Galmuri-LICENSE.txt). 이 스킨을 켰을 때만 내려받습니다 */
+@font-face{font-family:"Galmuri11";src:url("fonts/Galmuri11.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Galmuri11";src:url("fonts/Galmuri11-Bold.woff2") format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Galmuri9";src:url("fonts/Galmuri9.woff2") format("woff2");font-display:swap}
+
+:root[data-page-skin="pixel"]{
+  --table:#f3eefc;--table-2:#e6ddf7;--ink:#3a3150;--ink-soft:#6c6388;--line:#3a3150;
+  --card:#fff9ea;--card-ink:#3a3150;--card-edge:#3a3150;
+  --mat:#c9ead9;--mat-2:#aad9c3;--mat-line:rgba(58,49,80,.35);
+  --anger:#f19a9a;--calm:#8fc2ec;--hope:#f3cf6f;--fear:#b9a1e0;--bond:#f2a8c8;--mourn:#b8c0c4;
+  --own:#4f7fb5;--foe:#c4566a;--good:#3f8a5c;--bad:#c4566a;--brass:#8a6cc9;
+  --r:0px;--px:3px;color-scheme:light
+}
+:root[data-page-skin="pixel"] body{
+  font-family:"Galmuri11",monospace;-webkit-font-smoothing:none;font-smooth:never;
+  background:
+    linear-gradient(90deg,rgba(196,176,236,.16) 50%,transparent 0) 0 0/28px 28px,
+    linear-gradient(rgba(196,176,236,.16) 50%,transparent 0) 0 0/28px 28px,
+    #faf7ff;
+  letter-spacing:0;
+}
+:root[data-page-skin="pixel"] :is(h1,h2,h3,.nm,.u-name,.h-name,.front-num,.btn.act b,.btn.ult-btn b,.bubble b,.bubble p,.lg.line,.av.ph){font-family:"Galmuri11",monospace;font-weight:700}
+:root[data-page-skin="pixel"] :is(small,.small,.soft.small,.u-sig,.h-sig,.bd,.rng,.pop,.tok small,.btn small){font-family:"Galmuri9","Galmuri11",monospace}
+:root[data-page-skin="pixel"] *{border-radius:0!important}
+
+/* 판·패널: 두꺼운 외곽선 + 계단 그림자 */
+:root[data-page-skin="pixel"] .panel,
+:root[data-page-skin="pixel"] section.tokens,
+:root[data-page-skin="pixel"] .front{border:var(--px) solid var(--ink)!important;box-shadow:var(--px) var(--px) 0 var(--ink);background:#fffdf7}
+:root[data-page-skin="pixel"] .board{border:var(--px) solid var(--ink);box-shadow:4px 4px 0 var(--ink);background:var(--mat)!important}
+:root[data-page-skin="pixel"] .row-label{font-family:"Galmuri11",monospace;color:var(--ink)}
+
+/* 칸·카드 */
+:root[data-page-skin="pixel"] .slot{border:2px dashed rgba(58,49,80,.4)!important;background:rgba(255,255,255,.35)!important}
+:root[data-page-skin="pixel"] .slot.unit,
+:root[data-page-skin="pixel"] .hcard{
+  background:var(--card)!important;border:var(--px) solid var(--ink)!important;box-shadow:var(--px) var(--px) 0 var(--ink)!important;color:var(--ink)}
+:root[data-page-skin="pixel"] .row-wrap.e .slot.unit{background:#ffe9ee!important}
+:root[data-page-skin="pixel"] .row-wrap.t .slot.unit{background:#f1ecf9!important;opacity:.9}
+:root[data-page-skin="pixel"] .slot.unit.boss-unit{background:#e3d6ff!important;box-shadow:var(--px) var(--px) 0 var(--brass)!important}
+:root[data-page-skin="pixel"] .hcard.comp{border-bottom-width:6px!important;border-bottom-color:#d9669a!important}
+:root[data-page-skin="pixel"] .hcard.sel{transform:translate(-2px,-4px);box-shadow:5px 7px 0 var(--brass)!important}
+:root[data-page-skin="pixel"] .u-stats b,:root[data-page-skin="pixel"] .hcard .u-stats b{
+  font-family:"Galmuri11",monospace;border:2px solid var(--ink)!important;box-shadow:2px 2px 0 var(--ink)}
+:root[data-page-skin="pixel"] .u-stats .atk{background:#f19a9a!important;color:var(--ink)!important}
+:root[data-page-skin="pixel"] .u-stats .hp{background:#a7dcb8!important;color:var(--ink)!important}
+:root[data-page-skin="pixel"] .rng{border:2px solid var(--ink)!important;background:#fff!important;color:var(--ink)!important}
+:root[data-page-skin="pixel"] .bd{border-width:2px}
+:root[data-page-skin="pixel"] .pip{border:2px solid var(--ink);color:var(--ink)!important;font-family:"Galmuri9",monospace;box-shadow:1px 1px 0 var(--ink)}
+
+/* 토큰: 동그라미 대신 픽셀 칩 */
+:root[data-page-skin="pixel"] .tok{
+  color:var(--ink)!important;border:var(--px) solid var(--ink)!important;box-shadow:var(--px) var(--px) 0 var(--ink);
+  font-family:"Galmuri11",monospace;font-weight:700;min-height:2.4rem}
+:root[data-page-skin="pixel"] .tok.extra{border-style:dashed!important}
+:root[data-page-skin="pixel"] .tok.keep{outline:3px solid var(--brass);outline-offset:2px}
+:root[data-page-skin="pixel"] .t-noise{background:repeating-linear-gradient(90deg,#c9c4bb 0 4px,#b4aea4 4px 8px)!important}
+:root[data-page-skin="pixel"] .dot{border:1px solid var(--ink)}
+
+/* 버튼 */
+:root[data-page-skin="pixel"] .btn{
+  border:var(--px) solid var(--ink)!important;box-shadow:var(--px) var(--px) 0 var(--ink);background:#fffdf7;color:var(--ink);
+  font-family:"Galmuri11",monospace;transition:none}
+:root[data-page-skin="pixel"] .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+:root[data-page-skin="pixel"] .btn.primary{background:#b9a1e0!important;color:var(--ink)!important}
+:root[data-page-skin="pixel"] .btn.primary.end{background:#f3cf6f!important}
+:root[data-page-skin="pixel"] .btn:disabled{box-shadow:none;opacity:.5;border-style:dashed!important}
+:root[data-page-skin="pixel"] .btn.act.crisis{background:#ffe9ee}
+
+/* 전선 게이지·스트레스 막대 */
+:root[data-page-skin="pixel"] .stress-bar{border:var(--px) solid var(--ink)!important;box-shadow:2px 2px 0 var(--ink);background:#fff!important;height:1rem}
+:root[data-page-skin="pixel"] .stress-bar i{background:repeating-linear-gradient(90deg,#b9a1e0 0 6px,#a58bd3 6px 8px)!important}
+:root[data-page-skin="pixel"] .front-track > *{border:2px solid var(--ink)!important;box-shadow:none!important}
+
+/* 맵 */
+:root[data-page-skin="pixel"] .map{border:var(--px) solid var(--ink);box-shadow:4px 4px 0 var(--ink);background:#dff2e8!important}
+:root[data-page-skin="pixel"] .map .node{border:var(--px) solid var(--ink)!important;box-shadow:var(--px) var(--px) 0 var(--ink);font-family:"Galmuri11",monospace}
+:root[data-page-skin="pixel"] .node{--node-bg:#fff9ea}
+:root[data-page-skin="pixel"] .node.n-event{--node-bg:#e3d6ff}
+:root[data-page-skin="pixel"] .node.n-elite{--node-bg:#f7b3bd}
+:root[data-page-skin="pixel"] .node.n-camp{--node-bg:#ffe3a8}
+:root[data-page-skin="pixel"] .node.n-trade{--node-bg:#bfe0f7}
+:root[data-page-skin="pixel"] .node.n-boss{--node-bg:#8a6cc9;--node-ink:#fff}
+:root[data-page-skin="pixel"] .map .node{background:var(--node-bg);color:var(--node-ink,var(--ink))}
+
+/* 초상화는 원본 그대로 */
+:root[data-page-skin="pixel"] img.av{image-rendering:auto;border:2px solid var(--ink)}
+:root[data-page-skin="pixel"] :is(.slot.unit,.hcard,.tok)::before,:root[data-page-skin="pixel"] :is(.slot.unit,.hcard,.tok)::after{display:none!important}
+:root[data-page-skin="pixel"] .map .fl{color:var(--ink-soft)!important;font-family:"Galmuri9",monospace}
+:root[data-page-skin="pixel"] .tip{border-left:var(--px) solid var(--brass)}
+:root[data-page-skin="pixel"] body *{font-family:"Galmuri11",monospace!important}
+:root[data-page-skin="pixel"] body :is(small,.small,.u-sig,.h-sig,.bd,.rng,.pop,.pip){font-family:"Galmuri9","Galmuri11",monospace!important}
+:root[data-page-skin="pixel"] .battle.boss-fight .board{background:#ddd2f4!important;box-shadow:4px 4px 0 var(--brass)}
+:root[data-page-skin="pixel"] .panel{padding:.9rem .85rem 1rem;margin:0 0 .9rem;background:#fffdf7}
+:root[data-page-skin="pixel"] .slot.boss-unit :is(.u-name,.u-sig){color:var(--ink)!important}
+:root[data-page-skin="pixel"] .slot.elite-unit .u-name{color:var(--ink)!important}
+.skin-swatch-pixel{background:linear-gradient(90deg,rgba(185,161,224,.35) 50%,transparent 0) 0 0/10px 10px,linear-gradient(rgba(185,161,224,.35) 50%,transparent 0) 0 0/10px 10px,#fbf8ff;border:2px solid #3a3150;color:#3a3150;border-radius:0;box-shadow:2px 2px 0 #3a3150}
+
 /* 제작자 작업실과 받은 카드: 일반 플레이에는 받은 카드가 있을 때만 보입니다. */
 .workshop { max-width: 760px; }
 .ws-eyebrow { color: var(--brass); font-size: .72rem; letter-spacing: .16em; margin: 1rem 0 .25rem; }
@@ -3557,10 +3655,11 @@ const UNLOCKS = {
   cardStarlight: { name: '별빛 카드', desc: '아군 카드와 손패에 연보라색 별무늬를 입힙니다', cost: 40 },
   pageStorybook: { name: '꽃빛 그림책', desc: '거점과 전투 화면을 포근한 분홍빛으로 꾸밉니다', cost: 55 },
   pageStarlight: { name: '별빛 그림책', desc: '거점과 맵, 전투 화면을 별이 비치는 연보라빛으로 꾸밉니다', cost: 55 },
+  pagePixel: { name: '파스텔 도트', desc: '화면과 카드, 글씨까지 전부 파스텔 픽셀 게임처럼 바꿉니다. 켜 두면 카드 꾸미기보다 먼저 적용됩니다', cost: 120 },
 };
 const FRAME_STYLES = { silver: { name: '달빛 은테', unlock: 'frameSilver' }, forest: { name: '숲빛 테두리', unlock: 'frameForest' }, rose: { name: '장밋빛 테두리', unlock: 'frameRose' } };
 const CARD_SKINS = { petal: { unlock: 'cardPetal' }, starlight: { unlock: 'cardStarlight' } };
-const PAGE_SKINS = { storybook: { unlock: 'pageStorybook' }, starlight: { unlock: 'pageStarlight' } };
+const PAGE_SKINS = { storybook: { unlock: 'pageStorybook' }, starlight: { unlock: 'pageStarlight' }, pixel: { unlock: 'pagePixel' } };
 /* 원정 준비물: 기억 조각으로 사서 다음 원정 한 번에만 쓰는 물건. 종류마다 한 개씩 챙길 수 있습니다 */
 const PACK_ITEMS = {
   supply: { name: '여벌 보급 꾸러미', desc: '다음 원정을 보급 +3으로 시작합니다', cost: 25 },
@@ -4319,12 +4418,12 @@ function unlockRowHtml(k) {
     : st === 'locked' ? '<span class="soft small">앞 단계 먼저</span>'
     : `<button class="btn small-btn${st === 'ready' ? ' primary' : ''}" data-act="unlock" data-k="${k}"${st === 'ready' ? '' : ' disabled'}>조각 ${u.cost}</button>`;
   const previewSkin = skin === 'storybook' ? 'petal' : skin;
-  const preview = skin ? `<span class="skin-swatch skin-swatch-${previewSkin}" aria-hidden="true">${skin === 'starlight' ? '✦' : '✿'}</span>` : '';
+  const preview = skin ? `<span class="skin-swatch skin-swatch-${previewSkin}" aria-hidden="true">${skin === 'starlight' ? '✦' : skin === 'pixel' ? '■' : '✿'}</span>` : '';
   return `<li class="ul-row ${st}"><div class="unlock-copy">${preview}<span><b>${esc(u.name)}</b><small>${esc(u.desc)}</small></span></div>${btn}</li>`;
 }
 function renderBase() {
   const m = meta();
-  const decor = ['frameSilver', 'frameForest', 'frameRose', 'cardPetal', 'cardStarlight', 'pageStorybook', 'pageStarlight'];
+  const decor = ['frameSilver', 'frameForest', 'frameRose', 'cardPetal', 'cardStarlight', 'pageStorybook', 'pageStarlight', 'pagePixel'];
   const rosterUnlocks = ['slots8', 'slots10', 'slots12'];
   const lg = m.legacy;
   const legacy = (lg ? `<div class="legacy-box">${cardHtml({ key: lg.card.key, custom: lg.card.custom, awk: lg.card.awk })}
@@ -5354,7 +5453,7 @@ function renderWorkshop() {
   const sigOpts = cur => '<option value="">없음</option>' + Object.entries(SIGILS).filter(([, s]) => !s.enemyOnly).map(([k,s]) => opt(k, s.name, cur)).join('');
   const chars = ROSTER.chars.length ? ROSTER.chars : presetRoster().chars;
   app.innerHTML = `<main class="setup workshop"><div class="nav"><a class="btn ghost" href="${esc(location.pathname)}">게임으로</a></div><p class="ws-eyebrow">TOWER · ATELIER</p><h1>제작자 작업실</h1><p class="soft">연출을 살펴보고, 누군가를 위한 카드를 만듭니다.</p>
-  <section class="panel"><h2>연출 미리보기</h2><p class="soft small">별도 시험 화면에서 재생합니다. 실제 원정·동료·재화는 바뀌지 않습니다. 합동은 발동 확률을 생략해 효과를 보여 줍니다.</p><div class="ws-fields"><label>첫 번째 인물<select id="ws-a">${chars.map((c,i)=>opt(c.id,c.name,WORKSHOP.a || chars[0].id)).join('')}</select></label><label>두 번째 인물<select id="ws-b">${chars.map(c=>opt(c.id,c.name,WORKSHOP.b || chars[Math.min(1,chars.length-1)].id)).join('')}</select></label><label>관계<select id="ws-rel">${Object.entries(PRO_LINKS).map(([k,r])=>opt(k,r.name,WORKSHOP.relationship || 'lover')).join('')}</select></label><label>화면 테마<select id="ws-theme">${[['none','기본'],['storybook','꽃빛 그림책'],['starlight','별빛 그림책']].map(([k,n])=>opt(k,n,WORKSHOP.theme || 'none')).join('')}</select></label></div>
+  <section class="panel"><h2>연출 미리보기</h2><p class="soft small">별도 시험 화면에서 재생합니다. 실제 원정·동료·재화는 바뀌지 않습니다. 합동은 발동 확률을 생략해 효과를 보여 줍니다.</p><div class="ws-fields"><label>첫 번째 인물<select id="ws-a">${chars.map((c,i)=>opt(c.id,c.name,WORKSHOP.a || chars[0].id)).join('')}</select></label><label>두 번째 인물<select id="ws-b">${chars.map(c=>opt(c.id,c.name,WORKSHOP.b || chars[Math.min(1,chars.length-1)].id)).join('')}</select></label><label>관계<select id="ws-rel">${Object.entries(PRO_LINKS).map(([k,r])=>opt(k,r.name,WORKSHOP.relationship || 'lover')).join('')}</select></label><label>화면 테마<select id="ws-theme">${[['none','기본'],['storybook','꽃빛 그림책'],['starlight','별빛 그림책'],['pixel','파스텔 도트']].map(([k,n])=>opt(k,n,WORKSHOP.theme || 'none')).join('')}</select></label></div>
   <div class="ws-effect-buttons">${[['cutin','관계 등장'],['ult','궁극기'],...Object.entries(JOINTS).map(([k,j])=>['joint-'+k,j.name]),['down','사선'],['death','사망'],['grit','근성'],['stress25','스트레스 25 돌파'],['stress','스트레스 50 돌파'],['stress75','스트레스 75 돌파'],['awaken','각성'],['collapse','붕괴'],['gamja','감자 이벤트'],['gain','카드 획득'],['fuse','엮기'],['awaken','카드 각성'],['boss','보스 등장'],['phase','2페이즈 전환'],['ending','엔딩'],['ending5','무게 5 엔딩']].map(([k,n])=>`<button class="btn" data-act="ws-preview" data-kind="${k}">${n}</button>`).join('')}</div>
   <div class="ws-preview-wrap" hidden><iframe id="ws-preview" title="게임 연출 미리보기" sandbox="allow-scripts"></iframe><button class="btn ghost" data-act="ws-close-preview">미리보기 닫기</button></div></section>
   <section class="panel"><h2>선물 카드 만들기</h2><p class="soft small">기본 덱 카드 한 장을 바탕으로 만듭니다. 비용과 주머니 감정은 유지하며, 공격·체력·인장·이름·그림을 바꿀 수 있습니다. 같은 원본의 선물은 한 번에 하나만 사용할 수 있습니다.</p>
