@@ -824,6 +824,8 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 .story-page small { font-family: "Gowun Batang", serif; font-weight: 700; color: var(--brass); letter-spacing: .08em; font-size: .9rem; }
 .story-page p { font-family: "Gowun Batang", serif; font-size: 1.28rem; line-height: 1.85; margin: 0; word-break: keep-all; }
 .story-page .title-toks { justify-content: flex-start; }
+.story-page strong.em { font-weight: 700; background: linear-gradient(transparent 62%, rgba(179, 134, 44, .28) 0); padding: 0 .1em; }
+.story-page.w5 strong.em { background: linear-gradient(transparent 62%, rgba(140, 106, 163, .3) 0); }
 .story-page.w5 small { color: var(--fear); }
 .story-page.w5 small::before { content: '◇ '; }
 .story-foot { display: flex; align-items: center; justify-content: space-between; gap: .8rem; min-height: 2.6rem; }
@@ -856,6 +858,7 @@ main.battle.tut { padding-bottom: 13rem; }
 }
 .tut-guide b { display: block; font-family: "Gowun Batang", serif; font-size: 1.05rem; margin: .1rem 0 .25rem; color: #f3d78f; }
 .tut-guide p { margin: 0; font-size: .86rem; line-height: 1.55; }
+.tut-guide strong.em { color: #f3d78f; font-weight: 700; word-break: keep-all; }
 .tut-top { display: flex; justify-content: space-between; align-items: center; }
 .tut-top small { font-size: .72rem; color: #cbb991; }
 .tut-guide .linkish { background: none; border: 0; color: #cbb991; font: inherit; font-size: .75rem; text-decoration: underline; cursor: pointer; padding: .2rem 0; }
@@ -4709,18 +4712,18 @@ function endingPages(run) {
   const close = alive.filter(c => bondLevel(c) >= 3).sort((a, b) => b.bondPts - a.bondPts)[0];
   const say = { ban: '잊지 않았어. 한 번도.', yo: '잊지 않았어요. 한 번도.', hapsyo: '잊지 않았습니다. 한 번도.' };
   const third = close
-    ? { head: close.name, text: fixJosa(`${close.name}이(가) ${run.pro.name}의 손을 꼭 잡습니다. "${say[close.speech] || say.yo}" 탑이 빼앗으려 했던 것 중에, 끝내 빼앗기지 않은 것이 있었습니다.`) }
-    : alive.length ? { head: '함께 온 사람들', text: fixJosa(`${alive.map(c => c.name).join(', ')}이(가) 곁에 서 있습니다. 여기까지 함께 온 사람들입니다. 누구의 이름도 잊히지 않았습니다.`) }
-    : { head: '홀로', text: `${run.pro.name}의 곁에는 아무도 남지 않았습니다. 그래도 함께 오른 사람들의 이름만은 또렷하게 기억합니다.` };
+    ? { head: close.name, text: fixJosa(`${close.name}이(가) ${run.pro.name}의 손을 꼭 잡습니다. **"${say[close.speech] || say.yo}"** 탑이 빼앗으려 했던 것 중에, **끝내 빼앗기지 않은 것**이 있었습니다.`) }
+    : alive.length ? { head: '함께 온 사람들', text: fixJosa(`${alive.map(c => c.name).join(', ')}이(가) 곁에 서 있습니다. 여기까지 함께 온 사람들입니다. **누구의 이름도 잊히지 않았습니다.**`) }
+    : { head: '홀로', text: `${run.pro.name}의 곁에는 아무도 남지 않았습니다. 그래도 **함께 오른 사람들의 이름만은** 또렷하게 기억합니다.` };
   const w5 = (run.diff || 0) >= 5 ? w5EndingPages(run, close, alive) : null;
   const pages = [
-    { head: '마지막 문', text: '망각의 주인이 무너지자 탑 꼭대기의 문이 열립니다. 그 안에는 수많은 빛 조각이 떠 있습니다. 탑이 빼앗아 간 기억들입니다.' },
-    { head: '되찾은 것', text: '빛 하나를 쥐자 누군가의 웃음소리가 들립니다. 이름이, 얼굴이, 함께 걷던 거리가 돌아옵니다.' },
+    { head: '마지막 문', text: '망각의 주인이 무너지자 탑 꼭대기의 문이 열립니다. 그 안에는 수많은 빛 조각이 떠 있습니다. **탑이 빼앗아 간 기억들**입니다.' },
+    { head: '되찾은 것', text: '빛 하나를 쥐자 누군가의 웃음소리가 들립니다. **이름이, 얼굴이, 함께 걷던 거리가 돌아옵니다.**' },
     ...(w5 ? w5.mid : []),
     third,
-    { head: '탑이 가라앉다', text: '탑이 천천히 가라앉습니다. 도시 곳곳에서 사람들이 고개를 들고, 잊었던 이름을 부르는 소리가 들려옵니다.' },
-    { head: '돌아오는 길', text: '탑을 내려와 거점으로 향합니다.\n뒤돌아보면, 탑이 있던 자리에는 빈 하늘이 보입니다.' },
-    w5 ? w5.last : { head: '끝, 그리고', text: '당신은 기억해 낸 이름들을 마음속으로 하나씩 불러 봅니다. 그리고 다시 걸음을 옮깁니다. 기나긴 여정의 끝으로.', last: true },
+    { head: '탑이 가라앉다', text: '탑이 천천히 가라앉습니다. 도시 곳곳에서 사람들이 고개를 들고, **잊었던 이름을 부르는 소리**가 들려옵니다.' },
+    { head: '돌아오는 길', text: '탑을 내려와 거점으로 향합니다.\n뒤돌아보면, 탑이 있던 자리에는 **빈 하늘**이 보입니다.' },
+    ...(w5 ? [w5.beforeLast, w5.last] : [{ head: '끝, 그리고', text: '당신은 **기억해 낸 이름들**을 마음속으로 하나씩 불러 봅니다. 그리고 다시 걸음을 옮깁니다. 기나긴 여정의 끝으로.', last: true }]),
   ];
   return pages;
 }
@@ -4729,24 +4732,29 @@ function w5EndingPages(run, close, alive) {
   const n = run.pro.name;
   const f = t => fixJosa(t);
   const dead = run.comps.filter(c => c.status === 'dead' && !c.merc);
-  const compLine = close ? f(`${close.name}도 빛 속에서 다른 세계의 자신을 봅니다. 몇 번은 먼저 떠났고, 그래도 매번 다시 ${n}의 곁에 섰습니다.`)
-    : alive.length ? f(`${alive.map(c => c.name).join(', ')}도 빛 속에서 다른 세계의 자신을 봅니다. 몇 번은 먼저 떠났고, 그래도 매번 다시 곁에 섰습니다.`)
-    : dead.length ? f(`먼저 떠난 ${dead.map(c => c.name).join(', ')}도 빛 속에 있습니다. 다른 세계에서 끝까지 ${n}의 곁을 지켰던 모습으로.`) : '';
+  const compLine = close ? f(`${close.name}도 빛 속에서 다른 세계의 자신을 봅니다. 몇 번은 먼저 떠났고, 그래도 **매번 다시 ${n}의 곁에 섰습니다.**`)
+    : alive.length ? f(`${alive.map(c => c.name).join(', ')}도 빛 속에서 다른 세계의 자신을 봅니다. 몇 번은 먼저 떠났고, 그래도 **매번 다시 곁에 섰습니다.**`)
+    : dead.length ? f(`먼저 떠난 ${dead.map(c => c.name).join(', ')}도 빛 속에 있습니다. 다른 세계에서 **끝까지 ${n}의 곁을 지켰던 모습으로.**`) : '';
   return {
     mid: [
-      { head: '남은 빛 하나', text: f(`이름 없는 것이 무너진 자리에 빛 조각 하나가 남아 있습니다. 다른 빛들과 달리, 그것은 ${n}의 손이 닿자 낯익은 목소리로 말합니다. "여기까지 왔구나."`), w5: true },
-      { head: '수많은 나', text: f(`빛 속에는 수많은 ${n}이(가) 있습니다. 다른 거리, 다른 하늘 아래에서 살던 사람들. 탑은 처음부터 하나뿐이었습니다. 어느 세계에도 속하지 않은 채 모든 세계의 하늘에 걸쳐 선 탑. 그 계단을 수많은 ${n}이(가) 올랐고, 누군가는 첫 계단에서, 누군가는 마지막 문 앞에서 쓰러졌습니다. 그들이 잊은 것이 모여 이름 없는 것이 되었습니다.`), w5: true },
-      { head: '남겨 둔 것들', text: `그제야 알게 됩니다. 탑 곳곳에서 주웠던 유품은 그들이 남긴 것이었습니다. 다음에 오를 나를 위해, 쓰러지기 직전 계단에 놓아 둔 것들.${compLine ? '\n' + compLine : ''}`, w5: true },
-      { head: '이름을 부르다', text: f(`${n}은(는) 빛을 향해 이름을 부릅니다. 자기 이름을. 이름 없는 것에게 처음으로 이름이 생기고, 모든 세계의 ${n}이(가) 한꺼번에 고개를 듭니다.`), w5: true },
+      { head: '남은 빛 하나', text: f(`이름 없는 것이 무너진 자리에 빛 조각 하나가 남아 있습니다. 다른 빛들과 달리, 그것은 ${n}의 손이 닿자 낯익은 목소리로 말합니다. **"여기까지 왔구나."**`), w5: true },
+      { head: '수많은 나', text: f(`빛 속에는 수많은 ${n}이(가) 있습니다. 다른 거리, 다른 하늘 아래에서 살던 사람들. **탑은 처음부터 하나뿐이었습니다.** 어느 세계에도 속하지 않은 채 모든 세계의 하늘에 걸쳐 선 탑.`), w5: true },
+      { head: '이름 없는 것', text: f(`그 계단을 수많은 ${n}이(가) 올랐고, 누군가는 첫 계단에서, 누군가는 마지막 문 앞에서 쓰러졌습니다. 그들이 잊은 것이 모여 **이름 없는 것**이 되었습니다.`), w5: true },
+      { head: '남겨 둔 것들', text: '그제야 알게 됩니다. 탑 곳곳에서 주웠던 유품은 **그들이 남긴 것**이었습니다. 다음에 오를 나를 위해, 쓰러지기 직전 계단에 놓아 둔 것들.', w5: true },
+      ...(compLine ? [{ head: close || alive.length ? '다시 곁에' : '먼저 떠난 사람들', text: compLine, w5: true }] : []),
+      { head: '이름을 부르다', text: f(`${n}은(는) 빛을 향해 이름을 부릅니다. **자기 이름을.** 이름 없는 것에게 처음으로 이름이 생기고, 모든 세계의 ${n}이(가) 한꺼번에 고개를 듭니다.`), w5: true },
     ],
-    last: { head: '끝, 그리고', text: f(`탑은 사라진 것이 아닙니다. 이 세계에서 물러났을 뿐, 아직 다른 세계의 하늘에 걸려 있습니다. 그곳에도 탑을 올려다보는 ${n}이(가) 있을 것입니다.\n그래서 ${n}은(는) 쥐고 있던 것 하나를 계단에 내려놓고 왔습니다. 다음에 오를 나를 위해서.`), last: true, w5: true },
+    beforeLast: { head: '다른 하늘', text: f(`탑은 사라진 것이 아닙니다. 이 세계에서 물러났을 뿐, **아직 다른 세계의 하늘에 걸려 있습니다.** 그곳에도 탑을 올려다보는 ${n}이(가) 있을 것입니다.`), w5: true },
+    last: { head: '끝, 그리고', text: f(`그래서 ${n}은(는) 쥐고 있던 것 하나를 계단에 내려놓고 왔습니다.\n**다음에 이곳에 오를 나를 위해서.**`), last: true, w5: true },
   };
 }
+/* 이야기·훈련 문장의 **강조**를 굵은 표시로 바꿉니다(esc 뒤에 씁니다) */
+function emph(html) { return String(html).replace(/\*\*(.+?)\*\*/g, '<strong class="em">$1</strong>'); }
 function renderEnding() {
   const preview = screen === 'ending-preview';
   const pages = endingPages(preview ? UI.previewRun : RUN); const i = Math.min(UI.endPage || 0, pages.length - 1); const pg = pages[i];
   app.innerHTML = `<main class="story-screen ending" data-act="ending-next">
-    <div class="story-page${pg.w5 ? ' w5' : ''}" data-pg="${i}"><small>${esc(pg.head)}</small><p>${esc(pg.text).replace(/\n/g, '<br>')}</p></div>
+    <div class="story-page${pg.w5 ? ' w5' : ''}" data-pg="${i}"><small>${esc(pg.head)}</small><p>${emph(esc(pg.text)).replace(/\n/g, '<br>')}</p></div>
     <div class="story-foot"><span class="story-dots">${pages.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span><span class="soft small">${pg.last ? preview ? '눌러서 돌아가기' : '눌러서 결과 보기' : '눌러서 계속'}</span></div>
   </main>`;
 }
@@ -4978,31 +4986,31 @@ function cmdTap() {
 function keepTokId() { const t = [...S.tokens].reverse().find(x => x.t !== 'fear') || S.tokens[S.tokens.length - 1]; return t ? t.id : null; }
 const TUT_STEPS = [
   { title: '전선 게이지', focus: '.front', next: true,
-    text: () => `전투는 이 줄다리기 하나로 정해집니다. 오른쪽 끝(+${S.frontMax})까지 밀고 적의 반격 뒤에도 버티면 승리, 왼쪽 끝까지 밀리면 패배입니다. 적에게 밀리면 그만큼 ${S.pro.name}의 스트레스도 오릅니다.` },
+    text: () => `전투는 이 줄다리기 하나로 정해집니다. 오른쪽 끝(+${S.frontMax})까지 밀고 적의 반격 뒤에도 버티면 **승리**, 왼쪽 끝까지 밀리면 **패배**입니다. 적에게 밀리면 그만큼 ${S.pro.name}의 **스트레스**도 오릅니다.` },
   { title: '적 살펴보기', tap: () => laneSel('e', 1), next: () => !!(UI.focus && UI.focus.side === 'e'),
     text: () => (UI.focus && UI.focus.side === 'e'
-      ? '적의 공격력(왼쪽 아래)과 체력(오른쪽 아래), 공격 범위가 나왔습니다. 맨 위 예고 줄은 다음 턴에 내려올 적, 맨 아래가 우리 칸입니다. 읽었으면 다음을 누르세요.'
+      ? '적의 **공격력(왼쪽 아래)**과 **체력(오른쪽 아래)**, 공격 범위가 나왔습니다. 맨 위 **예고 줄**은 다음 턴에 내려올 적, 맨 아래가 우리 칸입니다. 읽었으면 다음을 누르세요.'
       : '가운데 줄에 있는 굶주린 들개를 눌러 보세요. 무엇이든 누르면 설명이 나옵니다.') },
   { title: '감정 토큰', focus: '.tokens', next: true,
-    text: () => '매 턴 감정 토큰을 받습니다. 카드 왼쪽 위의 동그라미가 비용이고, 같은 감정의 토큰으로 냅니다. 아래 주머니에는 앞으로 뽑힐 토큰이 들어 있고, 공포도 섞여 있습니다.' },
+    text: () => '매 턴 감정 토큰을 받습니다. 카드 왼쪽 위의 동그라미가 **비용**이고, **같은 감정의 토큰**으로 냅니다. 아래 주머니에는 앞으로 뽑힐 토큰이 들어 있고, **공포**도 섞여 있습니다.' },
   { title: '한 번 더', tap: () => '[data-act=extra]', done: () => S.extraCount > 0,
     enter: () => { const i = S.bag.findIndex(t => t === 'anger'); const j = i >= 0 ? i : S.bag.findIndex(t => t !== 'fear'); if (j >= 0) { const [x] = S.bag.splice(j, 1); S.bag.push(x); } },
-    text: () => '카드를 내기 전에는 주머니에서 토큰을 더 뽑을 수 있습니다. 공포가 나오면 이번 턴에 더 뽑은 토큰을 모두 잃고 스트레스가 5 오릅니다. 반짝이는 한 번 더를 눌러 보세요.' },
+    text: () => '카드를 내기 전에는 주머니에서 토큰을 더 뽑을 수 있습니다. **공포가 나오면** 이번 턴에 더 뽑은 토큰을 **모두 잃고** 스트레스가 5 오릅니다. 반짝이는 한 번 더를 눌러 보세요.' },
   { title: '카드 내기', tap: () => playTap(isKey('blade'), () => 1), done: () => S.p.some(u => u && u.card && u.card.key === 'blade'),
     text: () => (UI.mode === 'play'
       ? '좋아요. 이제 반짝이는 칸(들개 바로 아래)을 누르세요. 들개를 막아 서서 싸웁니다.'
       : '분노 토큰이 생겼습니다. 손패에서 반짝이는 녹슨 칼잡이(분노 1)를 누르세요.') },
   { title: '빈 줄 노리기', tap: () => playTap(isKey('scout'), () => 2), done: () => S.p.some(u => u && u.card && u.card.key === 'scout'),
     text: () => (UI.mode === 'play'
-      ? '반짝이는 칸을 누르세요. 비행 카드는 앞에 적이 있어도 넘어가서 전선을 바로 밉니다.'
+      ? '반짝이는 칸을 누르세요. **비행** 카드는 앞에 적이 있어도 넘어가서 **전선을 바로 밉니다**.'
       : '이번엔 골목 정찰병(냉정 1)을 누르세요.') },
   { title: '토큰 보관', tap: () => { const id = keepTokId(); return id ? `[data-tok="${id}"]` : null; }, done: () => !!S.keepMark,
     skipIf: () => !S.tokens.length,
-    text: () => '쓰고 남은 토큰은 턴이 끝나면 사라집니다. 반짝이는 토큰을 눌러 다음 턴으로 보관해 보세요.' },
+    text: () => '쓰고 남은 토큰은 턴이 끝나면 **사라집니다**. 반짝이는 토큰을 눌러 **다음 턴으로 보관**해 보세요.' },
   { title: '턴 종료', tap: () => '[data-act=end]', allowEnd: true, done: () => S.turn >= 2,
-    text: () => '턴 종료를 누르면 우리 카드가 왼쪽부터 공격하고, 적이 반격한 뒤, 예고 줄의 적이 내려옵니다. 눌러서 지켜보세요.' },
+    text: () => '턴 종료를 누르면 우리 카드가 **왼쪽부터 공격**하고, 적이 반격한 뒤, 예고 줄의 적이 내려옵니다. 눌러서 지켜보세요.' },
   { title: '한 턴이 지났습니다', focus: '.front', next: true,
-    text: () => `전선이 ${S.front > 0 ? `+${S.front}로 밀렸습니다` : '움직였습니다'}. 적을 막는 카드와 빈 줄로 전선을 미는 카드를 섞어 내는 것이 기본입니다. 새 턴에는 카드를 1장 뽑고 손패가 3장 미만이면 보충합니다. 적의 반격에 아군 카드 2장 이상이 쓰러졌다면 다음 턴에는 4장까지 보충합니다. 보관한 토큰도 돌아왔어요.` },
+    text: () => `전선이 ${S.front > 0 ? `+${S.front}로 밀렸습니다` : '움직였습니다'}. **적을 막는 카드**와 **빈 줄로 전선을 미는 카드**를 섞어 내는 것이 기본입니다. 새 턴에는 카드를 1장 뽑고 손패가 3장 미만이면 보충합니다. 적의 반격에 아군 카드 2장 이상이 쓰러졌다면 다음 턴에는 4장까지 보충합니다. 보관한 토큰도 돌아왔어요.` },
   { title: '동료 카드', tap: () => playTap(isComp, firstEmpty), done: () => S.p.some(u => u && u.comp),
     enter: () => {
       let c = S.hand.find(x => x.comp && compById(x.comp).status !== 'dead');
@@ -5010,7 +5018,7 @@ const TUT_STEPS = [
       if (c) tutEnsureTokens(cardInfo(c).cost);
     },
     text: () => (UI.mode === 'play'
-      ? '반짝이는 빈 칸에 내세요. 동료는 쓰러지면 사선, 사선에서 또 쓰러지면 그 런에서 죽습니다.'
+      ? '반짝이는 빈 칸에 내세요. 동료는 쓰러지면 **사선**, 사선에서 또 쓰러지면 그 런에서 **죽습니다**.'
       : '이름이 적힌 카드는 동료입니다. 키워드에 따라 효과가 붙습니다. 반짝이는 동료 카드를 누르세요.') },
   { title: '지휘 스킬', tap: cmdTap, done: () => S.cmdCd > 0,
     enter: () => {
@@ -5022,10 +5030,10 @@ const TUT_STEPS = [
     text: () => {
       const cm = COMMANDS[S.pro.cmd];
       if (UI.mode === 'cmd') return `${cm.desc}. 반짝이는 대상을 누르세요.`;
-      return `${S.pro.name}의 지휘 스킬은 ${cm.name}(${cm.desc})입니다. 비용 없이 쓰고 몇 턴 쉬어야 다시 쓸 수 있습니다. 반짝이는 지휘 버튼을 누르세요.`;
+      return `${S.pro.name}의 지휘 스킬은 ${cm.name}(${cm.desc})입니다. **비용 없이** 쓰고 몇 턴 쉬어야 다시 쓸 수 있습니다. 반짝이는 지휘 버튼을 누르세요.`;
     } },
   { title: '스트레스', focus: '.status .stress', next: true,
-    text: () => '주인공은 체력 대신 스트레스를 가집니다. 처음 100에 닿으면 붕괴하거나 각성하고, 두 번째로 닿으면 런이 끝납니다. 스트레스가 높을수록 주머니의 공포도 늘어납니다.' },
+    text: () => '주인공은 체력 대신 **스트레스**를 가집니다. 처음 100에 닿으면 **붕괴하거나 각성**하고, 두 번째로 닿으면 **런이 끝납니다**. 스트레스가 높을수록 주머니의 공포도 늘어납니다.' },
   { title: '직접 이겨 보세요', focus: null, allowEnd: true, final: true, done: () => !!S.over,
     text: () => '이제 안내 없이 싸워 보세요. 카드나 적을 누르면 공격 범위와 설명이 나옵니다.' },
 ];
@@ -5046,7 +5054,7 @@ function tutChunks(text) {
   const ss = String(text).split(/(?<=[.?!])\s+/).filter(Boolean), out = [];
   for (const s of ss) {
     const last = out[out.length - 1];
-    if (last && last.n < 2 && (last.t + ' ' + s).length <= 70) { last.t += ' ' + s; last.n++; } else out.push({ t: s, n: 1 });
+    if (last && last.n < 2 && (last.t + ' ' + s).replace(/\*\*/g, '').length <= 70) { last.t += ' ' + s; last.n++; } else out.push({ t: s, n: 1 });
   }
   return out.map(c => c.t);
 }
@@ -5060,7 +5068,7 @@ function tutGuideHtml() {
     : tutNextShown(st) ? '<button class="btn primary small-btn" data-act="tut-next">다음</button>' : '';
   return `<div class="tut-guide${fresh ? ' fresh' : ''}" role="status">
     <div class="tut-top"><small>훈련 ${TUT.step + 1}단계 (총 ${TUT_STEPS.length}단계)</small><button class="linkish" data-act="tut-quit">그만두기</button></div>
-    <b>${esc(st.title)}</b><p>${esc(chunks[part] || text)}</p>${btn ? `<div class="tut-btns">${btn}</div>` : ''}
+    <b>${esc(st.title)}</b><p>${emph(esc(chunks[part] || text))}</p>${btn ? `<div class="tut-btns">${btn}</div>` : ''}
   </div>`;
 }
 function tutOverlayHtml() {
