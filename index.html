@@ -5734,6 +5734,7 @@ function sndInit() {
     SND.verb.connect(conv); conv.connect(master);
     SND.sfx.connect(master); SND.bgm.connect(master);
     sndApplyPrefs();
+    sndLoadFiles();
   } catch (e) { SND.ctx = null; }
 }
 function sndApplyPrefs() {
@@ -5808,12 +5809,36 @@ const SFX = {
   win: () => { [523.3, 659.3, 784, 1046.5].forEach((f, i) => sndBell(f, i * 0.1, 1.1, 0.1)); sndTone(261.6, 0.3, 1.2, { gain: 0.06, attack: 0.1, verb: true }); },
   lose: () => { [440, 349.2, 293.7].forEach((f, i) => sndBell(f, i * 0.16, 1, 0.09)); },
 };
+/* 녹음된 효과음(Kenney, CC0 · sfx/Kenney-LICENSE.txt). 여기 있는 소리는 파일로, 나머지는 위에서 만든 소리로 냅니다.
+   파일이 아직 안 받아졌거나 못 받으면 만든 소리로 대신합니다. layer는 파일과 만든 소리를 함께 냅니다 */
+const SFX_FILES = {"tap": ["tap"], "place": ["place1", "place2", "place3"], "token": ["token"], "page": ["page1", "page2"], "hit": ["hit1", "hit2", "hit3"], "hurt": ["hurt1", "hurt2", "hurt3"], "die": ["die"], "drop": ["drop1", "drop2", "drop3"], "block": ["block1", "block2", "block3"], "tick": ["tick1", "tick2", "tick3"], "burst": ["burst1", "burst2", "burst3"], "stress": ["stress"], "breakdown": ["breakdown"], "phase": ["phase"]};
+const SFX_LEVEL = {"tap": 0.07, "place": 0.14, "token": 0.1, "page": 0.06, "hit": 0.22, "hurt": 0.2, "die": 0.12, "drop": 0.08, "block": 0.12, "tick": 0.08, "burst": 0.18, "stress": 0.15, "breakdown": 0.24, "phase": 0.2};
+const SFX_FILE_OPT = { stress: { verb: true }, breakdown: { rate: 0.8, verb: true }, phase: { layer: true } };
+function sndLoadFiles() {
+  if (SND.buf) return; SND.buf = {};
+  for (const [k, list] of Object.entries(SFX_FILES)) list.forEach((n, i) => {
+    fetch('sfx/' + n + '.mp3').then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status))
+      .then(a => new Promise((ok, no) => SND.ctx.decodeAudioData(a, ok, no)))
+      .then(b => { (SND.buf[k] = SND.buf[k] || [])[i] = b; }).catch(() => {});
+  });
+}
+function sndPlayFile(name) {
+  const bs = ((SND.buf && SND.buf[name]) || []).filter(Boolean); if (!bs.length) return false;
+  const ctx = SND.ctx, o = SFX_FILE_OPT[name] || {}, src = ctx.createBufferSource(), g = ctx.createGain();
+  src.buffer = bs[Math.floor(Math.random() * bs.length)];
+  src.playbackRate.value = (o.rate || 1) * (0.97 + Math.random() * 0.06);
+  g.gain.value = (SFX_LEVEL[name] || 0.12) / 0.6; // 파일은 0.9 최대로 맞춰 두었고, 만든 소리와 비슷한 크기가 되도록 보정
+  src.connect(g); g.connect(SND.sfx); if (o.verb) g.connect(SND.verb);
+  src.start(ctx.currentTime);
+  return !o.layer;
+}
 /* 소리마다 크기를 고르게 맞춘 배율 */
 const SFX_MUL = {"tap": 1.67, "place": 1.46, "token": 2.04, "page": 3.16, "hit": 1.05, "hurt": 1.19, "push": 3.16, "pushE": 3.24, "die": 1.62, "drop": 1.6, "block": 1.4, "tick": 1.95, "heal": 2.04, "debuff": 1.89, "popup": 1.39, "ready": 1.52, "cmd": 1.92, "ult": 1.47, "gain": 1.48, "burst": 1.29, "stress": 1.43, "breakdown": 0.97, "awaken": 1.48, "steal": 1.97, "phase": 1.31, "win": 1.54, "lose": 1.63};
 /* 같은 소리가 한순간에 겹겹이 나지 않게 짧은 간격을 둡니다 */
 function sfx(name) {
   if (!SND.ctx || !SFX[name] || !sndPrefs().sfxOn || SND.ctx.state !== 'running') return;
   const now = performance.now(); if (now - (SND.last[name] || 0) < 45) return; SND.last[name] = now;
+  try { if (sndPlayFile(name)) return; } catch (e) { /* 파일 재생이 안 되면 만든 소리로 */ }
   SND.mul = SFX_MUL[name] || 1;
   try { SFX[name](); } catch (e) { /* 소리는 실패해도 게임은 계속 */ }
   SND.mul = 1;
