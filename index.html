@@ -824,6 +824,8 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 .story-page small { font-family: "Gowun Batang", serif; font-weight: 700; color: var(--brass); letter-spacing: .08em; font-size: .9rem; }
 .story-page p { font-family: "Gowun Batang", serif; font-size: 1.28rem; line-height: 1.85; margin: 0; word-break: keep-all; }
 .story-page .title-toks { justify-content: flex-start; }
+.story-page.w5 small { color: var(--fear); }
+.story-page.w5 small::before { content: '◇ '; }
 .story-foot { display: flex; align-items: center; justify-content: space-between; gap: .8rem; min-height: 2.6rem; }
 .story-dots { display: flex; gap: .35rem; }
 .story-dots i { width: .45rem; height: .45rem; border-radius: 50%; background: var(--line); }
@@ -4235,7 +4237,7 @@ function onRunAct(act, d) {
     case 'to-reward': {
       syncOnce();
       if (RUN.over) { screen = 'runend'; render(); return true; }
-      if (S.enc.boss && (RUN.stage || 1) >= MAX_STAGE) { RUN.cleared = true; UI.endPage = 0; screen = RUN.fromPrep ? 'ending' : 'runend'; render(); window.scrollTo(0, 0); return true; }
+      if (S.enc.boss && (RUN.stage || 1) >= MAX_STAGE) { RUN.cleared = true; UI.endPage = 0; if (RUN.fromPrep && (RUN.diff || 0) >= 5) { const m = meta(); m.w5Story = { diff: 5, pro: { name: RUN.pro.name, speech: RUN.pro.speech }, comps: RUN.comps.map(c => ({ id: c.id, name: c.name, status: c.status, merc: !!c.merc, bondPts: c.bondPts, speech: c.speech, core: c.core, aux: (c.aux || []).slice() })) }; saveMeta(); } screen = RUN.fromPrep ? 'ending' : 'runend'; render(); window.scrollTo(0, 0); return true; }
       if (S.enc.boss) RUN.stageDone = true;
       makeReward(RUN, S);
       UI.revealQ = (RUN.awakened || []).map(cid => { const c = RUN.deck.find(x => x.cid === cid); return c && { kind: 'awaken', card: c, title: '각성!', sub: fixJosa(`${cardInfo(c).name.replace('각성한 ', '')}이(가) 세 번의 처치 끝에 각성했습니다`) }; }).filter(Boolean);
@@ -4611,20 +4613,41 @@ function endingPages(run) {
     ? { head: close.name, text: fixJosa(`${close.name}이(가) ${run.pro.name}의 손을 꼭 잡습니다. "${say[close.speech] || say.yo}" 탑이 빼앗으려 했던 것 중에, 끝내 빼앗기지 않은 것이 있었습니다.`) }
     : alive.length ? { head: '함께 온 사람들', text: fixJosa(`${alive.map(c => c.name).join(', ')}이(가) 곁에 서 있습니다. 여기까지 함께 온 사람들입니다. 누구의 이름도 잊히지 않았습니다.`) }
     : { head: '홀로', text: `${run.pro.name}의 곁에는 아무도 남지 않았습니다. 그래도 함께 오른 사람들의 이름만은 또렷하게 기억합니다.` };
-  return [
+  const w5 = (run.diff || 0) >= 5 ? w5EndingPages(run, close, alive) : null;
+  const pages = [
     { head: '마지막 문', text: '망각의 주인이 무너지자 탑 꼭대기의 문이 열립니다. 그 안에는 수많은 빛 조각이 떠 있습니다. 탑이 빼앗아 간 기억들입니다.' },
     { head: '되찾은 것', text: '빛 하나를 쥐자 누군가의 웃음소리가 들립니다. 이름이, 얼굴이, 함께 걷던 거리가 돌아옵니다.' },
+    ...(w5 ? w5.mid : []),
     third,
     { head: '탑이 가라앉다', text: '탑이 천천히 가라앉습니다. 도시 곳곳에서 사람들이 고개를 들고, 잊었던 이름을 부르는 소리가 들려옵니다.' },
     { head: '돌아오는 길', text: '탑을 내려와 거점으로 향합니다.\n뒤돌아보면, 탑이 있던 자리에는 빈 하늘이 보입니다.' },
-    { head: '끝, 그리고', text: '당신은 기억해 낸 이름들을 마음속으로 하나씩 불러 봅니다. 그리고 다시 걸음을 옮깁니다. 기나긴 여정의 끝으로.', last: true },
+    w5 ? w5.last : { head: '끝, 그리고', text: '당신은 기억해 낸 이름들을 마음속으로 하나씩 불러 봅니다. 그리고 다시 걸음을 옮깁니다. 기나긴 여정의 끝으로.', last: true },
   ];
+  return pages;
+}
+/* 무게 5 클리어 전용 이야기: 탑은 모든 세계가 함께 올려다보는 단 하나의 존재이고, 유품은 다른 세계의 내가 남긴 것입니다 */
+function w5EndingPages(run, close, alive) {
+  const n = run.pro.name;
+  const f = t => fixJosa(t);
+  const dead = run.comps.filter(c => c.status === 'dead' && !c.merc);
+  const compLine = close ? f(`${close.name}도 빛 속에서 다른 세계의 자신을 봅니다. 몇 번은 먼저 떠났고, 그래도 매번 다시 ${n}의 곁에 섰습니다.`)
+    : alive.length ? f(`${alive.map(c => c.name).join(', ')}도 빛 속에서 다른 세계의 자신을 봅니다. 몇 번은 먼저 떠났고, 그래도 매번 다시 곁에 섰습니다.`)
+    : dead.length ? f(`먼저 떠난 ${dead.map(c => c.name).join(', ')}도 빛 속에 있습니다. 다른 세계에서 끝까지 ${n}의 곁을 지켰던 모습으로.`) : '';
+  return {
+    mid: [
+      { head: '남은 빛 하나', text: f(`이름 없는 것이 무너진 자리에 빛 조각 하나가 남아 있습니다. 다른 빛들과 달리, 그것은 ${n}의 손이 닿자 낯익은 목소리로 말합니다. "여기까지 왔구나."`), w5: true },
+      { head: '수많은 나', text: f(`빛 속에는 수많은 ${n}이(가) 있습니다. 다른 거리, 다른 하늘 아래에서 살던 사람들. 탑은 처음부터 하나뿐이었습니다. 어느 세계에도 속하지 않은 채 모든 세계의 하늘에 걸쳐 선 탑. 그 계단을 수많은 ${n}이(가) 올랐고, 누군가는 첫 계단에서, 누군가는 마지막 문 앞에서 쓰러졌습니다. 그들이 잊은 것이 모여 이름 없는 것이 되었습니다.`), w5: true },
+      { head: '남겨 둔 것들', text: `그제야 알게 됩니다. 탑 곳곳에서 주웠던 유품은 그들이 남긴 것이었습니다. 다음에 오를 나를 위해, 쓰러지기 직전 계단에 놓아 둔 것들.${compLine ? '\n' + compLine : ''}`, w5: true },
+      { head: '이름을 부르다', text: f(`${n}은(는) 빛을 향해 이름을 부릅니다. 자기 이름을. 이름 없는 것에게 처음으로 이름이 생기고, 모든 세계의 ${n}이(가) 한꺼번에 고개를 듭니다.`), w5: true },
+    ],
+    last: { head: '끝, 그리고', text: f(`탑은 사라진 것이 아닙니다. 이 세계에서 물러났을 뿐, 아직 다른 세계의 하늘에 걸려 있습니다. 그곳에도 탑을 올려다보는 ${n}이(가) 있을 것입니다.\n그래서 ${n}은(는) 쥐고 있던 것 하나를 계단에 내려놓고 왔습니다. 다음에 오를 나를 위해서.`), last: true, w5: true },
+  };
 }
 function renderEnding() {
   const preview = screen === 'ending-preview';
   const pages = endingPages(preview ? UI.previewRun : RUN); const i = Math.min(UI.endPage || 0, pages.length - 1); const pg = pages[i];
   app.innerHTML = `<main class="story-screen ending" data-act="ending-next">
-    <div class="story-page" data-pg="${i}"><small>${esc(pg.head)}</small><p>${esc(pg.text).replace(/\n/g, '<br>')}</p></div>
+    <div class="story-page${pg.w5 ? ' w5' : ''}" data-pg="${i}"><small>${esc(pg.head)}</small><p>${esc(pg.text).replace(/\n/g, '<br>')}</p></div>
     <div class="story-foot"><span class="story-dots">${pages.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span><span class="soft small">${pg.last ? preview ? '눌러서 돌아가기' : '눌러서 결과 보기' : '눌러서 계속'}</span></div>
   </main>`;
 }
@@ -4746,6 +4769,7 @@ function renderHowTo() {
     <section class="panel howto-btns">
       <button class="btn primary" data-act="tut-start">훈련 전투 시작<small>실제 전투에서 한 단계씩 따라 해 봅니다</small></button>
       <button class="btn" data-act="story-open">이야기 다시 보기</button>
+      ${meta().w5Story ? '<button class="btn" data-act="w5-open">탑 너머의 이야기 다시 보기<small>무게 5를 넘은 원정의 엔딩</small></button>' : ''}
     </section>
     ${HOWTO.map(([h, t]) => `<section class="panel"><h2>${esc(h)}</h2><p class="small">${esc(t)}</p></section>`).join('')}
     <section class="panel"><h2>무게별 조건</h2><p class="soft small">조건은 모두 누적됩니다. 각 무게의 기억 조각 보너스도 함께 표시합니다.</p>
@@ -5025,6 +5049,7 @@ function onTutAct(act, d) {
       } else { UI.endPage = (UI.endPage || 0) + 1; render(); }
       return true;
     }
+    case 'w5-open': { const w = meta().w5Story; if (!w) return true; UI.previewRun = { ...w, cleared: true }; UI.previewBack = 'howto'; UI.endPage = 0; screen = 'ending-preview'; render(); window.scrollTo(0, 0); return true; }
     case 'story-open': UI.storyPage = 0; UI.storyNext = 'howto'; screen = 'story'; render(); window.scrollTo(0, 0); return true;
     case 'to-settings': UI.resetAsk = null; UI.saveCode = null; UI.saveImportAsk = false; UI.settingsBack = d && d.back === 'base' ? 'base' : 'title'; screen = 'settings'; render(); window.scrollTo(0, 0); return true;
     case 'to-howto': UI.resetAsk = null; UI.howtoBack = d && d.back === 'base' ? 'base' : 'title'; screen = 'howto'; render(); window.scrollTo(0, 0); return true;
@@ -5330,7 +5355,7 @@ function renderWorkshop() {
   const chars = ROSTER.chars.length ? ROSTER.chars : presetRoster().chars;
   app.innerHTML = `<main class="setup workshop"><div class="nav"><a class="btn ghost" href="${esc(location.pathname)}">게임으로</a></div><p class="ws-eyebrow">TOWER · ATELIER</p><h1>제작자 작업실</h1><p class="soft">연출을 살펴보고, 누군가를 위한 카드를 만듭니다.</p>
   <section class="panel"><h2>연출 미리보기</h2><p class="soft small">별도 시험 화면에서 재생합니다. 실제 원정·동료·재화는 바뀌지 않습니다. 합동은 발동 확률을 생략해 효과를 보여 줍니다.</p><div class="ws-fields"><label>첫 번째 인물<select id="ws-a">${chars.map((c,i)=>opt(c.id,c.name,WORKSHOP.a || chars[0].id)).join('')}</select></label><label>두 번째 인물<select id="ws-b">${chars.map(c=>opt(c.id,c.name,WORKSHOP.b || chars[Math.min(1,chars.length-1)].id)).join('')}</select></label><label>관계<select id="ws-rel">${Object.entries(PRO_LINKS).map(([k,r])=>opt(k,r.name,WORKSHOP.relationship || 'lover')).join('')}</select></label><label>화면 테마<select id="ws-theme">${[['none','기본'],['storybook','꽃빛 그림책'],['starlight','별빛 그림책']].map(([k,n])=>opt(k,n,WORKSHOP.theme || 'none')).join('')}</select></label></div>
-  <div class="ws-effect-buttons">${[['cutin','관계 등장'],['ult','궁극기'],...Object.entries(JOINTS).map(([k,j])=>['joint-'+k,j.name]),['down','사선'],['death','사망'],['grit','근성'],['stress25','스트레스 25 돌파'],['stress','스트레스 50 돌파'],['stress75','스트레스 75 돌파'],['awaken','각성'],['collapse','붕괴'],['gamja','감자 이벤트'],['gain','카드 획득'],['fuse','엮기'],['awaken','카드 각성'],['boss','보스 등장'],['phase','2페이즈 전환'],['ending','엔딩']].map(([k,n])=>`<button class="btn" data-act="ws-preview" data-kind="${k}">${n}</button>`).join('')}</div>
+  <div class="ws-effect-buttons">${[['cutin','관계 등장'],['ult','궁극기'],...Object.entries(JOINTS).map(([k,j])=>['joint-'+k,j.name]),['down','사선'],['death','사망'],['grit','근성'],['stress25','스트레스 25 돌파'],['stress','스트레스 50 돌파'],['stress75','스트레스 75 돌파'],['awaken','각성'],['collapse','붕괴'],['gamja','감자 이벤트'],['gain','카드 획득'],['fuse','엮기'],['awaken','카드 각성'],['boss','보스 등장'],['phase','2페이즈 전환'],['ending','엔딩'],['ending5','무게 5 엔딩']].map(([k,n])=>`<button class="btn" data-act="ws-preview" data-kind="${k}">${n}</button>`).join('')}</div>
   <div class="ws-preview-wrap" hidden><iframe id="ws-preview" title="게임 연출 미리보기" sandbox="allow-scripts"></iframe><button class="btn ghost" data-act="ws-close-preview">미리보기 닫기</button></div></section>
   <section class="panel"><h2>선물 카드 만들기</h2><p class="soft small">기본 덱 카드 한 장을 바탕으로 만듭니다. 비용과 주머니 감정은 유지하며, 공격·체력·인장·이름·그림을 바꿀 수 있습니다. 같은 원본의 선물은 한 번에 하나만 사용할 수 있습니다.</p>
   <form data-ws-form onsubmit="return false"><label>바탕 카드<select name="base" data-ws-base>${[...new Set(START_DECK)].map(k=>opt(k,CARDS[k].name,d.base)).join('')}</select></label><div class="ws-fields"><label>카드 이름<input name="name" maxlength="24" value="${esc(d.name)}"></label><label>공격<input name="atk" type="number" min="0" max="8" value="${d.atk}"></label><label>체력<input name="hp" type="number" min="1" max="12" value="${d.hp}"></label><label>인장 1<select name="sig1">${sigOpts(d.sig[0])}</select></label><label>인장 2<select name="sig2">${sigOpts(d.sig[1])}</select></label></div><label>카드에 담을 말<textarea name="note" rows="3" maxlength="180">${esc(d.note)}</textarea></label><label>작은 그림 (선택)<input type="file" accept="image/*" data-ws-image>${d.image ? `<span class="soft small ws-file-name">적용된 그림: ${esc(WORKSHOP.imageName || '선택한 그림')}</span>` : ''}</label><p class="soft small">그림은 작게 압축합니다. 그림을 넣으면 전달할 코드가 길어집니다.</p><div class="res-btns"><button type="button" class="btn" data-act="ws-card-preview">카드 미리보기</button><button type="button" class="btn ghost" data-act="ws-clear-image">그림 지우기</button></div></form>
@@ -5513,7 +5538,7 @@ function runWorkshopPreview(cfg) {
     UI.revealQ=[{kind:cfg.kind,card,title:{gain:'카드 획득',fuse:'엮기 완료',awaken:'각성!'}[cfg.kind],sub:cardInfo(card).name,from:cfg.kind==='fuse'?[{key:'blade'},{key:'lamp'}]:undefined}];
     app.innerHTML+=revealHtml();
   } else if(cfg.kind==='phase') {S.recording=true;S.front=S.frontMax;resolveFront();S.recording=false;playEvents();}
-  else if(cfg.kind==='ending') {UI.previewRun={...RUN,cleared:true};UI.previewBack='title';UI.endPage=0;screen='ending-preview';render();}
+  else if(cfg.kind==='ending'||cfg.kind==='ending5') {UI.previewRun={...RUN,cleared:true,diff:cfg.kind==='ending5'?5:0};UI.previewBack='title';UI.endPage=0;screen='ending-preview';render();}
 }
 function workshopBoot() {
   if(!workshopAllowed()) return;
