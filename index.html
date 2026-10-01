@@ -5748,7 +5748,10 @@ const FXT = {};
 /* ================= 소리: 효과음(코드로 합성)과 브금 =================
    효과음은 파일 없이 Web Audio로 만듭니다. 부드러운 사인·삼각파 위주에 짧은 울림을 얹어 어느 스킨에도 무난하게 어울리게 했습니다.
    브금은 BGM_FILES에 파일 경로를 넣으면 화면에 맞춰 바뀝니다(일반 / 전투 / 보스). 휴대폰은 첫 터치 뒤부터 소리가 납니다. */
-const BGM_FILES = { main: '', battle: '', boss: '' };
+/* 브금(제작자 작곡). 일반 화면과 일반·엘리트 전투는 같은 곡이라 전투에 들어가도 끊기지 않고 이어집니다. 보스전만 곡이 바뀝니다.
+   두 곡 모두 105BPM 20마디(45.714초)로 딱 맞게 끝나서, 파일을 통째로 받아 이음새 없이 반복합니다 */
+const BGM_FILES = { main: 'bgm/normal.mp3', battle: 'bgm/normal.mp3', boss: 'bgm/boss.mp3' };
+const BGM_LOOP = 80 * 60 / 105;
 const SND = { ctx: null, sfx: null, bgm: null, verb: null, cur: null, tracks: {}, last: {} };
 function sndPrefs() { const m = meta(); return { sfxOn: m.sfxOn !== false, sfxVol: m.sfxVol ?? 0.7, bgmOn: m.bgmOn !== false, bgmVol: m.bgmVol ?? 0.5 }; }
 function sndInit() {
@@ -5787,7 +5790,7 @@ function sndApplyPrefs() {
   const p = sndPrefs(), t = SND.ctx.currentTime;
   SND.sfx.gain.setTargetAtTime(p.sfxOn ? p.sfxVol * SFX_BOOST : 0, t, 0.03);
   SND.verb.gain.setTargetAtTime(p.sfxOn ? 0.22 * p.sfxVol * SFX_BOOST : 0, t, 0.03);
-  SND.bgm.gain.setTargetAtTime(p.bgmOn ? p.bgmVol * 0.8 : 0, t, 0.08);
+  SND.bgm.gain.setTargetAtTime(p.bgmOn ? p.bgmVol : 0, t, 0.08);
 }
 /* 음 하나: 주파수(끝 주파수로 미끄러질 수 있음), 음색, 길이, 크기 */
 function sndTone(f, at, dur, o = {}) {
@@ -5907,22 +5910,33 @@ function bgmKey() {
 }
 function bgmUpdate() {
   if (!SND.ctx) return;
-  const key = bgmKey(), want = key && BGM_FILES[key] ? key : null;
+  const key = bgmKey(), want = (key && BGM_FILES[key]) || null;
   if (want === SND.cur) return;
   const t = SND.ctx.currentTime;
-  if (SND.cur && SND.tracks[SND.cur]) { const tr = SND.tracks[SND.cur], el = tr.el; tr.g.gain.cancelScheduledValues(t); tr.g.gain.setTargetAtTime(0, t, 0.4); clearTimeout(tr.stop); tr.stop = setTimeout(() => el.pause(), 2200); }
+  const prev = SND.cur && SND.tracks[SND.cur];
+  if (prev) { prev.g.gain.cancelScheduledValues(t); prev.g.gain.setTargetAtTime(0, t, 0.45); const src = prev.src; prev.src = null; if (src) setTimeout(() => { try { src.stop(); } catch (e) {} }, 2500); }
   SND.cur = want;
   if (!want) return;
-  let tr = SND.tracks[want];
-  if (!tr) {
-    const el = new Audio(BGM_FILES[want]); el.loop = true; el.preload = 'auto';
-    const g = SND.ctx.createGain(); g.gain.value = 0;
-    try { SND.ctx.createMediaElementSource(el).connect(g); g.connect(SND.bgm); } catch (e) { return; }
-    tr = SND.tracks[want] = { el, g, stop: null };
-  }
-  clearTimeout(tr.stop);
-  tr.g.gain.cancelScheduledValues(t); tr.g.gain.setTargetAtTime(1, t, 0.5);
-  const pr = tr.el.play(); if (pr && pr.catch) pr.catch(() => {});
+  const tr = SND.tracks[want] || (SND.tracks[want] = { buf: null, loading: false, src: null, g: null });
+  if (!tr.g) { tr.g = SND.ctx.createGain(); tr.g.gain.value = 0; tr.g.connect(SND.bgm); }
+  if (tr.buf) return bgmStart(want);
+  if (tr.loading) return;
+  tr.loading = true;
+  fetch(want).then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status))
+    .then(a => new Promise((ok, no) => SND.ctx.decodeAudioData(a, ok, no)))
+    .then(b => { tr.buf = b; tr.loading = false; if (SND.cur === want) bgmStart(want); })
+    .catch(() => { tr.loading = false; });
+}
+/* mp3는 앞에 아주 짧은 빈 구간이 붙을 수 있어, 실제 소리가 시작되는 곳부터 정확히 한 바퀴(20마디)를 반복합니다 */
+function bgmStart(file) {
+  const tr = SND.tracks[file]; if (!tr || !tr.buf || tr.src) { if (tr && tr.src) { const t = SND.ctx.currentTime; tr.g.gain.cancelScheduledValues(t); tr.g.gain.setTargetAtTime(1, t, 0.5); } return; }
+  const b = tr.buf, d = b.getChannelData(0), lim = Math.min(d.length, Math.floor(b.sampleRate * 0.2));
+  let off = 0; for (let i = 0; i < lim; i++) if (Math.abs(d[i]) > 1e-3) { off = Math.max(0, i - 2) / b.sampleRate; break; }
+  const src = SND.ctx.createBufferSource(); src.buffer = b; src.loop = true;
+  src.loopStart = off; src.loopEnd = Math.min(b.duration, off + BGM_LOOP);
+  src.connect(tr.g); src.start(SND.ctx.currentTime, off);
+  tr.src = src;
+  const t = SND.ctx.currentTime; tr.g.gain.cancelScheduledValues(t); tr.g.gain.setValueAtTime(0, t); tr.g.gain.setTargetAtTime(1, t, 0.5);
 }
 document.addEventListener('pointerdown', () => { sndInit(); bgmUpdate(); }, true);
 document.addEventListener('visibilitychange', () => { if (!SND.ctx) return; if (document.hidden) SND.ctx.suspend().catch(() => {}); else SND.ctx.resume().catch(() => {}); });
