@@ -7173,7 +7173,8 @@ function render() {
   if (UI.lastScreen !== screen) {
     UI.lastScreen = screen;
     const m = app.querySelector('main');
-    if (m && !REDUCED) { m.classList.add('screen-enter'); setTimeout(() => m.classList.remove('screen-enter'), 260); }
+    // 새 화면이 팝업·각성 화면과 함께 열릴 때는 화면 전체가 투명에서 시작하면 뒤 배경이 비쳐 번쩍이므로 생략합니다
+    if (m && !REDUCED && !app.querySelector('.sheet, .reveal')) { m.classList.add('screen-enter'); setTimeout(() => m.classList.remove('screen-enter'), 260); }
   }
 }
 
