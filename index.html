@@ -1098,7 +1098,7 @@ main.battle.tut { padding-bottom: 13rem; }
 }
 
 /* ---------- v8: 카드 틀 고정. 이름·인장·배지가 길어도 카드 높이가 늘지 않게 줄여서 보여 줍니다 ---------- */
-.slot { height: 6.4rem; min-height: 0; overflow: hidden; grid-template-rows: auto auto minmax(0, 1fr) auto; row-gap: .1rem; }
+.slot { height: 6.4rem; min-height: 0; grid-template-rows: auto auto minmax(0, 1fr) auto; row-gap: .1rem; }
 .row-wrap.t .slot.empty { height: auto; min-height: 4.6rem; }
 @media (min-width: 640px) { .slot { height: 7rem; } }
 .u-name, .h-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.15; }
@@ -1115,7 +1115,9 @@ main.battle.tut { padding-bottom: 13rem; }
 .hcard.nm-l .h-name { font-size: .8rem; }
 .hcard.nm-xl .h-name { font-size: .74rem; letter-spacing: -.02em; }
 .hcard .h-sig { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.hand .hcard { height: 8.4rem; min-height: 0; overflow: hidden; }
+.hand .hcard { height: 8.4rem; min-height: 0; }
+main.tut .hand { padding-bottom: 1.3rem; }
+.slot > .u-name, .slot > .u-sig, .slot > .u-badges { min-width: 0; }
 .hcard.has-av .h-name, .hcard:has(> .av.corner) .cost { padding-right: 1.3rem; }
 /* 파스텔 도트: 공격·체력이 올랐을 때 노란 테두리 */
 :root[data-page-skin="pixel"] .u-stats b.atk.up, :root[data-page-skin="pixel"] .u-stats b.hp.up { box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px #e8c35c, 0 0 8px rgba(232, 195, 92, .8) !important; }
@@ -5213,7 +5215,7 @@ function onTutAct(act, d) {
     case 'tut-dismiss': { const m = meta(); m.tutorialDone = true; saveMeta(); render(); return true; }
     case 'tip-ok': { const m = meta(); m.tips = { ...(m.tips || {}), [d.k]: true }; saveMeta(); render(); return true; }
     case 'fx-toggle': { const m = meta(); m.fxOff = !m.fxOff; saveMeta(); render(); return true; }
-    case 'snd-toggle': { const m = meta(); const k = d.k2 === 'bgm' ? 'bgmOn' : 'sfxOn'; m[k] = m[k] === false; saveMeta(); sndInit(); sndApplyPrefs(); render(); if (k === 'sfxOn' && m[k]) sfx('token'); return true; }
+    case 'snd-toggle': { const m = meta(); const k = d.k2 === 'bgm' ? 'bgmOn' : 'sfxOn'; m[k] = m[k] === false; saveMeta(); sndInit(); sndApplyPrefs(); render(); if (k === 'sfxOn' && m[k]) sfx('tap'); return true; }
     case 'tips-toggle': { const m = meta(); const on = m.tipsOn === false; m.tipsOn = on; if (on) m.tips = {}; saveMeta(); render(); return true; }
   }
   return false;
@@ -5752,6 +5754,8 @@ const FXT = {};
    두 곡 모두 105BPM 20마디(45.714초)로 딱 맞게 끝나서, 파일을 통째로 받아 이음새 없이 반복합니다 */
 const BGM_FILES = { main: 'bgm/normal.mp3', battle: 'bgm/normal.mp3', boss: 'bgm/boss.mp3' };
 const BGM_LOOP = 80 * 60 / 105;
+/* 곡마다 크기 보정: 보스 곡은 소리가 더 어둡고 중음에 몰려 있어 같은 크기여도 작게 들려서 조금 키웁니다 */
+const BGM_GAIN = { 'bgm/boss.mp3': 1.4 };
 const SND = { ctx: null, sfx: null, bgm: null, verb: null, cur: null, tracks: {}, last: {} };
 function sndPrefs() { const m = meta(); return { sfxOn: m.sfxOn !== false, sfxVol: m.sfxVol ?? 0.7, bgmOn: m.bgmOn !== false, bgmVol: m.bgmVol ?? 0.5 }; }
 function sndInit() {
@@ -5869,8 +5873,8 @@ const SFX = {
    파일이 아직 안 받아졌거나 못 받으면 만든 소리로 대신합니다. layer는 파일과 만든 소리를 함께 냅니다 */
 const SFX_FILES = {"tap": ["tap"], "place": ["place"], "token": ["token1", "token2", "token3"], "page": ["page"], "hit": ["hit"], "hurt": ["hurt"], "die": ["die"], "drop": ["drop"], "block": ["block"], "tick": ["tick"], "burst": ["burst"], "stress": ["stress"], "breakdown": ["breakdown"], "phase": ["phase"], "start": ["start"], "startBoss": ["start"]};
 /* 크기는 귀로 듣는 크기(0.1초 구간 에너지)를 재서 서로 비슷하게 맞춘 값입니다. 탭·토큰·넘김·독은 조금 작게, 궁극기·붕괴·2페이즈·승리는 조금 크게 */
-const SFX_LEVEL = {"tap": 1.5867, "place": 0.118, "token": 0.2028, "page": 0.2219, "hit": 0.0475, "hurt": 0.0499, "die": 0.0515, "drop": 0.1094, "block": 0.0969, "tick": 0.1456, "burst": 0.3188, "stress": 0.1078, "breakdown": 0.0866, "phase": 0.0309, "start": 0.0117, "startBoss": 0.0093};
-const SFX_FILE_OPT = { token: { vary: true }, page: { verb: 2.5 }, stress: { verb: true }, breakdown: { rate: 0.8, verb: true }, phase: { layer: true }, start: { layer: true, delay: 0.22 }, startBoss: { layer: true, delay: 0.22, rate: 0.85 } };
+const SFX_LEVEL = {"tap": 1.5867, "place": 0.118, "token": 0.2028, "page": 0.1, "hit": 0.0475, "hurt": 0.0499, "die": 0.0515, "drop": 0.1094, "block": 0.0969, "tick": 0.1456, "burst": 0.3188, "stress": 0.1078, "breakdown": 0.0866, "phase": 0.0309, "start": 0.0117, "startBoss": 0.0093};
+const SFX_FILE_OPT = { token: { vary: true }, page: { verb: 1.8 }, stress: { verb: true }, breakdown: { rate: 0.8, verb: true }, phase: { layer: true }, start: { layer: true, delay: 0.22 }, startBoss: { layer: true, delay: 0.22, rate: 0.85 } };
 function sndLoadFiles() {
   if (SND.buf) return; SND.buf = {};
   for (const [k, list] of Object.entries(SFX_FILES)) list.forEach((n, i) => {
@@ -5929,14 +5933,14 @@ function bgmUpdate() {
 }
 /* mp3는 앞에 아주 짧은 빈 구간이 붙을 수 있어, 실제 소리가 시작되는 곳부터 정확히 한 바퀴(20마디)를 반복합니다 */
 function bgmStart(file) {
-  const tr = SND.tracks[file]; if (!tr || !tr.buf || tr.src) { if (tr && tr.src) { const t = SND.ctx.currentTime; tr.g.gain.cancelScheduledValues(t); tr.g.gain.setTargetAtTime(1, t, 0.5); } return; }
+  const tr = SND.tracks[file]; if (!tr || !tr.buf || tr.src) { if (tr && tr.src) { const t = SND.ctx.currentTime; tr.g.gain.cancelScheduledValues(t); tr.g.gain.setTargetAtTime(BGM_GAIN[file] || 1, t, 0.5); } return; }
   const b = tr.buf, d = b.getChannelData(0), lim = Math.min(d.length, Math.floor(b.sampleRate * 0.2));
   let off = 0; for (let i = 0; i < lim; i++) if (Math.abs(d[i]) > 1e-3) { off = Math.max(0, i - 2) / b.sampleRate; break; }
   const src = SND.ctx.createBufferSource(); src.buffer = b; src.loop = true;
   src.loopStart = off; src.loopEnd = Math.min(b.duration, off + BGM_LOOP);
   src.connect(tr.g); src.start(SND.ctx.currentTime, off);
   tr.src = src;
-  const t = SND.ctx.currentTime; tr.g.gain.cancelScheduledValues(t); tr.g.gain.setValueAtTime(0, t); tr.g.gain.setTargetAtTime(1, t, 0.5);
+  const t = SND.ctx.currentTime; tr.g.gain.cancelScheduledValues(t); tr.g.gain.setValueAtTime(0, t); tr.g.gain.setTargetAtTime(BGM_GAIN[file] || 1, t, 0.5);
 }
 document.addEventListener('pointerdown', () => { sndInit(); bgmUpdate(); }, true);
 document.addEventListener('visibilitychange', () => { if (!SND.ctx) return; if (document.hidden) SND.ctx.suspend().catch(() => {}); else SND.ctx.resume().catch(() => {}); });
@@ -7068,7 +7072,7 @@ app.addEventListener('input', e => {
   const b = t.parentElement && t.parentElement.querySelector('b'); if (b) b.textContent = Math.round(v * 100);
   sndInit(); sndApplyPrefs();
 });
-app.addEventListener('change', e => { const t = e.target; if (!t.dataset || !t.dataset.vol) return; saveMeta(); if (t.dataset.vol === 'sfx') sfx('token'); });
+app.addEventListener('change', e => { const t = e.target; if (!t.dataset || !t.dataset.vol) return; saveMeta(); if (t.dataset.vol === 'sfx') sfx('tap'); });
 app.addEventListener('toggle', e => { if (e.target.matches && e.target.matches('details.log')) UI.logOpen = e.target.open; }, true);
 
 render();
