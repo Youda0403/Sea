@@ -964,6 +964,7 @@ main.battle.tut { padding-bottom: 13rem; }
 
 /* 원정 기록 */
 .retry-bar{display:flex;flex-direction:column;align-items:center;gap:8px;margin:18px 0 10px;padding:12px;border-top:1px solid var(--line);text-align:center}
+.retry-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
 .retry-bar small{font-size:11px}.retry-sheet{z-index:120}.retry-cost{font-size:19px}
 .expedition-report{background:#f4f1e9;color:#353b43;border:1px solid #d3c6a8;border-radius:6px;margin:22px 0;padding:30px 26px;line-height:1.8;overflow-wrap:anywhere}
 .expedition-report .soft{color:#69717a}.report-heading{border-top:3px solid #92763f;border-bottom:1px solid #d3c6a8;padding:20px 0;margin-bottom:24px}
@@ -5449,7 +5450,9 @@ function onTutAct(act, d) {
 function retryHtml() {
   if (TUT || !RUN || S.over) return '';
   const reason = retryReason(RUN), disabled = UI.playing || !!reason;
-  const button = `<div class="retry-bar"><button class="btn small-btn" data-act="retry-ask"${disabled ? ' disabled' : ''}>이번 전투 다시하기 · 보급 2</button><small class="soft">${esc(reason || '전투당 한 번 · 사용 시 이번 원정 특별칭호 제외')}</small></div>`;
+  // 홈으로: 원정 준비에서 시작한 런만 저장되므로 그때만 보여 줍니다(나가기 직전 화면이 그대로 저장돼 이어하기로 돌아옵니다)
+  const home = RUN.fromPrep ? `<button class="btn small-btn ghost" data-act="to-title"${UI.playing ? ' disabled' : ''}>홈으로</button>` : '';
+  const button = `<div class="retry-bar"><div class="retry-row"><button class="btn small-btn" data-act="retry-ask"${disabled ? ' disabled' : ''}>이번 전투 다시하기 · 보급 2</button>${home}</div><small class="soft">${esc(reason || '전투당 한 번 · 사용 시 이번 원정 특별칭호 제외')}</small>${home ? '<small class="soft">홈으로 나가도 이 전투는 저장되어 이어하기로 돌아올 수 있습니다</small>' : ''}</div>`;
   if (!UI.retryAsk || disabled) return button;
   const cs = RUN.battleRetry.state.comps.map(c => `${c.name}: ${{ok:'정상', saseon:'사선', dead:'사망'}[c.status] || '정상'}`).join(' / ');
   return button + `<div class="sheet retry-sheet" role="dialog" aria-modal="true" aria-labelledby="retry-title"><div class="sheet-body"><h2 id="retry-title">이번 전투를 다시 시작할까요?</h2>
