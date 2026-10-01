@@ -1046,9 +1046,7 @@ main.battle.tut { padding-bottom: 13rem; }
 :root[data-page-skin="storybook"] body{
   background:radial-gradient(circle at 6px 6px,rgba(182,119,145,.11) 1px,transparent 1.7px) 0 0/25px 25px,linear-gradient(145deg,#fff9f0,#f5e6e9)
 }
-:root[data-page-skin="storybook"] .panel{border-top-style:dotted}
 :root[data-page-skin="storybook"] .btn{border-radius:13px}
-:root[data-page-skin="storybook"] .btn.primary{box-shadow:0 2px 0 rgba(96,61,80,.2)}
 
 :root[data-page-skin="starlight"]{
   --table:#f7f4ff;--table-2:#e9e3f4;--ink:#342d49;--ink-soft:#655a7c;--line:#bcb0d3;
@@ -1059,14 +1057,12 @@ main.battle.tut { padding-bottom: 13rem; }
 :root[data-page-skin="starlight"] body{
   background:radial-gradient(circle at 12px 16px,rgba(132,107,179,.22) 1px,transparent 1.8px) 0 0/47px 47px,radial-gradient(circle at 28px 33px,rgba(181,145,64,.24) 1px,transparent 2px) 0 0/71px 71px,linear-gradient(145deg,#fcf9ff,#eae3f6)
 }
-:root[data-page-skin="starlight"] .panel{border-top-style:dotted}
 :root[data-page-skin="starlight"] .btn{border-radius:13px}
 :root[data-page-skin="storybook"] .btn.primary{background:linear-gradient(180deg,#955070,#854365);border-color:#854365;color:#fffafc}
 :root[data-page-skin="starlight"] .btn.primary{background:linear-gradient(180deg,#715d96,#604d83);border-color:#604d83;color:#fffaff}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .btn.primary small{color:inherit;opacity:1}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .btn.ghost{background:var(--table)}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) :is(.row-label,.fl){color:var(--ink-soft)}
-:root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) :is(.board,.map){box-shadow:inset 0 0 0 1.5px var(--line),inset 0 3px 18px color-mix(in srgb,var(--brass) 12%,transparent)}
 :root:is([data-page-skin="storybook"],[data-page-skin="starlight"]) .node.reach{border-color:var(--brass)}
 /* 꽃빛 맵: 칸의 종류는 색으로, 이동 가능 여부는 테두리로 구분합니다. */
 :root[data-page-skin="storybook"] .node{--node-bg:#f6d2df;--node-edge:#bd7c97;--node-ink:#65334d}
@@ -1323,7 +1319,7 @@ main.tut .hand { padding-bottom: 1.3rem; }
 .trade .shop-refresh { display: block; width: 100%; box-sizing: border-box; margin-top: .8rem; }
 .deck-sheet .hcard.sel { box-shadow: 0 0 0 4px var(--brass), 0 0 16px color-mix(in srgb, var(--brass) 65%, transparent); transform: translateY(-4px); }
 .deck-sheet .hcard.sel::after { content: "✓ 선택"; position: absolute; top: -.6rem; right: -.4rem; z-index: 2; font: 700 .72rem/1 "IBM Plex Sans KR", sans-serif; color: #21180c; background: #f3c65c; border: 2px solid #21180c; border-radius: 999px; padding: .22rem .5rem; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
-/* ================= 기본 화면: 등불 서재(빛·그림자로 깊이를 준 기본 테마). 다른 화면 스킨에는 적용되지 않습니다 ================= */
+/* ================= 기본 화면: 등불 서재(빛·그림자로 깊이를 준 기본 테마). 상자·버튼·판 모양은 꽃빛·별빛 그림책에도 같이 쓰고, 색만 각 스킨 것으로 바꿉니다 ================= */
 :root[data-page-skin="none"] {
   --table: #e6e0d6; --table-2: #dbd3c6; --ink: #2b241d; --ink-soft: #685d50; --line: #bfb3a0; --brass: #9a7230;
   --mat: #587767; --mat-2: #3e5b4d; --mat-line: rgba(245, 240, 228, .45);
@@ -1332,7 +1328,7 @@ main.tut .hand { padding-bottom: 1.3rem; }
   --th-gold: linear-gradient(180deg, #e2c58e, #c9a062); --th-gold-ink: #2a1d0e; --th-gold-edge: #9b7840; --th-glow: rgba(150, 110, 50, .18);
   --th-felt: radial-gradient(ellipse 90% 70% at 50% 40%, #5a7a69 0%, #435f51 70%, #384f44 100%);
   --th-felt-edge: #85714f; --th-felt-in: #33493e; --th-stitch: rgba(232, 214, 176, .45);
-  --th-sh: rgba(70, 55, 35, .14); --th-sh-b: rgba(90, 72, 45, .24); --th-card-sh: rgba(40, 30, 15, .3);
+  --th-sh: rgba(70, 55, 35, .1); --th-sh-b: rgba(90, 72, 45, .2); --th-card-sh: rgba(40, 30, 15, .22); --th-felt-shade: rgba(0, 0, 0, .22);
   --th-title: linear-gradient(180deg, #b48a45 0%, #8f682b 55%, #6b4c1e 100%); --th-h1-sh: 0 1px 0 rgba(255, 255, 255, .5);
   --th-bg: #e3ddd3; --th-bg-glow: rgba(255, 244, 222, .45); --th-bg-vig: rgba(90, 70, 45, .1); --th-track: rgba(70, 55, 35, .12);
 }
@@ -1346,8 +1342,8 @@ main.tut .hand { padding-bottom: 1.3rem; }
     --th-gold-edge: #7c5521; --th-glow: rgba(220, 170, 80, .28);
     --th-felt: radial-gradient(ellipse 90% 70% at 50% 40%, #2c4c3b 0%, #1b3428 70%, #142820 100%);
     --th-felt-edge: #6f5532; --th-felt-in: #16291f; --th-stitch: rgba(220, 174, 92, .35);
-    --th-sh: rgba(0, 0, 0, .38); --th-sh-b: rgba(0, 0, 0, .45); --th-card-sh: rgba(0, 0, 0, .45);
-    --th-title: linear-gradient(180deg, #fff1cf 0%, #e9be6b 55%, #b98235 100%); --th-h1-sh: 0 2px 12px rgba(0, 0, 0, .4);
+    --th-sh: rgba(0, 0, 0, .3); --th-sh-b: rgba(0, 0, 0, .4); --th-card-sh: rgba(0, 0, 0, .35); --th-felt-shade: rgba(0, 0, 0, .32);
+    --th-title: linear-gradient(180deg, #fff1cf 0%, #e9be6b 55%, #b98235 100%); --th-h1-sh: 0 1px 6px rgba(0, 0, 0, .35);
     --th-bg: #15100c; --th-bg-glow: rgba(232, 170, 90, .16); --th-bg-vig: rgba(0, 0, 0, .6); --th-track: rgba(0, 0, 0, .35);
   }
 }
@@ -1360,12 +1356,32 @@ main.tut .hand { padding-bottom: 1.3rem; }
   --th-gold-edge: #7c5521; --th-glow: rgba(220, 170, 80, .28);
   --th-felt: radial-gradient(ellipse 90% 70% at 50% 40%, #2c4c3b 0%, #1b3428 70%, #142820 100%);
   --th-felt-edge: #6f5532; --th-felt-in: #16291f; --th-stitch: rgba(220, 174, 92, .35);
-  --th-sh: rgba(0, 0, 0, .38); --th-sh-b: rgba(0, 0, 0, .45); --th-card-sh: rgba(0, 0, 0, .45);
-  --th-title: linear-gradient(180deg, #fff1cf 0%, #e9be6b 55%, #b98235 100%); --th-h1-sh: 0 2px 12px rgba(0, 0, 0, .4);
+  --th-sh: rgba(0, 0, 0, .3); --th-sh-b: rgba(0, 0, 0, .4); --th-card-sh: rgba(0, 0, 0, .35); --th-felt-shade: rgba(0, 0, 0, .32);
+  --th-title: linear-gradient(180deg, #fff1cf 0%, #e9be6b 55%, #b98235 100%); --th-h1-sh: 0 1px 6px rgba(0, 0, 0, .35);
   --th-bg: #15100c; --th-bg-glow: rgba(232, 170, 90, .16); --th-bg-vig: rgba(0, 0, 0, .6); --th-track: rgba(0, 0, 0, .35);
 }
+/* 꽃빛·별빛 그림책: 같은 모양, 각 스킨의 색 */
+:root[data-page-skin="storybook"] {
+  --th-pnl: linear-gradient(180deg, #fffaf6, #f8ebea); --th-pnl-edge: #e3c7cd; --th-hi: rgba(255, 255, 255, .7);
+  --th-btn: linear-gradient(180deg, #fffaf7, #f4e4e5); --th-btn-edge: #d9b5bf;
+  --th-gold: linear-gradient(180deg, #955070, #854365); --th-gold-ink: #fffafc; --th-gold-edge: #6e3654; --th-glow: rgba(166, 93, 130, .2);
+  --th-felt: radial-gradient(ellipse 90% 70% at 50% 40%, #f3e2e9 0%, #e8d0dc 70%, #dcc0cf 100%);
+  --th-felt-edge: #c9a3b4; --th-felt-in: #f6e8ee; --th-stitch: rgba(166, 93, 130, .4); --th-felt-shade: rgba(120, 70, 95, .14);
+  --th-sh: rgba(120, 70, 95, .12); --th-sh-b: rgba(120, 70, 95, .2); --th-card-sh: rgba(90, 50, 70, .2);
+  --th-title: linear-gradient(180deg, #b86a90 0%, #8f4569 100%); --th-h1-sh: 0 1px 0 rgba(255, 255, 255, .6); --th-track: rgba(120, 70, 95, .1);
+}
+:root[data-page-skin="starlight"] {
+  --th-pnl: linear-gradient(180deg, #fdfbff, #f2eefa); --th-pnl-edge: #d6cce8; --th-hi: rgba(255, 255, 255, .7);
+  --th-btn: linear-gradient(180deg, #fdfbff, #ebe5f5); --th-btn-edge: #c9bde0;
+  --th-gold: linear-gradient(180deg, #715d96, #604d83); --th-gold-ink: #fffaff; --th-gold-edge: #473866; --th-glow: rgba(118, 96, 158, .2);
+  --th-felt: radial-gradient(ellipse 90% 70% at 50% 40%, #ece6f8 0%, #ddd3ef 70%, #cfc2e5 100%);
+  --th-felt-edge: #b3a5cf; --th-felt-in: #f1edfa; --th-stitch: rgba(118, 96, 158, .4); --th-felt-shade: rgba(80, 60, 120, .14);
+  --th-sh: rgba(80, 60, 120, .12); --th-sh-b: rgba(80, 60, 120, .2); --th-card-sh: rgba(60, 45, 95, .2);
+  --th-title: linear-gradient(180deg, #8a73b8 0%, #5d4a86 100%); --th-h1-sh: 0 1px 0 rgba(255, 255, 255, .6); --th-track: rgba(80, 60, 120, .1);
+}
 /* 배경: 위에서 비치는 등불 + 아래쪽 그늘 + 종이 결 */
-:where(:root[data-page-skin="none"]) body { background: var(--th-bg); }
+html[data-page-skin="none"] { background: var(--th-bg); }
+:where(:root[data-page-skin="none"]) body { background: transparent; }
 :where(:root[data-page-skin="none"]) body::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; will-change: transform;
   background:
@@ -1374,51 +1390,61 @@ main.tut .hand { padding-bottom: 1.3rem; }
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     var(--th-bg);
 }
-:where(:root[data-page-skin="none"]) h1 { text-shadow: var(--th-h1-sh); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) h1 { text-shadow: var(--th-h1-sh); }
 /* 패널: 둥근 상자 + 윗면 빛 + 아래 그림자 */
-:where(:root[data-page-skin="none"]) .panel, :where(:root[data-page-skin="none"]) .setup .panel, :where(:root[data-page-skin="none"]) section.tokens, :where(:root[data-page-skin="none"]) .front, :where(:root[data-page-skin="none"]) .info {
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .panel, :where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .setup .panel, :where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) section.tokens, :where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .front, :where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .info {
   background: var(--th-pnl); border: 1px solid var(--th-pnl-edge); border-radius: 14px;
-  box-shadow: inset 0 1px 0 var(--th-hi), 0 8px 22px var(--th-sh); padding: .85rem .95rem;
+  box-shadow: inset 0 1px 0 var(--th-hi), 0 3px 10px var(--th-sh); padding: .85rem .95rem;
 }
-:where(:root[data-page-skin="none"]) .panel, :where(:root[data-page-skin="none"]) .setup .panel { margin: 0 0 .9rem; }
-:where(:root[data-page-skin="none"]) .info { border-left: 3px solid var(--brass); }
-:where(:root[data-page-skin="none"]) .panel h2 { font-size: .95rem; letter-spacing: .06em; color: var(--brass); display: flex; align-items: center; gap: .5rem; }
-:where(:root[data-page-skin="none"]) .panel h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--th-pnl-edge), transparent); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .panel, :where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .setup .panel { margin: 0 0 .9rem; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .info { border-left: 3px solid var(--brass); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .panel h2 { font-size: .95rem; letter-spacing: .06em; color: var(--brass); display: flex; align-items: center; gap: .5rem; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .panel h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--th-pnl-edge), transparent); }
 /* 버튼: 살짝 솟은 면, 누르면 들어감. 주요 버튼은 금빛 */
-:where(:root[data-page-skin="none"]) .btn {
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .btn {
   background: var(--th-btn); border: 1px solid var(--th-btn-edge); border-radius: 12px;
-  box-shadow: inset 0 1px 0 var(--th-hi), 0 2px 0 var(--th-sh-b), 0 4px 10px var(--th-sh); transition: transform .08s, box-shadow .08s;
+  box-shadow: inset 0 1px 0 var(--th-hi), 0 1px 0 var(--th-sh-b), 0 2px 5px var(--th-sh); transition: transform .08s, box-shadow .08s;
 }
-:where(:root[data-page-skin="none"]) .btn.act { background: var(--th-btn); }
-:where(:root[data-page-skin="none"]) .btn:not(:disabled):active { transform: translateY(1px); box-shadow: inset 0 1px 0 var(--th-hi), 0 1px 0 var(--th-sh-b); }
-:where(:root[data-page-skin="none"]) .btn.primary { background: var(--th-gold); color: var(--th-gold-ink); border-color: var(--th-gold-edge);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 3px 0 var(--th-gold-edge), 0 6px 16px var(--th-glow); }
-:where(:root[data-page-skin="none"]) .btn.primary :is(small, b) { color: var(--th-gold-ink); }
-:where(:root[data-page-skin="none"]) .btn:disabled { box-shadow: none; }
-:where(:root[data-page-skin="none"]) .btn.ghost, :where(:root[data-page-skin="none"]) .btn.danger { background: transparent; box-shadow: none; }
-:where(:root[data-page-skin="none"]) .nav { flex-wrap: wrap; justify-content: flex-start; }
-:where(:root[data-page-skin="none"]) .nav .btn { border-radius: 999px; min-height: 2.2rem; padding: .25rem .8rem; font-size: .8rem; white-space: nowrap; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .btn.act { background: var(--th-btn); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .btn:not(:disabled):active { transform: translateY(1px); box-shadow: inset 0 1px 0 var(--th-hi), 0 1px 0 var(--th-sh-b); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .btn.primary { background: var(--th-gold); color: var(--th-gold-ink); border-color: var(--th-gold-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 2px 0 var(--th-gold-edge), 0 3px 8px var(--th-glow); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .btn.primary :is(small, b) { color: var(--th-gold-ink); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .btn:disabled { box-shadow: none; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .btn.ghost, :where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .btn.danger { background: transparent; box-shadow: none; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .nav { flex-wrap: wrap; justify-content: flex-start; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .nav .btn { border-radius: 999px; min-height: 2.2rem; padding: .25rem .8rem; font-size: .8rem; white-space: nowrap; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .nav:has(.btn + .btn) { flex-wrap: nowrap; gap: .4rem; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .nav:has(.btn + .btn) .btn { flex: 1 1 auto; min-width: 0; padding: .25rem .5rem; text-align: center; }
 /* 보드·지도: 황동 실로 박음질한 펠트 */
-:where(:root[data-page-skin="none"]) .board, :where(:root[data-page-skin="none"]) .map {
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .board, :where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .map {
   background: var(--th-felt); border-radius: 16px;
-  box-shadow: inset 0 0 0 1px var(--th-felt-edge), inset 0 0 0 5px var(--th-felt-in), inset 0 0 0 6px var(--th-stitch), inset 0 10px 30px rgba(0, 0, 0, .45), 0 8px 22px var(--th-sh);
+  box-shadow: inset 0 0 0 1px var(--th-felt-edge), inset 0 0 0 5px var(--th-felt-in), inset 0 0 0 6px var(--th-stitch), inset 0 6px 20px var(--th-felt-shade), 0 3px 10px var(--th-sh);
 }
-:where(:root[data-page-skin="none"]) .battle.boss-fight .board { background: radial-gradient(ellipse 90% 80% at 50% 45%, #45302a 0%, #1f1512 100%); box-shadow: inset 0 0 0 1px #d9a84e, inset 0 0 0 5px #1a110d, inset 0 0 0 6px rgba(217, 168, 78, .45), inset 0 10px 30px rgba(0, 0, 0, .5), 0 8px 22px var(--th-sh); }
+:where(:root[data-page-skin="none"]) .battle.boss-fight .board { background: radial-gradient(ellipse 90% 80% at 50% 45%, #45302a 0%, #1f1512 100%); box-shadow: inset 0 0 0 1px #d9a84e, inset 0 0 0 5px #1a110d, inset 0 0 0 6px rgba(217, 168, 78, .45), inset 0 6px 20px rgba(0, 0, 0, .4), 0 3px 10px var(--th-sh); }
+:where(:root:is([data-page-skin="storybook"], [data-page-skin="starlight"])) .battle.boss-fight .board { box-shadow: inset 0 0 0 1px var(--brass), inset 0 0 0 5px rgba(0, 0, 0, .22), inset 0 0 0 6px color-mix(in srgb, var(--brass) 50%, transparent), inset 0 6px 20px rgba(0, 0, 0, .4), 0 3px 10px var(--th-sh); }
 /* 카드·토큰·노드: 탁자 위에 놓인 듯한 그림자(고른 카드, 보스, 표적 등 상태 표시는 그대로) */
-:where(:root[data-page-skin="none"]) .slot.unit:where(:not(.boss-unit, .elite-unit)), :where(:root[data-page-skin="none"]) .hcard { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 4px 10px var(--th-card-sh); border-radius: 9px; }
-:where(:root[data-page-skin="none"]) .slot.unit::before, :where(:root[data-page-skin="none"]) .hcard::before { border-radius: 7px; }
-:where(:root[data-page-skin="none"]) .tok { box-shadow: inset 0 2px 0 rgba(255, 255, 255, .28), inset 0 -2px 0 rgba(0, 0, 0, .18), 0 3px 6px var(--th-card-sh); }
-:where(:root[data-page-skin="none"]) .node { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 3px 6px var(--th-card-sh); }
-:where(:root[data-page-skin="none"]) .front-track > * { border-radius: 4px; }
-:where(:root[data-page-skin="none"]) .stress-bar { background: var(--th-track); border-color: var(--th-pnl-edge); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .slot.unit:where(:not(.boss-unit, .elite-unit)), :where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .hcard { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 2px 5px var(--th-card-sh); border-radius: 9px; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .slot.unit::before, :where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .hcard::before { border-radius: 7px; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .tok { box-shadow: inset 0 2px 0 rgba(255, 255, 255, .28), inset 0 -2px 0 rgba(0, 0, 0, .18), 0 2px 3px var(--th-card-sh); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .node { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 2px 3px var(--th-card-sh); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .front-track > * { border-radius: 4px; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .stress-bar { background: var(--th-track); border-color: var(--th-pnl-edge); }
 /* 타이틀 */
-:where(:root[data-page-skin="none"]) .title-mark h1 { font-size: 3rem; background: var(--th-title); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 3px 14px var(--th-glow)); }
-:where(:root[data-page-skin="none"]) .title-mark .tagline { color: var(--ink); letter-spacing: .04em; }
-:where(:root[data-page-skin="none"]) .title-mark .subtitle { display: flex; align-items: center; justify-content: center; gap: .65rem; margin-top: -.3rem; font-size: .76rem; letter-spacing: .08em; color: var(--ink-soft); }
-:where(:root[data-page-skin="none"]) .title-mark .subtitle::before, :where(:root[data-page-skin="none"]) .title-mark .subtitle::after { content: ""; width: 1.6rem; height: 1px; background: linear-gradient(90deg, transparent, var(--brass)); opacity: .75; }
-:where(:root[data-page-skin="none"]) .title-mark .subtitle::after { background: linear-gradient(90deg, var(--brass), transparent); }
-:where(:root[data-page-skin="none"]) .btn.menu-btn { min-height: 3.6rem; }
-:where(:root[data-page-skin="none"]) .btn.menu-btn b { font-size: 1.15rem; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .title-mark h1 { font-size: 3rem; background: var(--th-title); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 2px 8px var(--th-glow)); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .title-mark .tagline { color: var(--ink); letter-spacing: .04em; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .title-mark .subtitle { display: flex; align-items: center; justify-content: center; gap: .65rem; margin-top: -.3rem; font-size: .76rem; letter-spacing: .08em; color: var(--ink-soft); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .title-mark .subtitle::before, :where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .title-mark .subtitle::after { content: ""; width: 1.6rem; height: 1px; background: linear-gradient(90deg, transparent, var(--brass)); opacity: .75; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .title-mark .subtitle::after { background: linear-gradient(90deg, var(--brass), transparent); }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .btn.menu-btn { min-height: 3.6rem; }
+:where(:root:is([data-page-skin="none"], [data-page-skin="storybook"], [data-page-skin="starlight"])) .btn.menu-btn b { font-size: 1.15rem; }
+/* 설정: 화면 밝기 고르기 */
+.seg-row { display: grid; gap: .45rem; margin-top: .3rem; }
+.seg-row > span { display: grid; gap: .1rem; }
+.seg-row small { font-size: .72rem; color: var(--ink-soft); }
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; }
+.howto-btns .seg .btn { min-height: 2.4rem; padding: .3rem .4rem; }
+.seg .btn.on { border-color: var(--brass); background: color-mix(in srgb, var(--brass) 18%, var(--table-2)); font-weight: 700; box-shadow: inset 0 0 0 1px var(--brass); }
 </style>
 </head>
 <body>
@@ -4873,7 +4899,7 @@ function onGameAct(act, d) {
 /* ================= 3단계: 세계관, 튜토리얼, 도움말 ================= */
 
 /* ---------- 세계관 ---------- */
-const TAGLINE = '—되찾아야 할 것들이 있다.';
+const TAGLINE = '되찾아야 할 것들이 있다.';
 const PROLOGUE = [
   { head: '그날 밤', text: '도시 한가운데에 탑이 솟았습니다. 아무도 그것이 언제부터 그곳에 있었는지 기억하지 못했습니다.' },
   { head: '잊히는 것들', text: '탑이 솟은 뒤로 사람들은 조금씩 잊어버리기 시작했습니다. 이름을, 얼굴을, 함께 웃었던 날을. **잊힌 것들은 모두 탑으로 빨려 들어갔습니다.**' },
@@ -5073,6 +5099,8 @@ function renderSettings() {
     <section class="panel howto-btns"><h2>화면</h2>
       <button class="btn switch-btn" data-act="fx-toggle" role="switch" aria-checked="${!meta().fxOff}"><span>연출 효과<small>${meta().fxOff ? '관계·지휘·궁극기 연출을 띄우지 않습니다. 기록에는 남습니다' : '관계 등장, 관계 행동, 지휘·궁극기 연출을 보여 줍니다'}</small></span><i class="sw${meta().fxOff ? '' : ' on'}" aria-hidden="true"></i></button>
       <button class="btn switch-btn" data-act="tips-toggle" role="switch" aria-checked="${meta().tipsOn !== false}"><span>화면별 도움말<small>${meta().tipsOn !== false ? '처음 보는 화면마다 안내가 뜹니다' : '안내를 띄우지 않습니다'}</small></span><i class="sw${meta().tipsOn !== false ? ' on' : ''}" aria-hidden="true"></i></button>
+      ${(() => { const cur = ['light', 'dark'].includes(meta().colorMode) ? meta().colorMode : 'auto'; const skin = selectedSkin('page') !== 'none';
+        return `<div class="seg-row"><span>화면 밝기<small>${skin ? '지금 쓰는 화면 스킨은 밝은 화면으로만 보여요. 기본 화면에서 적용됩니다' : '기기의 다크 모드 설정을 따르거나 직접 고를 수 있어요'}</small></span><div class="seg" role="radiogroup" aria-label="화면 밝기">${[['auto', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']].map(([k, n]) => `<button class="btn${cur === k ? ' on' : ''}" data-act="color-mode" data-v="${k}" role="radio" aria-checked="${cur === k}">${n}</button>`).join('')}</div></div>`; })()}
     </section>
     <section class="panel howto-btns sound-panel"><h2>소리</h2>
       ${(() => { const p = sndPrefs(); const row = (k, name, on, vol, sub) => `<button class="btn switch-btn" data-act="snd-toggle" data-k2="${k}" role="switch" aria-checked="${on}"><span>${name}<small>${sub}</small></span><i class="sw${on ? ' on' : ''}" aria-hidden="true"></i></button>
@@ -5359,6 +5387,7 @@ function onTutAct(act, d) {
     case 'tip-ok': { const m = meta(); m.tips = { ...(m.tips || {}), [d.k]: true }; saveMeta(); render(); return true; }
     case 'fx-toggle': { const m = meta(); m.fxOff = !m.fxOff; saveMeta(); render(); return true; }
     case 'snd-toggle': { const m = meta(); const k = d.k2 === 'bgm' ? 'bgmOn' : 'sfxOn'; m[k] = m[k] === false; saveMeta(); sndInit(); sndApplyPrefs(); render(); if (k === 'sfxOn' && m[k]) sfx('tap'); return true; }
+    case 'color-mode': { const m = meta(); m.colorMode = ['light', 'dark'].includes(d.v) ? d.v : 'auto'; saveMeta(); render(); return true; }
     case 'tips-toggle': { const m = meta(); const on = m.tipsOn === false; m.tipsOn = on; if (on) m.tips = {}; saveMeta(); render(); return true; }
   }
   return false;
@@ -6941,6 +6970,8 @@ function render() {
   if (document.documentElement) {
     document.documentElement.dataset.cardSkin = selectedSkin('card');
     document.documentElement.dataset.pageSkin = selectedSkin('page');
+    const cm = meta().colorMode;
+    if (cm === 'light' || cm === 'dark') document.documentElement.dataset.theme = cm; else delete document.documentElement.dataset.theme;
   }
   (SCREENS[screen] || renderBattle)();
   bgmUpdate();
