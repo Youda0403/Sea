@@ -1097,6 +1097,36 @@ main.battle.tut { padding-bottom: 13rem; }
   background:radial-gradient(ellipse 90% 80% at 50% 45%,#35324e 0%,#191a2c 100%)
 }
 
+/* ---------- v8: 카드 틀 고정. 이름·인장·배지가 길어도 카드 높이가 늘지 않게 줄여서 보여 줍니다 ---------- */
+.slot { height: 6.4rem; min-height: 0; overflow: hidden; grid-template-rows: auto auto minmax(0, 1fr) auto; row-gap: .1rem; }
+.row-wrap.t .slot.empty { height: auto; min-height: 4.6rem; }
+@media (min-width: 640px) { .slot { height: 7rem; } }
+.u-name, .h-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.15; }
+.slot.nm-l .u-name { font-size: .7rem; }
+.slot.nm-xl .u-name { font-size: .64rem; letter-spacing: -.03em; }
+.slot.has-av .u-name { padding-right: 1.2rem; }
+.u-sig { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.u-badges { align-content: flex-start; overflow: hidden; min-height: 0; }
+.bd.more { color: var(--ink-soft); border-style: dashed; }
+.u-stats .res { margin: 0 auto; gap: 1px; }
+.u-stats .res i { width: .34rem; height: .34rem; }
+.u-badges .bd, .h-sig .bd { display: inline-block; white-space: nowrap; }
+.awk-star { font-style: normal; color: #c58b22; font-size: .85em; margin-right: .1em; }
+.hcard.nm-l .h-name { font-size: .8rem; }
+.hcard.nm-xl .h-name { font-size: .74rem; letter-spacing: -.02em; }
+.hcard .h-sig { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.hand .hcard { height: 8.4rem; min-height: 0; overflow: hidden; }
+.hcard.has-av .h-name, .hcard:has(> .av.corner) .cost { padding-right: 1.3rem; }
+/* 파스텔 도트: 공격·체력이 올랐을 때 노란 테두리 */
+:root[data-page-skin="pixel"] .u-stats b.atk.up, :root[data-page-skin="pixel"] .u-stats b.hp.up { box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px #e8c35c, 0 0 8px rgba(232, 195, 92, .8) !important; }
+:root[data-page-skin="pixel"] .u-stats b.atk.down { background: #cfc8d6 !important; }
+:root[data-page-skin="pixel"] .slot .bd { font-size: .54rem; padding: 0 .1rem; border-width: 1px; }
+:root[data-page-skin="pixel"] .slot { height: 6.9rem; padding: .25rem .25rem .2rem; }
+:root[data-page-skin="pixel"] .row-wrap.t .slot.empty { height: auto; }
+:root[data-page-skin="pixel"] .u-stats .res i { width: .3rem; height: .3rem; }
+@media (min-width: 640px) { :root[data-page-skin="pixel"] .slot { height: 7.4rem; } }
+:root[data-page-skin="pixel"] .slot .u-stats b { min-width: 1.25rem; height: 1.3rem; font-size: .74rem; box-shadow: 1px 1px 0 var(--ink); }
+
 /* 파스텔 도트 스킨(화면·카드·글씨 한 벌). 글꼴: 갈무리(Galmuri, SIL OFL 1.1, fonts/Galmuri-LICENSE.txt). 이 스킨을 켰을 때만 내려받습니다 */
 @font-face{font-family:"Galmuri11";src:url("fonts/Galmuri11.woff2") format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"Galmuri11";src:url("fonts/Galmuri11-Bold.woff2") format("woff2");font-weight:700;font-display:swap}
@@ -3929,6 +3959,8 @@ function cardHtml(card, opts) {
   if (info.desperate) cls.push('desp');
   if (info.awk) cls.push('awk');
   if (info.fused) cls.push('fused');
+  const dName = info.awk ? info.name.replace(/^각성한 /, '') : info.name;
+  cls.push(dName.length >= 9 ? 'nm-xl' : dName.length >= 6 ? 'nm-l' : '');
   if (o.sel) cls.push('sel');
   if (o.dim) cls.push('dim');
   const tag = o.act ? 'button' : 'div';
@@ -3938,7 +3970,7 @@ function cardHtml(card, opts) {
     ${info.comp && charById(info.comp)?.portrait ? `<img class="av sm corner${frameCls()}" src="${charById(info.comp).portrait}" alt="">` : ''}
     ${giftArt(card)}
     <span class="cost">${costHtml(info.cost)}</span>
-    <span class="h-name">${esc(info.name)}</span>
+    <span class="h-name">${info.awk ? '<i class="awk-star" aria-label="각성">★</i>' : ''}${esc(dName)}</span>
     <span class="h-sig">${esc(sigText(info.sig))}${info.fused ? ' <em class="bd">엮임</em>' : ''}${info.awk ? ' <em class="bd good">각성</em>' : ''}</span>
     <span class="u-stats"><b class="atk">${info.atk}</b><span class="rng">${rangeWord(info.sig, info.atk)}</span><b class="hp">${info.hp}</b></span>
     ${xp}${o.price !== undefined ? `<span class="price">보급 ${o.price}</span>` : ''}
@@ -6412,25 +6444,36 @@ function slotHtml(u, side, lane) {
   else if (u.elite) cls.push('elite-unit');
   const atk = side === 't' ? u.atk : effAtk(u, side, lane);
   const base = side === 't' ? u.atk : u.atk;
+  // 판 위 카드는 높이가 정해져 있어 배지를 중요한 순서로 3개까지(넘치면 2개 + 나머지 수)만 보이고 나머지는 +숫자로 줄입니다(전부는 눌러서 설명에)
   const badges = [];
-  if (u.comp) { const pl = proLink(u.comp); badges.push(pl ? `<em class="bd link">${PRO_LINKS[pl].name}</em>` : compById(u.comp).merc ? '<em class="bd">용병</em>' : `<em class="bd comp">동료</em>`); if (u.saseonAtPlay) badges.push('<em class="bd bad">사선</em>'); }
-  if (u.poison) badges.push('<em class="bd bad">독</em>');
-  if (u.weak) badges.push('<em class="bd bad">약화</em>');
-  if (u.stolen) badges.push('<em class="bd bad">빼앗김</em>');
-  if (u.wall) badges.push('<em class="bd good">방벽</em>');
-  if (u.delay) badges.push('<em class="bd">지연</em>');
-  if (u.boss) badges.push('<em class="bd crown">보스</em>');
-  else if (u.elite) badges.push('<em class="bd crown">엘리트</em>');
-  if (side === 'p' && u.newTurn === S.turn) badges.push('<em class="bd new">이번 턴</em>');
-  if (side === 'p' && u.comp && canCharge(u)) { cls.push(ultReady(u) ? 'ult-ready' : ''); badges.push(`<em class="res">${[0, 1, 2].map(i => `<i class="${i < (u.resolve || 0) ? 'on' : ''}"></i>`).join('')}</em>`); }
+  if (u.boss) badges.push([0, '<em class="bd crown">보스</em>']);
+  else if (u.elite) badges.push([0, '<em class="bd crown">엘리트</em>']);
+  if (u.comp && u.saseonAtPlay) badges.push([1, '<em class="bd bad">사선</em>']);
+  if (u.stolen) badges.push([1, '<em class="bd bad">빼앗김</em>']);
+  if (u.poison) badges.push([2, '<em class="bd bad">독</em>']);
+  if (u.weak) badges.push([2, '<em class="bd bad">약화</em>']);
+  if (u.wall) badges.push([3, '<em class="bd good">방벽</em>']);
+  if (u.delay) badges.push([3, '<em class="bd">지연</em>']);
+  if (u.comp) { const pl = proLink(u.comp); badges.push([4, pl ? `<em class="bd link">${PRO_LINKS[pl].name}</em>` : compById(u.comp).merc ? '<em class="bd">용병</em>' : `<em class="bd comp">동료</em>`]); }
+  if (side === 'p' && u.newTurn === S.turn) badges.push([5, '<em class="bd new">이번 턴</em>']);
+  badges.sort((a, b) => a[0] - b[0]);
+  const shownBadges = badges.length > 3 ? badges.slice(0, 2).map(x => x[1]).concat(`<em class="bd more">+${badges.length - 2}</em>`) : badges.map(x => x[1]);
+  // 궁극기 결의 칸은 공격·체력 사이(범위 글자 자리)에 둡니다
+  let resHtml = '';
+  if (side === 'p' && u.comp && canCharge(u)) { cls.push(ultReady(u) ? 'ult-ready' : ''); resHtml = `<em class="res">${[0, 1, 2].map(i => `<i class="${i < (u.resolve || 0) ? 'on' : ''}"></i>`).join('')}</em>`; }
+  // 각성한 카드는 이름 앞 '각성한 ' 대신 작은 별로 표시해 이름 자리를 아낍니다
+  const awk = !!(u.card && u.card.awk), shownName = awk ? String(u.name).replace(/^각성한 /, '') : u.name;
+  const nmLen = shownName.length;
+  cls.push(nmLen >= 9 ? 'nm-xl' : nmLen >= 6 ? 'nm-l' : '');
   const pc = u.comp ? charById(u.comp) : null;
+  if ((pc && pc.portrait) || (u.card && u.card.gift && u.card.gift.image)) cls.push('has-av');
   return `<button class="${cls.join(' ')}" data-side="${side}" data-lane="${lane}">
     ${pc && pc.portrait ? `<img class="av sm corner${frameCls()}" src="${pc.portrait}" alt="">` : ''}
     ${giftArt(u.card)}
-    <span class="u-name">${esc(u.name)}</span>
+    <span class="u-name">${awk ? '<i class="awk-star" aria-label="각성">★</i>' : ''}${esc(shownName)}</span>
     <span class="u-sig">${esc(sigText(u.sig))}</span>
-    <span class="u-badges">${badges.join('')}</span>
-    <span class="u-stats"><span class="atk-wrap"><b class="atk${atk > base ? ' up' : atk < base ? ' down' : ''}">${atk}</b></span><span class="rng">${rangeWord(u.sig, atk)}</span><b class="hp${side === 'p' && u.mendB ? ' up' : ''}">${Math.max(0, u.hp)}</b></span>${pop}${rtag}
+    <span class="u-badges">${shownBadges.join('')}</span>
+    <span class="u-stats"><span class="atk-wrap"><b class="atk${atk > base ? ' up' : atk < base ? ' down' : ''}">${atk}</b></span>${resHtml || `<span class="rng">${rangeWord(u.sig, atk)}</span>`}<b class="hp${side === 'p' && u.mendB ? ' up' : ''}">${Math.max(0, u.hp)}</b></span>${pop}${rtag}
   </button>`;
 }
 
@@ -6539,6 +6582,8 @@ function handHtml() {
     if (info.comp) cls.push('comp');
     if (info.desperate) cls.push('desp');
     if (card === S.doomRef) cls.push('doomed');
+    const hAwk = !!info.awk, hName = hAwk ? info.name.replace(/^각성한 /, '') : info.name;
+    cls.push(hName.length >= 9 ? 'nm-xl' : hName.length >= 6 ? 'nm-l' : '');
     const c = info.comp ? compById(info.comp) : null;
     const pc = info.comp ? charById(info.comp) : null;
     const pl = info.comp ? proLink(info.comp) : null;
@@ -6546,7 +6591,7 @@ function handHtml() {
       ${pc && pc.portrait ? `<img class="av sm corner${frameCls()}" src="${pc.portrait}" alt="">` : ''}
       ${giftArt(card)}
       <span class="cost">${costHtml(info.cost)}</span>
-      <span class="h-name">${esc(info.name)}</span>
+      <span class="h-name">${hAwk ? '<i class="awk-star" aria-label="각성">★</i>' : ''}${esc(hName)}</span>
       <span class="h-sig">${esc(sigText(info.sig))}${pl ? ` <em class="bd link">${PRO_LINKS[pl].name}</em>` : ''}${c && c.status === 'saseon' ? ' <em class="bd bad">사선</em>' : ''}${info.desperate ? ' <em class="bd">절박</em>' : ''}${card === S.doomRef ? ' <em class="bd bad">노려짐</em>' : ''}</span>
       <span class="u-stats"><b class="atk">${info.atk}</b><span class="rng">${rangeWord(info.sig, info.atk)}</span><b class="hp">${info.hp}</b></span>
     </button>`;
