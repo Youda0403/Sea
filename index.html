@@ -3290,6 +3290,8 @@ function takeRewardCard(run, key) {
 }
 function skipRewardCard(run) {
   if (!run.reward || run.reward.done) return { ok: false };
+  // 원정 준비물(기억의 책갈피)은 전투 보상이 아니므로 보급을 주지 않고 그냥 넘어갑니다
+  if (run.reward.fromPack) { run.reward.done = true; run.reward.took = null; return { ok: true, pack: true }; }
   if (run.supply >= runSupplyMax(run)) return { ok: false, msg: '보급이 가득 찼습니다. 카드 보상을 선택해 주세요.' };
   run.supply = Math.min(runSupplyMax(run), run.supply + 1); run.reward.done = true; run.reward.took = null; return { ok: true };
 }
@@ -4027,7 +4029,7 @@ const DIFFS = [
   { name: '무게 1', desc: '시작 보급 −2 · 스테이지 이동 보급 −1', bonus: 0.2 },
   { name: '무게 2', desc: '야영 휴식 회복 −5, 엘리트가 가시 인장을 가지고 체력 +2', bonus: 0.4 },
   { name: '무게 3', desc: '주머니의 공포 토큰 +1, 거래 가격 +1, 보스 체력 +3', bonus: 0.6 },
-  { name: '무게 4', desc: '6층부터 일반·엘리트 전투의 적 체력 +1, 스테이지 2 적의 공격 +1이 1층부터', bonus: 0.8 },
+  { name: '무게 4', desc: '6층부터 일반·엘리트 전투의 적 체력 +1, 스테이지 2 적의 공격 +1을 1층부터 적용(기본은 7층부터)', bonus: 0.8 },
   { name: '무게 5', desc: '궁지에 몰린 적의 발악 공격 +2, 보스 체력 +3 추가, 보스전의 모든 적 체력 +1', bonus: 1 },
 ];
 function diffSummary(d) { return DIFFS.slice(1, d + 1).map(x => x.desc).join(', ') || DIFFS[0].desc; }
@@ -4289,17 +4291,17 @@ function renderTrade() {
 
 /* ---------- 보상 ---------- */
 function renderReward() {
-  const rw = RUN.reward;
+  const rw = RUN.reward; const pack = !!rw.fromPack;
   const notes = RUN.notes.map(n => `<p class="note good">${esc(n)}</p>`).join('');
   const relic = rw.relic && !RUN.pendingRelic ? `<div class="relic-get"><b>${rw.relicTaken === false ? '두고 온 유물' : '유물 획득'}: ${esc(RELICS[rw.relic].name)}</b><small>${esc(RELICS[rw.relic].desc)}</small></div>` : '';
   const cards = rw.done
-    ? `<p class="soft">${rw.took ? `${esc(jo(CARDS[rw.took].name, '을', '를'))} 덱에 넣었습니다.` : '카드 대신 보급 1을 챙겼습니다.'}</p><button class="btn primary big" data-act="to-map">맵으로</button>`
+    ? `<p class="soft">${rw.took ? `${esc(jo(CARDS[rw.took].name, '을', '를'))} 덱에 넣었습니다.` : pack ? '카드를 넣지 않았습니다.' : '카드 대신 보급 1을 챙겼습니다.'}</p><button class="btn primary big" data-act="to-map">맵으로</button>`
     : `<p class="soft small">카드를 누르면 능력을 볼 수 있고, 거기서 덱에 넣습니다.</p><div class="card-row reward-cards">${rw.cards.map(k => cardHtml({ key: k }, { act: 'card-info', data: ` data-ctx="reward" data-k="${k}"` })).join('')}</div>
-       <div class="reward-alternative"><span class="reward-or">또는</span><button class="btn" data-act="skip-card"${RUN.supply >= runSupplyMax(RUN) ? ' disabled' : ''}><span>카드 대신 보급 챙기기</span><b>${RUN.supply >= runSupplyMax(RUN) ? '보급 가득 참 (' + RUN.supply + '/' + runSupplyMax(RUN) + ')' : '보급 +1'}</b></button></div>`;
+       <div class="reward-alternative"><span class="reward-or">또는</span>${pack ? '<button class="btn" data-act="skip-card" style="justify-content:center"><span>카드를 넣지 않고 출발</span></button>' : `<button class="btn" data-act="skip-card"${RUN.supply >= runSupplyMax(RUN) ? ' disabled' : ''}><span>카드 대신 보급 챙기기</span><b>${RUN.supply >= runSupplyMax(RUN) ? '보급 가득 참 (' + RUN.supply + '/' + runSupplyMax(RUN) + ')' : '보급 +1'}</b></button>`}</div>`;
   app.innerHTML = `<main class="setup reward">
-    <h1>전리품</h1>
+    <h1>${pack ? '기억의 책갈피' : '전리품'}</h1>
     ${runHead()}
-    ${tipHtml('reward')}
+    ${pack ? '<p class="soft small">원정 준비물로 챙긴 책갈피입니다. 카드 3장 중 1장을 골라 덱에 넣고 출발합니다.</p>' : tipHtml('reward')}
     ${notes}${relic}
     <section class="panel"><h2>카드</h2>${cards}</section>
     ${deckOverlay()}${cardSheet()}${revealHtml()}${relicOfferHtml()}
@@ -4526,7 +4528,7 @@ function onRunAct(act, d) {
       render(); return true;
     }
     case 'take-card': { const r = takeRewardCard(RUN, d.k); if (r.ok) sfx('gain'); UI.cinfo = null; render(); return true; }
-    case 'skip-card': { const r = skipRewardCard(RUN); if (r.ok) sfx('gain'); if (!r.ok && r.msg) flash(r.msg); render(); return true; }
+    case 'skip-card': { const r = skipRewardCard(RUN); if (r.ok && !r.pack) sfx('gain'); if (!r.ok && r.msg) flash(r.msg); render(); return true; }
     case 'to-reward': {
       syncOnce();
       if (RUN.over) { screen = 'runend'; render(); return true; }
