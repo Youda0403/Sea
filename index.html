@@ -324,6 +324,7 @@ h2 { font-size: 1.1rem; margin: 0 0 .6rem; }
 .btn.undo { flex: 0 0 auto; max-width: 42%; display: grid; text-align: left; }
 .btn.undo small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .btn.takeback { margin-top: .4rem; width: 100%; border-color: var(--brass); font-weight: 600; }
+.takeback-note { margin-top: .6rem; }
 .slot.rg-fly { box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 55%, transparent); }
 .slot.empty.rg-fly { border-color: var(--bad); }
 .rtag.fly { border-style: dashed; }
@@ -6966,7 +6967,7 @@ function unitInfo(u, side, lane) {
   if (side === 'p' && u.newTurn === S.turn) {
     const top = undoTop();
     const why = takeBackWhy(u);
-    if (!why) parts.push(`<button class="btn takeback" data-act="takeback" data-lane="${lane}">이 카드 거두기(토큰 돌려받음)</button>${top && top.uid === u.uid ? '' : '<div class="soft small">다른 행동(보급 교환, 지휘 등)은 그대로 두고 이 카드만 손패로 돌아옵니다.</div>'}`);
+    if (!why) parts.push(`<button class="btn takeback" data-act="takeback" data-lane="${lane}">이 카드 거두기(토큰 돌려받음)</button>${top && top.uid === u.uid ? '' : '<div class="soft small takeback-note">다른 행동(보급 교환, 지휘 등)은 그대로 두고 이 카드만 손패로 돌아옵니다.</div>'}`);
     else parts.push(`<div class="soft small">${esc(why)}</div>`);
   }
   if (u.comp) {
