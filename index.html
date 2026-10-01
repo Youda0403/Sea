@@ -3184,7 +3184,56 @@ function pickType(floor) {
   for (const [t, v] of w) { if ((x -= v) < 0) return t; }
   return 'battle';
 }
+/* 맵 칸 배분 v2: 종류별 개수를 먼저 정하고 자리만 무작위로 고릅니다.
+   1층 전투 · 6층과 11층 야영 · 12층 보스는 그대로. 나머지 칸(2~10층, 6층 제외)은
+   엘리트 2곳(칸이 21개 이상이면 3곳), 거래 2곳(앞 2~5층·뒤 7~10층에 1곳씩),
+   이벤트는 칸 수의 30%(앞뒤 반씩), 나머지는 전투입니다. 야영은 6·11층만(MAP_EXTRA_CAMP로 3·4·8·9층에 더 넣을 수 있음. 시뮬레이션에서 1곳만 늘려도 눈에 띄게 쉬워져 0으로 둠). 같은 종류가 바로 이어지거나 한 층이 한 종류로만 채워지지 않게 고릅니다 */
+const MAP_EXTRA_CAMP = 0;
 function genMap(stage) {
+  for (let t = 0; t < 80; t++) { const m = genMapQuota(stage); if (m) return m; }
+  return genMapRandom(stage);
+}
+function genMapQuota(stage) {
+  const nodes = [], byFloor = [];
+  for (let f = 1; f <= 11; f++) {
+    const cols = f === 1 || Math.random() < 0.5 ? [0, 1, 2] : [0, 2];
+    byFloor[f] = cols.map(col => { const n = { id: nodes.length, floor: f, col, type: f === 1 ? 'battle' : f === 6 || f === 11 ? 'camp' : null, next: [] }; nodes.push(n); return n; });
+  }
+  const boss = { id: nodes.length, floor: 12, col: 1, type: 'boss', next: [] }; nodes.push(boss); byFloor[12] = [boss];
+  for (let f = 1; f <= 11; f++) for (const n of byFloor[f]) n.next = f === 11 ? [boss.id] : byFloor[f + 1].filter(m => Math.abs(m.col - n.col) <= 1).map(m => m.id);
+  const prev = id => nodes.filter(x => x.next.includes(id));
+  const free = nodes.filter(n => n.type === null);
+  const linked = (n, type) => n.next.some(id => nodes[id].type === type) || prev(n.id).some(x => x.type === type);
+  const fillsFloor = (n, type) => { const fl = byFloor[n.floor].filter(x => x !== n); return fl.length > 0 && fl.every(x => x.type === type); };
+  // 조건을 지키는 빈칸 중 하나를 고릅니다. 지킬 수 없으면 조건을 풀어 다시 고르고, 그래도 없으면 실패
+  const place = (type, lo, hi, extraOk = () => true) => {
+    const pool = free.filter(n => n.type === null && n.floor >= lo && n.floor <= hi && n.floor !== 6);
+    const strict = pool.filter(n => !linked(n, type) && !fillsFloor(n, type) && extraOk(n));
+    const pick = strict.length ? strict : pool.filter(n => !fillsFloor(n, type));
+    if (!pick.length) return null;
+    const n = pick[Math.floor(Math.random() * pick.length)]; n.type = type; return n;
+  };
+  const total = free.length;
+  // 엘리트: 3~5층 1곳, 7~10층 1곳(큰 맵은 7~8층 1곳 + 9~10층 1곳)
+  const eliteBands = total >= 21 ? [[3, 5], [7, 8], [9, 10]] : [[3, 5], [7, 10]];
+  const elites = [];
+  for (const [lo, hi] of eliteBands) { const n = place('elite', lo, hi, x => !elites.some(e => e.col === x.col)); if (!n) return null; elites.push(n); }
+  const tr1 = place('trade', 2, 5); if (!tr1 || !place('trade', 7, 10, x => x.col !== tr1.col)) return null;
+  for (let i = 0; i < MAP_EXTRA_CAMP; i++) { const lo = Math.random() < 0.5; if (!place('camp', lo ? 3 : 8, lo ? 4 : 9)) return null; }
+  const evN = Math.round(total * 0.3), evFront = Math.ceil(evN / 2);
+  for (let i = 0; i < evN; i++) if (!(i < evFront ? place('event', 2, 5) : place('event', 7, 10)) && !place('event', 2, 10)) return null;
+  for (const n of free) if (n.type === null) n.type = 'battle';
+  // 한 층이 모두 같은 종류면 실패로 보고 다시 만듭니다
+  for (let f = 2; f <= 10; f++) if (f !== 6 && byFloor[f].length > 1 && byFloor[f].every(x => x.type === byFloor[f][0].type)) return null;
+  const pre = (stage || 1) >= 3 ? 's3' : (stage || 1) >= 2 ? 's2' : '';
+  for (const n of nodes) if (n.type === 'elite') n.enc = pre + ['elite', 'elite2', 'elite3'][Math.floor(Math.random() * 3)];
+  const evs = nodes.filter(n => n.type === 'event' && n.floor >= 3 && n.floor <= 8);
+  if (!evs.length) return null;
+  evs[Math.floor(Math.random() * evs.length)].recruit = true;
+  return { nodes };
+}
+/* 이전 방식(칸마다 확률로 종류를 정함). 새 방식이 조건을 못 맞출 때만 씁니다 */
+function genMapRandom(stage) {
   const nodes = [];
   const byFloor = [];
   for (let f = 1; f <= 11; f++) {
