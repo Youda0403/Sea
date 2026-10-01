@@ -775,6 +775,11 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 .title-toks { display: flex; gap: .45rem; margin-bottom: .3rem; }
 .title-toks .tok { cursor: default; min-width: 3.4rem; }
 .title-menu { display: grid; gap: .6rem; }
+.title-credit { display: flex; justify-content: center; align-items: center; gap: .6rem; font-size: .75rem; color: var(--ink-soft); margin-top: -1rem; }
+.title-credit .linkish { background: none; border: 0; padding: .3rem .1rem; cursor: pointer; font-family: inherit; font-size: .75rem; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 2px; }
+.credits section { margin: .2rem 0 .8rem; }
+.credits section small { display: block; color: var(--brass); font-weight: 700; letter-spacing: .06em; margin-bottom: .2rem; }
+.credits section p { margin: .1rem 0; font-size: .9rem; }
 .btn.menu-btn { display: grid; gap: .15rem; justify-items: center; }
 .btn.menu-btn b { font-family: "Gowun Batang", serif; font-size: 1.1rem; }
 .btn.menu-btn small { font-size: .78rem; }
@@ -4685,13 +4690,30 @@ function renderTitle() {
       <button class="btn big menu-btn" data-act="to-settings"><b>설정</b><small>연출·도움말, 저장 옮기기, 초기화</small></button>
       ${/dev/.test(location.search) ? '<button class="btn ghost dev-btn" data-act="to-setup">개발용 전투 시험장</button><button class="btn ghost dev-btn" data-act="dev-ending">엔딩 미리 보기</button>' : ''}
     </div>
-  </main>`;
+    <footer class="title-credit"><span>만든 사람 유담 (@Yudam_vv)</span><button class="linkish" data-act="credits-open">크레딧</button></footer>
+  </main>${creditsSheet()}`;
+}
+/* 크레딧: 만든 사람, 쓴 글꼴·효과음, 영감을 받은 작품 */
+const CREDITS = [
+  ['만든 사람', ['유담 (@Yudam_vv)', '기획 · 글 · 음악 · 캐릭터']],
+  ['글꼴', ['갈무리 Galmuri (파스텔 도트 스킨) · SIL Open Font License 1.1', 'Gowun Batang · IBM Plex Sans KR · SIL Open Font License 1.1']],
+  ['효과음', ['Kenney (kenney.nl) · CC0', '일부 효과음은 게임 안에서 직접 합성']],
+  ['영감을 받은 작품', ['Inscryption', 'Darkest Dungeon', '로스트 페이지', '서울 2033']],
+];
+function creditsSheet() {
+  if (!UI.creditsOpen) return '';
+  return `<div class="sheet"><div class="sheet-body credits"><h2>크레딧</h2>
+    ${CREDITS.map(([h, lines]) => `<section><small>${esc(h)}</small>${lines.map(l => `<p>${esc(l)}</p>`).join('')}</section>`).join('')}
+    <p class="soft small">참고한 작품들과 공식적인 관련은 없습니다. 감사합니다.</p>
+    <button class="btn" data-act="credits-close">닫기</button></div></div>`;
 }
 
 /* ---------- 입력 ---------- */
 function onGameAct(act, d) {
   if (onWorkshopAct(act, d)) return true;
   switch (act) {
+    case 'credits-open': UI.creditsOpen = true; render(); return true;
+    case 'credits-close': UI.creditsOpen = false; render(); return true;
     case 'dev-ending': {
       if (!/dev/.test(location.search)) return true;
       const sample = (loadRunState() || {}).run || buildRun('test');
