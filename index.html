@@ -1325,19 +1325,20 @@ main.tut .hand { padding-bottom: 1.3rem; }
 .deck-sheet .hcard.sel::after { content: "✓ 선택"; position: absolute; top: -.6rem; right: -.4rem; z-index: 2; font: 700 .72rem/1 "IBM Plex Sans KR", sans-serif; color: #21180c; background: #f3c65c; border: 2px solid #21180c; border-radius: 999px; padding: .22rem .5rem; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
 /* ================= 기본 화면: 등불 서재(빛·그림자로 깊이를 준 기본 테마). 다른 화면 스킨에는 적용되지 않습니다 ================= */
 :root[data-page-skin="none"] {
-  --table: #e8dcc4; --table-2: #dccdb0; --ink: #2a1f15; --ink-soft: #6a5841; --line: #bba683; --brass: #a8741f;
-  --mat: #4d7560; --mat-2: #34574a; --mat-line: rgba(255, 246, 220, .45);
-  --th-pnl: linear-gradient(180deg, #f7efdf, #eee2ca); --th-pnl-edge: #cdb891; --th-hi: rgba(255, 255, 255, .7);
-  --th-btn: linear-gradient(180deg, #f8f0de, #e8dabd); --th-btn-edge: #c4ab80;
-  --th-gold: linear-gradient(180deg, #ecc677, #c58f3d); --th-gold-ink: #2a1b0a; --th-gold-edge: #93652a; --th-glow: rgba(190, 130, 40, .26);
-  --th-felt: radial-gradient(ellipse 90% 70% at 50% 40%, #527d66 0%, #3b604d 70%, #304f40 100%);
-  --th-felt-edge: #8a6a3c; --th-felt-in: #2c4a39; --th-stitch: rgba(240, 205, 140, .5);
-  --th-sh: rgba(90, 62, 25, .18); --th-sh-b: rgba(110, 80, 35, .3); --th-card-sh: rgba(40, 26, 10, .35);
-  --th-title: linear-gradient(180deg, #c99236 0%, #a06a1f 55%, #7a4c14 100%); --th-h1-sh: 0 1px 0 rgba(255, 255, 255, .6);
-  --th-bg: #e6d8bd; --th-bg-glow: rgba(255, 214, 140, .35); --th-bg-vig: rgba(120, 85, 40, .16); --th-track: rgba(90, 62, 25, .14);
+  --table: #e6e0d6; --table-2: #dbd3c6; --ink: #2b241d; --ink-soft: #685d50; --line: #bfb3a0; --brass: #9a7230;
+  --mat: #587767; --mat-2: #3e5b4d; --mat-line: rgba(245, 240, 228, .45);
+  --th-pnl: linear-gradient(180deg, #f1ede6, #e9e3d9); --th-pnl-edge: #cfc5b5; --th-hi: rgba(255, 255, 255, .55);
+  --th-btn: linear-gradient(180deg, #f2eee7, #e4ddd1); --th-btn-edge: #c6baa7;
+  --th-gold: linear-gradient(180deg, #e2c58e, #c9a062); --th-gold-ink: #2a1d0e; --th-gold-edge: #9b7840; --th-glow: rgba(150, 110, 50, .18);
+  --th-felt: radial-gradient(ellipse 90% 70% at 50% 40%, #5a7a69 0%, #435f51 70%, #384f44 100%);
+  --th-felt-edge: #85714f; --th-felt-in: #33493e; --th-stitch: rgba(232, 214, 176, .45);
+  --th-sh: rgba(70, 55, 35, .14); --th-sh-b: rgba(90, 72, 45, .24); --th-card-sh: rgba(40, 30, 15, .3);
+  --th-title: linear-gradient(180deg, #b48a45 0%, #8f682b 55%, #6b4c1e 100%); --th-h1-sh: 0 1px 0 rgba(255, 255, 255, .5);
+  --th-bg: #e3ddd3; --th-bg-glow: rgba(255, 244, 222, .45); --th-bg-vig: rgba(90, 70, 45, .1); --th-track: rgba(70, 55, 35, .12);
 }
 @media (prefers-color-scheme: dark) {
   :root[data-page-skin="none"]:not([data-theme="light"]) {
+    --th-gold: linear-gradient(180deg, #ecc677, #c58f3d); --th-gold-ink: #2a1b0a;
     --table: #16110d; --table-2: #211913; --ink: #f3e7cf; --ink-soft: #b6a488; --line: #4b3b2b; --brass: #dcae5c;
     --mat: #2c4c3b; --mat-2: #142820; --mat-line: rgba(238, 228, 200, .28);
     --th-pnl: linear-gradient(180deg, #261d16, #1c1510); --th-pnl-edge: #4e3c29; --th-hi: rgba(255, 226, 170, .07);
@@ -1351,6 +1352,7 @@ main.tut .hand { padding-bottom: 1.3rem; }
   }
 }
 :root[data-page-skin="none"][data-theme="dark"] {
+  --th-gold: linear-gradient(180deg, #ecc677, #c58f3d); --th-gold-ink: #2a1b0a;
   --table: #16110d; --table-2: #211913; --ink: #f3e7cf; --ink-soft: #b6a488; --line: #4b3b2b; --brass: #dcae5c;
   --mat: #2c4c3b; --mat-2: #142820; --mat-line: rgba(238, 228, 200, .28);
   --th-pnl: linear-gradient(180deg, #261d16, #1c1510); --th-pnl-edge: #4e3c29; --th-hi: rgba(255, 226, 170, .07);
@@ -1363,13 +1365,14 @@ main.tut .hand { padding-bottom: 1.3rem; }
   --th-bg: #15100c; --th-bg-glow: rgba(232, 170, 90, .16); --th-bg-vig: rgba(0, 0, 0, .6); --th-track: rgba(0, 0, 0, .35);
 }
 /* 배경: 위에서 비치는 등불 + 아래쪽 그늘 + 종이 결 */
-:where(:root[data-page-skin="none"]) body {
+:where(:root[data-page-skin="none"]) body { background: var(--th-bg); }
+:where(:root[data-page-skin="none"]) body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; will-change: transform;
   background:
     radial-gradient(120% 70% at 50% -10%, var(--th-bg-glow) 0%, transparent 60%),
     radial-gradient(140% 100% at 50% 120%, var(--th-bg-vig) 0%, transparent 60%),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     var(--th-bg);
-  background-attachment: fixed;
 }
 :where(:root[data-page-skin="none"]) h1 { text-shadow: var(--th-h1-sh); }
 /* 패널: 둥근 상자 + 윗면 빛 + 아래 그림자 */
@@ -1411,7 +1414,9 @@ main.tut .hand { padding-bottom: 1.3rem; }
 /* 타이틀 */
 :where(:root[data-page-skin="none"]) .title-mark h1 { font-size: 3rem; background: var(--th-title); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 3px 14px var(--th-glow)); }
 :where(:root[data-page-skin="none"]) .title-mark .tagline { color: var(--ink); letter-spacing: .04em; }
-:where(:root[data-page-skin="none"]) .title-mark::after { content: "✦"; color: var(--brass); opacity: .7; font-size: .8rem; letter-spacing: 1.2em; }
+:where(:root[data-page-skin="none"]) .title-mark .subtitle { display: flex; align-items: center; justify-content: center; gap: .65rem; margin-top: -.3rem; font-size: .76rem; letter-spacing: .08em; color: var(--ink-soft); }
+:where(:root[data-page-skin="none"]) .title-mark .subtitle::before, :where(:root[data-page-skin="none"]) .title-mark .subtitle::after { content: ""; width: 1.6rem; height: 1px; background: linear-gradient(90deg, transparent, var(--brass)); opacity: .75; }
+:where(:root[data-page-skin="none"]) .title-mark .subtitle::after { background: linear-gradient(90deg, var(--brass), transparent); }
 :where(:root[data-page-skin="none"]) .btn.menu-btn { min-height: 3.6rem; }
 :where(:root[data-page-skin="none"]) .btn.menu-btn b { font-size: 1.15rem; }
 </style>
@@ -4771,7 +4776,7 @@ function renderTitle() {
       <div class="title-toks" aria-hidden="true"><span class="tok t-anger">분노</span><span class="tok t-calm">냉정</span><span class="tok t-hope">희망</span></div>
       <h1>${GAME_TITLE}</h1>
       <p class="tagline">${TAGLINE}</p>
-      <p class="soft small">가제. 감정을 뽑아 싸우는 카드 로그라이크</p>
+      <p class="soft small subtitle">감정을 뽑아 싸우는 카드 로그라이크</p>
     </div>
     <div class="title-menu">
       ${sv ? `<button class="btn primary big menu-btn" data-act="continue"><b>이어하기</b><small>${cont}</small></button>` : ''}
