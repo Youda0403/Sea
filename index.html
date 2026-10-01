@@ -3601,10 +3601,10 @@ const REL_EVENTS_MORE = {
         { label: () => '그 버릇이 누구에게서 왔는지 묻는다', run: (run, A) => [bondTxt(run, [A], 1), `둘이 오래 잊고 있던 사람 하나를 기억해 냈습니다. ${stressTxt(run, -8)}`].filter(Boolean).join('. ') }] },
   ],
   comrade: [
-    { title: '마지막 통조림', text: (A, B) => `${A.name}이(가) 마지막 남은 통조림을 따서 반을 ${B.name} 쪽으로 밀어 줍니다. 둘 다 그게 당연하다는 표정입니다.`,
+    { title: '손에 익은 정비', text: (A, B) => `${A.name}와(과) ${B.name}이(가) 말없이 서로의 장비를 손봅니다. 해진 끈을 다시 묶어 주고, 무뎌진 날을 갈아 줍니다. 오래 함께 싸운 사람들의 익숙한 손길입니다.`,
       choices: [
-        { label: () => '셋이 나눠 먹는다', run: (run, A, B) => [bondTxt(run, [A, B], 1), `몇 숟가락뿐이었지만 배가 든든합니다. ${stressTxt(run, -6)}`].filter(Boolean).join('. ') },
-        { label: () => '아껴 두자고 한다', run: (run) => `통조림을 다시 꼭 닫아 짐에 넣었습니다. 보급 +${gainSupply(run, 1)}` }] },
+        { label: () => '옆에 앉아 같이 손본다', run: (run, A, B) => [bondTxt(run, [A, B], 1), `다음 전투가 조금 든든해졌습니다. ${stressTxt(run, -6)}`].filter(Boolean).join('. ') },
+        { label: () => '남는 부품을 챙겨 두자고 한다', run: (run) => `쓸 만한 부품을 모아 짐에 넣었습니다. 보급 +${gainSupply(run, 1)}` }] },
     { title: '둘만 아는 신호', text: (A, B) => `${A.name}와(과) ${B.name}이(가) 손가락 신호 몇 개로만 대화합니다. 오래 함께 싸운 사람들끼리만 통하는 말입니다.`,
       choices: [
         { label: () => '신호를 배워 둔다', run: (run, A, B) => [bondTxt(run, [A, B], 1), `다음 전투가 조금은 수월할 것 같습니다. ${stressTxt(run, -4)}`].filter(Boolean).join('. ') },
@@ -3791,6 +3791,28 @@ const REPORT_JOURNEYS = [
   { name: '한계를 지나온', text: '정신력의 한계를 경험한 뒤에도 원정의 끝을 마주했습니다.' },
   { name: '마음을 지켜온', text: '다시 시작하거나 동료를 잃는 일 없이, 정신력의 한계 안에서 여정을 마쳤습니다.' },
 ];
+/* 특별칭호: 달성 조건은 보여 주지 않고, 받은 칭호에는 이 문장만 보여 줍니다. 모은 개수는 거점과 보고서에 표시 */
+const TITLE_FLAVOR = {
+  '모두를 데려온 사람': '아무도 탑에 두고 오지 않았습니다.',
+  '흔들리지 않는 등불': '끝까지 흔들리지 않고 길을 비췄습니다.',
+  '탑의 역린을 꺾은 자': '탑이 가장 아끼던 것들을 꺾고 돌아왔습니다.',
+  '가장 무거운 귀환': '가장 무거운 탑에서 아무것도 잃지 않고 돌아왔습니다.',
+  '무너진 전선을 되찾은 사람': '밀려난 자리에서 몇 번이고 다시 일어섰습니다.',
+  '서로 다른 길을 엮은 사람': '흩어진 기억들을 하나로 엮어 냈습니다.',
+  '꺼지지 않은 모닥불': '모닥불 곁의 이야기가 끝까지 이어졌습니다.',
+  '주머니를 믿은 사람': '감정이 이끄는 대로 손을 뻗었고, 주머니는 대답했습니다.',
+  '쉬지 않고 오른 사람': '한 번도 짐을 내려놓지 않고 꼭대기까지 올랐습니다.',
+  '허기를 견딘 사람': '빈 배를 안고도 걸음을 멈추지 않았습니다.',
+  '모든 갈림길에 멈춘 사람': '지나치는 대신 멈춰 서서 들여다보았습니다.',
+  '바람처럼 지나간 사람': '싸움은 짧았고 발걸음은 가벼웠습니다.',
+};
+const TITLE_NOTE = '어떤 원정이 특별칭호를 받는지는 비밀입니다. 재도전이나 후퇴 없이 탑을 끝까지 오른 원정만 판정합니다.';
+function titlesCollected() {
+  const m = meta(), got = new Set((m.titles || []).filter(n => TITLE_FLAVOR[n]));
+  ((m.lastReport && m.lastReport.awards) || []).forEach(a => { if (a.earned && TITLE_FLAVOR[a.name]) got.add(a.name); });
+  return got;
+}
+function titleCountText() { return `모은 특별칭호 ${titlesCollected().size} / ${Object.keys(TITLE_FLAVOR).length}`; }
 function buildRunReport(run) {
   const j = journalOf(run), bs = j.battles;
   const sum = k => bs.reduce((n, b) => n + (b[k] || 0), 0);
@@ -3812,6 +3834,11 @@ function buildRunReport(run) {
     { name: '무너진 전선을 되찾은 사람', rule: '전선 −3 이하에서 승리 3회 이상 · 엘리트 4회 이상 격파', ok: s.comebacks >= 3 && s.elites >= 4 },
     { name: '서로 다른 길을 엮은 사람', rule: '카드 엮기 3회 이상 · 엘리트 4회 이상 격파', ok: s.fuses >= 3 && s.elites >= 4 },
     { name: '꺼지지 않은 모닥불', rule: '야영 대화 4회 이상 · 동료 사망 0', ok: s.talks >= 4 && !s.deaths },
+    { name: '주머니를 믿은 사람', rule: '추가 뽑기 30회 이상 · 버스트 3회 이하', ok: s.extra >= 30 && s.bursts <= 3 },
+    { name: '쉬지 않고 오른 사람', rule: '야영 휴식 0회', ok: s.rests === 0 },
+    { name: '허기를 견딘 사람', rule: '굶주림 3회 이상', ok: s.starvations >= 3 },
+    { name: '모든 갈림길에 멈춘 사람', rule: '이벤트 8회 이상', ok: s.events >= 8 },
+    { name: '바람처럼 지나간 사람', rule: '승리한 전투 평균 5턴 이하', ok: s.wins > 0 && s.turns <= s.wins * 5 },
   ].map(a => ({ name: a.name, rule: a.rule, earned: qualified && a.ok }));
   const party = run.comps.map(c => {
     const gain = c.merc ? 0 : Math.max(0, (c.bondPts || 0) - ((run.bondStart || {})[c.id] || 0));
@@ -3824,7 +3851,7 @@ function buildRunReport(run) {
     type: `${REPORT_JOURNEYS[journey].name} ${style.name}`, description: `${style.text} ${REPORT_JOURNEYS[journey].text}`,
     evidence: [style.evidence(s), ranked[1].evidence(s), `재도전 ${s.retries}회 · 동료 사망 ${s.deaths}명 · 정신력 한계 ${run.brokeOnce ? '경험' : '없음'}`],
     stats: s, awards, party, broken: !!run.brokeOnce,
-    titleNote: !j.complete ? '업데이트 전부터 진행한 원정은 일부 기록이 없어 특별칭호를 판정하지 않습니다.' : s.retries ? '재도전을 사용해 이번 원정의 특별칭호 자격을 잃었습니다.' : '공통 조건: 무게 제한 없음 · 탑 돌파 · 보스 3회 격파 · 재도전 0 · 후퇴 0.' };
+    titleNote: !j.complete ? '업데이트 전부터 진행한 원정은 일부 기록이 없어 특별칭호를 판정하지 않습니다.' : s.retries ? '재도전을 사용해 이번 원정의 특별칭호 자격을 잃었습니다.' : TITLE_NOTE };
 }
 
 if (typeof module !== 'undefined') {
@@ -4773,7 +4800,7 @@ function renderBase() {
       <div class="res-btns"><button class="btn primary" data-act="tut-start">훈련 전투 시작</button><button class="btn ghost" data-act="tut-dismiss">바로 시작할게요</button></div></section>` : tipHtml('base')}
     <section class="panel shard-panel">
       <div class="shard-count"><span>기억 조각</span><b>${m.shards}</b></div>
-      <p class="soft small">런 ${m.runs}번, 가장 높이 오른 곳 ${floorText(m.best)}, 탑 돌파 ${m.clears}번</p>
+      <p class="soft small">런 ${m.runs}번, 가장 높이 오른 곳 ${floorText(m.best)}, 탑 돌파 ${m.clears}번 · ${titleCountText()}</p>
       <p class="soft small">열린 무게: ${m.maxDiff ? `0~${m.maxDiff}. 출정 준비에서 고를 수 있습니다` : '없음. 스테이지 1의 보스를 쓰러뜨리면 탑의 무게(난이도)가 열립니다'}</p>
       <p class="soft small">런이 끝나면 도달한 층마다 ${SHARD_RULE.floor}개, 엘리트를 쓰러뜨릴 때마다 ${SHARD_RULE.elite}개, 보스를 쓰러뜨리면 ${SHARD_RULE.boss}개를 얻습니다.</p>
     </section>
@@ -5592,7 +5619,7 @@ function retryHtml() {
 function ensureRunReport(run) {
   if (!run.report) {
     run.report = buildRunReport(run);
-    if (run.fromPrep) { meta().lastReport = run.report; saveMeta(); }
+    if (run.fromPrep) { const m = meta(); m.lastReport = run.report; const got = titlesCollected(); run.report.awards.forEach(a => { if (a.earned && TITLE_FLAVOR[a.name]) got.add(a.name); }); m.titles = [...got]; saveMeta(); }
   }
   return run.report;
 }
@@ -5606,7 +5633,7 @@ function reportRows(r) {
 }
 function reportView(r) {
   const s = r.stats, index = Math.floor(r.typeId / 4);
-  return { note: !r.rulesVersion && r.titleNote.includes('무게 3 이상') ? '이전 기준으로 판정된 보고서입니다. 새 원정부터 무게 0에서도 특별칭호에 도전할 수 있습니다.' : r.titleNote, role: REPORT_STYLES[index] ? REPORT_STYLES[index].name : r.type,
+  return { note: !r.rulesVersion && r.titleNote.includes('무게 3 이상') ? '이전 기준으로 판정된 보고서입니다. 새 원정부터 무게 0에서도 특별칭호에 도전할 수 있습니다.' : String(r.titleNote || '').startsWith('공통 조건') ? TITLE_NOTE : r.titleNote, role: REPORT_STYLES[index] ? REPORT_STYLES[index].name : r.type,
     journey: REPORT_JOURNEYS[r.typeId % 4] ? REPORT_JOURNEYS[r.typeId % 4].name : '이번 여정',
     highlights: [['전투 승리', String(s.wins), '엘리트 '+s.elites+' · 보스 '+s.bosses], ['최고 스트레스', String(s.maxStress), r.broken ? '정신력 한계 경험' : '정신력 한계 없음'], ['동행의 끝', r.party.filter(c=>c.status!=='사망').length+' / '+r.party.length, '생존 동료 / 마지막 동료']],
     cards: [['감정과 판단', [['추가 뽑기',s.extra+'회'],['버스트',s.bursts+'회'],['지휘',s.commands+'회'],['전투 턴',s.turns+'턴']]],
@@ -5621,7 +5648,7 @@ function reportHtml(r) {
     <header class="report-heading"><span>탑으로부터 · EXPEDITION RECORD</span><h2>원정 결과 보고서</h2><p>${esc(r.pro)}의 원정</p><div class="report-tags"><b>${r.cleared?'탑 돌파':'여정 종료'}</b><span>무게 ${r.diff}</span><span>${esc(floorText(r.floor))}</span><span>${esc(r.date.slice(0,10))}</span></div></header>
     <section class="report-type"><small>이번 여정에 남은 모습 · ${String(r.typeId+1).padStart(2,'0')} / 32</small><p class="report-journey">${esc(v.journey)}</p><h3>${esc(v.role)}</h3><p>${esc(r.description)}</p><div class="report-evidence">${r.evidence.map((x,i)=>`<div><b>0${i+1}</b><span>${esc(x)}</span></div>`).join('')}</div></section>
     <div class="report-highlights">${v.highlights.map(([k,n,t])=>`<div><small>${k}</small><strong>${esc(n)}</strong><span>${esc(t)}</span></div>`).join('')}</div>
-    <section class="report-honors"><h3>01 / 특별칭호</h3>${v.earned.length?v.earned.map(a=>`<div class="report-award"><b>✦ ${esc(a.name)}</b><p>${esc(a.rule)}</p></div>`).join(''):`<p class="report-empty">이번 여정은 기록으로 남았습니다.</p>`}<p class="report-footnote">${esc(v.note)}</p><details><summary>칭호 ${v.earned.length?'달성 조건 보기':'도전 조건 보기'}</summary><p>공통: 탑 돌파 · 보스 3회 격파 · 재도전·후퇴 없음 · 출발부터 온전한 기록. 무게 제한은 각 칭호에 따릅니다.</p>${r.awards.map(a=>`<p><b>${esc(a.name)}</b><br>${esc(a.rule)}</p>`).join('')}</details></section>
+    <section class="report-honors"><h3>01 / 특별칭호</h3><p class="report-footnote">${esc(titleCountText())}</p>${v.earned.length?v.earned.map(a=>`<div class="report-award"><b>✦ ${esc(a.name)}</b><p>${esc(TITLE_FLAVOR[a.name] || '')}</p></div>`).join(''):`<p class="report-empty">이번 여정은 기록으로 남았습니다.</p>`}<p class="report-footnote">${esc(v.note)}</p></section>
     <section><h3>02 / 원정 기록</h3><div class="report-card-grid">${v.cards.map(([h,rows])=>`<div class="report-data-card"><h4>${h}</h4><dl>${rows.map(([k,n])=>`<div><dt>${k}</dt><dd>${esc(n)}</dd></div>`).join('')}</dl></div>`).join('')}</div></section>
     <section><h3>03 / 함께 걸었던 사람들</h3>${r.party.length?r.party.map(c=>`<div class="report-party"><div class="report-initial">${esc(c.name.slice(0,1))}</div><div><div class="report-party-head"><b>${esc(c.name)}</b><span class="report-status ${c.status==='사망'?'lost':c.status==='사선'?'hurt':''}">${c.status}</span></div><small>${c.merc?'용병':'이번 원정 유대 +'+c.gain}</small><p>${esc(c.line)}</p></div></div>`).join(''):'<p>동료 없이 홀로 걸었던 길입니다.</p>'}</section>
     <footer>${!r.complete?'<p class="report-footnote">일부 기록만 남은 원정 · 유형과 수치는 업데이트 이후의 기록에 기반합니다.</p>':''}<p class="report-footnote">재도전으로 되돌린 전투 기록은 제외합니다. 유형은 이번 플레이의 해석이며 점수나 성격 진단이 아닙니다.</p><p class="report-motto">끝에 남은 것은, 걸어온 방식.</p><button class="btn primary" data-act="report-save">보고서 이미지 저장 · PNG</button><small class="report-save-status" role="status"></small></footer>
@@ -5663,7 +5690,7 @@ function drawReportCanvas(canvas, r) {
     tileH=Math.max(tileH,yy-y);return {x,idx};});
   for(let i=hs.length-1;i>=0;i--){const x=hs[i].x;ops.splice(hs[i].idx,0,()=>{ctx.fillStyle=C.paper;ctx.fillRect(x,yTiles,tileW,tileH);});} const yTiles=y;y+=tileH+8;
   section('01 / 특별칭호');
-  if(v.earned.length) v.earned.forEach(a=>{y+=text('✦ '+a.name,M,y,inner,28,C.accent,true)+8;y+=text(a.rule,M,y,inner,20,C.muted)+16;});
+  if(v.earned.length) v.earned.forEach(a=>{y+=text('✦ '+a.name,M,y,inner,28,C.accent,true)+8;y+=text(TITLE_FLAVOR[a.name]||'',M,y,inner,20,C.muted)+16;});
   else y+=text('이번 여정은 기록으로 남았습니다.',M,y,inner,24,C.ink,true)+8;
   y+=text(v.note,M,y,inner,19,C.muted)+6;
   section('02 / 원정 기록');
