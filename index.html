@@ -39,6 +39,9 @@
 }
 :root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+/* 설정의 글자 크기: rem 단위 글자·칸이 함께 커지고 작아집니다 */
+:root[data-font="s"] { font-size: 93.75%; } :root[data-font="s"] body { font-size: 14px; }
+:root[data-font="l"] { font-size: 106.25%; } :root[data-font="l"] body { font-size: 16px; }
 *, *::before, *::after { box-sizing: inherit; }
 body {
   margin: 0; background: var(--table); color: var(--ink);
@@ -1457,9 +1460,10 @@ html[data-page-skin="none"] { background: var(--th-bg); }
 /* 설정: 화면 밝기 고르기 */
 .seg-row { display: grid; gap: .45rem; margin-top: .3rem; }
 .seg-row > span { display: grid; gap: .1rem; }
-.seg-row small { font-size: .72rem; color: var(--ink-soft); }
+.seg-row small { font-size: .72rem; color: var(--ink-soft); word-break: keep-all; }
 .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; }
 .howto-btns .seg .btn { min-height: 2.4rem; padding: .3rem .4rem; }
+.ws-test-exit { position: fixed; top: calc(env(safe-area-inset-top, 0px) + .5rem); right: .5rem; z-index: 25; }
 .seg .btn.on { border-color: var(--brass); background: color-mix(in srgb, var(--brass) 18%, var(--table-2)); font-weight: 700; box-shadow: inset 0 0 0 1px var(--brass); }
 </style>
 </head>
@@ -5255,6 +5259,8 @@ function renderSettings() {
       <button class="btn switch-btn" data-act="tips-toggle" role="switch" aria-checked="${meta().tipsOn !== false}"><span>화면별 도움말<small>${meta().tipsOn !== false ? '처음 보는 화면마다 안내가 뜹니다' : '안내를 띄우지 않습니다'}</small></span><i class="sw${meta().tipsOn !== false ? ' on' : ''}" aria-hidden="true"></i></button>
       ${(() => { const cur = ['light', 'dark'].includes(meta().colorMode) ? meta().colorMode : 'auto'; const skin = selectedSkin('page') !== 'none';
         return `<div class="seg-row"><span>화면 밝기<small>${skin ? '지금 쓰는 화면 스킨은 밝은 화면으로만 보여요. 기본 화면에서 적용됩니다' : '기기의 다크 모드 설정을 따르거나 직접 고를 수 있어요'}</small></span><div class="seg" role="radiogroup" aria-label="화면 밝기">${[['auto', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']].map(([k, n]) => `<button class="btn${cur === k ? ' on' : ''}" data-act="color-mode" data-v="${k}" role="radio" aria-checked="${cur === k}">${n}</button>`).join('')}</div></div>`; })()}
+      ${(() => { const cur = ['s', 'l'].includes(meta().fontSize) ? meta().fontSize : 'm';
+        return `<div class="seg-row"><span>글자 크기<small>게임 전체의 글자와 카드 크기가 함께 바뀝니다</small></span><div class="seg" role="radiogroup" aria-label="글자 크기">${[['s', '작게'], ['m', '보통'], ['l', '크게']].map(([k, n]) => `<button class="btn${cur === k ? ' on' : ''}" data-act="font-size" data-v="${k}" role="radio" aria-checked="${cur === k}">${n}</button>`).join('')}</div></div>`; })()}
     </section>
     <section class="panel howto-btns sound-panel"><h2>소리</h2>
       ${(() => { const p = sndPrefs(); const row = (k, name, on, vol, sub) => `<button class="btn switch-btn" data-act="snd-toggle" data-k2="${k}" role="switch" aria-checked="${on}"><span>${name}<small>${sub}</small></span><i class="sw${on ? ' on' : ''}" aria-hidden="true"></i></button>
@@ -5547,6 +5553,7 @@ function onTutAct(act, d) {
     case 'tip-ok': { const m = meta(); m.tips = { ...(m.tips || {}), [d.k]: true }; saveMeta(); render(); return true; }
     case 'fx-toggle': { const m = meta(); m.fxOff = !m.fxOff; saveMeta(); render(); return true; }
     case 'snd-toggle': { const m = meta(); const k = d.k2 === 'bgm' ? 'bgmOn' : 'sfxOn'; m[k] = m[k] === false; saveMeta(); sndInit(); sndApplyPrefs(); render(); if (k === 'sfxOn' && m[k]) sfx('tap'); return true; }
+    case 'font-size': { const m = meta(); m.fontSize = ['s', 'l'].includes(d.v) ? d.v : 'm'; saveMeta(); render(); return true; }
     case 'color-mode': { const m = meta(); m.colorMode = ['light', 'dark'].includes(d.v) ? d.v : 'auto'; saveMeta(); render(); return true; }
     case 'tips-toggle': { const m = meta(); const on = m.tipsOn === false; m.tipsOn = on; if (on) m.tips = {}; saveMeta(); render(); return true; }
   }
@@ -5819,6 +5826,16 @@ function wsReadDraft() {
   d.atk = Number(f.get('atk')); d.hp = Number(f.get('hp')); d.sig = [...new Set([f.get('sig1'), f.get('sig2')].filter(Boolean))];
   WORKSHOP.draft = d; return d;
 }
+/* 팝업 실제 화면 확인: 저장하지 않는 임시 원정으로 엘리트 전투 승리 화면부터 시작합니다 */
+var WS_SHEET_TEST = false;
+function wsSheetTest() {
+  const pr = presetRoster();
+  RUN = newRun({ pro: pr.chars[0], comps: defaultComps(), supply: 8 }); RUN.fromPrep = false; RUN.mode = 'map';
+  RUN.deck = START_DECK.map(k => newCard(k)); RUN.map = genMap(1);
+  WS_SHEET_TEST = true;
+  startRunBattle('elite');
+  S.over = 'win'; render();
+}
 function renderWorkshop() {
   if (!workshopAllowed()) { screen = 'title'; render(); return; }
   const lock = wsLockGet();
@@ -5847,6 +5864,8 @@ function renderWorkshop() {
   <section class="panel"><h2>연출 미리보기</h2><p class="soft small">별도 시험 화면에서 재생합니다. 실제 원정·동료·재화는 바뀌지 않습니다. 합동은 발동 확률을 생략해 효과를 보여 줍니다.</p><div class="ws-fields"><label>첫 번째 인물<select id="ws-a">${chars.map((c,i)=>opt(c.id,c.name,WORKSHOP.a || chars[0].id)).join('')}</select></label><label>두 번째 인물<select id="ws-b">${chars.map(c=>opt(c.id,c.name,WORKSHOP.b || chars[Math.min(1,chars.length-1)].id)).join('')}</select></label><label>관계<select id="ws-rel">${Object.entries(PRO_LINKS).map(([k,r])=>opt(k,r.name,WORKSHOP.relationship || 'lover')).join('')}</select></label><label>화면 테마<select id="ws-theme">${[['none','기본'],['storybook','꽃빛 그림책'],['starlight','별빛 그림책'],['pixel','파스텔 도트']].map(([k,n])=>opt(k,n,WORKSHOP.theme || 'none')).join('')}</select></label></div>
   <div class="ws-effect-buttons">${[['cutin','관계 등장'],['ult','궁극기'],...Object.entries(JOINTS).map(([k,j])=>['joint-'+k,j.name]),['down','사선'],['death','사망'],['grit','근성'],['stress25','스트레스 25 돌파'],['stress','스트레스 50 돌파'],['stress75','스트레스 75 돌파'],['awaken','각성'],['collapse','붕괴'],['gamja','감자 이벤트'],['gain','카드 획득'],['fuse','엮기'],['awaken','카드 각성'],['boss','보스 등장'],['phase','2페이즈 전환'],['ending','엔딩'],['ending5','무게 5 엔딩']].map(([k,n])=>`<button class="btn" data-act="ws-preview" data-kind="${k}">${n}</button>`).join('')}</div>
   <div class="ws-preview-wrap" hidden><iframe id="ws-preview" title="게임 연출 미리보기" sandbox="allow-scripts"></iframe><button class="btn ghost" data-act="ws-close-preview">미리보기 닫기</button></div></section>
+  <section class="panel"><h2>팝업 실제 화면 확인</h2><p class="soft small">시험 창이 아니라 이 페이지에서 실제 게임처럼 엽니다. 엘리트 전투 승리 → 전리품 → 유물 팝업 순서로 움직이니, 전투 화면을 아래로 내린 뒤 '전리품 받기'를 눌러 보세요. 진행·재화는 저장되지 않고, 오른쪽 위 '제작소로'를 누르면 돌아옵니다.</p>
+    <button class="btn" data-act="ws-sheet-test">전투 승리부터 시작</button></section>
   <section class="panel"><h2>선물 카드 만들기</h2><p class="soft small">기본 덱 카드 한 장을 바탕으로 만듭니다. 비용과 주머니 감정은 유지하며, 공격·체력·인장·이름·그림을 바꿀 수 있습니다. 같은 원본의 선물은 한 번에 하나만 사용할 수 있습니다.</p>
   <form data-ws-form onsubmit="return false"><label>바탕 카드<select name="base" data-ws-base>${[...new Set(START_DECK)].map(k=>opt(k,CARDS[k].name,d.base)).join('')}</select></label><div class="ws-fields"><label>카드 이름<input name="name" maxlength="24" value="${esc(d.name)}"></label><label>공격<input name="atk" type="number" min="0" max="8" value="${d.atk}"></label><label>체력<input name="hp" type="number" min="1" max="12" value="${d.hp}"></label><label>인장 1<select name="sig1">${sigOpts(d.sig[0])}</select></label><label>인장 2<select name="sig2">${sigOpts(d.sig[1])}</select></label></div><label>카드에 담을 말<textarea name="note" rows="3" maxlength="180">${esc(d.note)}</textarea></label><label>작은 그림 (선택)<input type="file" accept="image/*" data-ws-image>${d.image ? `<span class="soft small ws-file-name">적용된 그림: ${esc(WORKSHOP.imageName || '선택한 그림')}</span>` : ''}</label><p class="soft small">그림은 작게 압축합니다. 그림을 넣으면 전달할 코드가 길어집니다.</p><div class="res-btns"><button type="button" class="btn" data-act="ws-card-preview">카드 미리보기</button><button type="button" class="btn ghost" data-act="ws-clear-image">그림 지우기</button></div></form>
   <div class="ws-card-preview">${cardHtml({key:d.base,gift:signedCard({...d,id:'preview-000'})})}<p>${esc(d.note)}</p></div>
@@ -5941,6 +5960,8 @@ function onWorkshopAct(act,d) {
   if(act==='ws-joint-replay' && UI.workshopJoint) { replayWorkshopJoint(); return true; }
   if (!workshopAllowed()) return true;
   if(act==='ws-preview') { wsPreview(d.kind); return true; }
+  if(act==='ws-sheet-test') { wsSheetTest(); return true; }
+  if(act==='ws-sheet-exit') { WS_SHEET_TEST = false; RUN = null; S = null; resetUI(); UI.cinfo = null; UI.deckOpen = false; UI.revealQ = []; screen = 'workshop'; render(); window.scrollTo(0, 0); return true; }
   if(act==='ws-close-preview') { const frame=app.querySelector('#ws-preview'); if(frame) frame.replaceWith(wsFreshFrame(frame)); app.querySelector('.ws-preview-wrap').hidden=true; return true; }
   if(act==='ws-card-preview') { wsReadDraft(); render(); return true; }
   if(act==='ws-clear-image') { wsReadDraft(); WORKSHOP.draft.image=''; WORKSHOP.imageName=''; render(); return true; }
@@ -7138,11 +7159,14 @@ function render() {
     document.documentElement.dataset.pageSkin = selectedSkin('page');
     const cm = meta().colorMode;
     if (cm === 'light' || cm === 'dark') document.documentElement.dataset.theme = cm; else delete document.documentElement.dataset.theme;
+    const fs = meta().fontSize;
+    if (fs === 's' || fs === 'l') document.documentElement.dataset.font = fs; else delete document.documentElement.dataset.font;
   }
   const prevSheet = sheetSig();
   (SCREENS[screen] || renderBattle)();
   // 이미 떠 있던 창을 다시 그린 경우에는 올라오는 연출을 다시 하지 않습니다
   if (prevSheet) { const sh = app.querySelector('.sheet'); if (sh && sheetSig() === prevSheet) sh.classList.add('still'); }
+  if (WS_SHEET_TEST && screen !== 'workshop') app.insertAdjacentHTML('beforeend', '<button class="btn small-btn ws-test-exit" data-act="ws-sheet-exit">제작소로</button>');
   bgmUpdate();
   if (screen === 'battle' && S && !S.over && !S.startSnd) { S.startSnd = true; sfx(S.enc.boss ? 'startBoss' : 'start'); }
   if (screen === 'battle' && S && S.over && S.overSnd !== S.over) { S.overSnd = S.over; sfx(S.over === 'win' ? 'win' : 'lose'); }
