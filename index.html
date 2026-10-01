@@ -985,7 +985,7 @@ a.btn.link-btn{display:block;text-align:center;text-decoration:none;color:inheri
 .expedition-report section{margin:24px 0}.expedition-report h3{font-size:16px;color:#82672f;margin:0 0 12px}.report-type h3{font-size:23px;color:#202731;line-height:1.6}.expedition-report small{font-size:11px}.report-type ul{padding-left:20px;font-size:12px}.expedition-report p{margin:8px 0;font-size:13px}.report-type{border-bottom:1px solid #d3c6a8;padding-bottom:22px}
 .report-award{border-left:3px solid #92763f;padding:10px 15px;margin:10px 0;background:#eae3d2}.report-award b{color:#725723}.report-stats{margin:0}.report-stats>div{display:grid;grid-template-columns:100px 1fr;gap:8px;padding:10px 0;border-bottom:1px solid #ddd5c4;font-size:12px}.report-stats dt{color:#69717a}.report-stats dd{margin:0}.report-party{margin:16px 0}.report-party small{display:block;color:#69717a}.expedition-report footer{border-top:1px solid #d3c6a8;padding-top:18px}.report-save-status{display:block;margin-top:8px}.expedition-report details{font-size:12px}.expedition-report summary{cursor:pointer}.report-notice{color:#8c583e}
 @media(max-width:480px){.expedition-report{padding:22px 16px}.report-type h3{font-size:20px}.report-stats>div{grid-template-columns:76px 1fr}.report-heading h2{font-size:25px}.retry-sheet .res-btns{flex-direction:column}}
-.retry-sheet .sheet-body{max-height:90dvh;overflow-y:auto}.expedition-report footer .btn{max-width:100%;white-space:normal}
+.retry-sheet .sheet-body{max-height:90dvh;overflow-y:auto;word-break:keep-all}.expedition-report footer .btn{max-width:100%;white-space:normal}
 /* Report v2: consistent visual hierarchy in screen and PNG. */
 .reserve-note{font-size:11px;color:var(--ink-soft);text-align:center;margin:10px 0}
 .expedition-report{padding:20px;background:#f2efe7;border-color:#d8ded5;color:#243a39;line-height:1.65}
@@ -5562,14 +5562,14 @@ function retryHtml() {
   const reason = retryReason(RUN), disabled = UI.playing || !!reason;
   // 홈으로: 원정 준비에서 시작한 런만 저장되므로 그때만 보여 줍니다(나가기 직전 화면이 그대로 저장돼 이어하기로 돌아옵니다)
   const home = RUN.fromPrep ? `<button class="btn small-btn ghost" data-act="to-title"${UI.playing ? ' disabled' : ''}>홈으로</button>` : '';
-  const button = `<div class="retry-bar"><div class="retry-row"><button class="btn small-btn" data-act="retry-ask"${disabled ? ' disabled' : ''}>이번 전투 다시하기 · 보급 2</button>${home}</div><small class="soft">${esc(reason || '전투당 한 번 · 사용 시 이번 원정 특별칭호 제외')}</small>${home ? '<small class="soft">홈으로 나가도 이 전투는 저장되어 이어하기로 돌아올 수 있습니다</small>' : ''}</div>`;
+  const button = `<div class="retry-bar"><div class="retry-row"><button class="btn small-btn" data-act="retry-ask"${disabled ? ' disabled' : ''}>이번 전투 다시하기 · 보급 2</button>${home}</div>${reason ? `<small class="soft">${esc(reason)}</small>` : ''}${home ? '<small class="soft">홈으로 나가도 이 전투는 저장되어 이어하기로 돌아올 수 있습니다</small>' : ''}</div>`;
   if (!UI.retryAsk || disabled) return button;
   const cs = RUN.battleRetry.state.comps.map(c => `${c.name}: ${{ok:'정상', saseon:'사선', dead:'사망'}[c.status] || '정상'}`).join(' / ');
   return button + `<div class="sheet retry-sheet" role="dialog" aria-modal="true" aria-labelledby="retry-title"><div class="sheet-body"><h2 id="retry-title">이번 전투를 다시 시작할까요?</h2>
     <p class="retry-cost">현재 보급 <b>${S.supply} → ${S.supply - 2}</b></p>
     <p>이미 쓴 보급은 돌아오지 않습니다. 그 밖의 상태는 전투 시작 시점으로 돌아갑니다. 시작 손패·적 배치·주머니도 같습니다.</p>
     <p class="soft small">복원할 동료 상태: ${esc(cs || '동료 없음')}</p>
-    <p class="note">이번 원정에서는 특별칭호를 받을 수 없습니다. 플레이 유형과 보고서, 일반 보상은 그대로 받을 수 있습니다.</p>
+    <p class="note">재도전은 전투당 한 번만 쓸 수 있습니다. 사용하면 이번 원정에서는 특별칭호를 받을 수 없습니다. 플레이 유형과 보고서, 일반 보상은 그대로 받을 수 있습니다.</p>
     <div class="res-btns"><button class="btn" data-act="retry-cancel">계속 싸운다</button><button class="btn danger" data-act="retry-confirm">보급 2를 쓰고 재도전</button></div></div></div>`;
 }
 function ensureRunReport(run) {
