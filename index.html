@@ -221,8 +221,9 @@ h2 { font-size: 1.1rem; margin: 0 0 .6rem; }
 }
 .sheet-body h2 { font-size: 1.35rem; margin: 0; }
 @media (prefers-reduced-motion: no-preference) {
-  .sheet:not(.still) > .sheet-body { animation: sheet-up .3s cubic-bezier(.2, .8, .25, 1) both; }
-  @keyframes sheet-up { from { transform: translateY(100%); } }
+  /* 창 전체 높이만큼 올라오면 큰 창(덱 보기 등)에서는 어두운 막만 먼저 보였다가 밝은 창이 덮어 깜빡여 보이므로, 짧게만 올라옵니다 */
+  .sheet:not(.still) > .sheet-body { animation: sheet-up .2s cubic-bezier(.2, .8, .25, 1) both; }
+  @keyframes sheet-up { from { transform: translateY(28px); } }
 }
 .sheet-body p { margin: 0; }
 .emo-pick { display: flex; gap: .5rem; }
