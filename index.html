@@ -1323,6 +1323,97 @@ main.tut .hand { padding-bottom: 1.3rem; }
 .trade .shop-refresh { display: block; width: 100%; box-sizing: border-box; margin-top: .8rem; }
 .deck-sheet .hcard.sel { box-shadow: 0 0 0 4px var(--brass), 0 0 16px color-mix(in srgb, var(--brass) 65%, transparent); transform: translateY(-4px); }
 .deck-sheet .hcard.sel::after { content: "✓ 선택"; position: absolute; top: -.6rem; right: -.4rem; z-index: 2; font: 700 .72rem/1 "IBM Plex Sans KR", sans-serif; color: #21180c; background: #f3c65c; border: 2px solid #21180c; border-radius: 999px; padding: .22rem .5rem; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
+/* ================= 기본 화면: 등불 서재(빛·그림자로 깊이를 준 기본 테마). 다른 화면 스킨에는 적용되지 않습니다 ================= */
+:root[data-page-skin="none"] {
+  --table: #e8dcc4; --table-2: #dccdb0; --ink: #2a1f15; --ink-soft: #6a5841; --line: #bba683; --brass: #a8741f;
+  --mat: #4d7560; --mat-2: #34574a; --mat-line: rgba(255, 246, 220, .45);
+  --th-pnl: linear-gradient(180deg, #f7efdf, #eee2ca); --th-pnl-edge: #cdb891; --th-hi: rgba(255, 255, 255, .7);
+  --th-btn: linear-gradient(180deg, #f8f0de, #e8dabd); --th-btn-edge: #c4ab80;
+  --th-gold: linear-gradient(180deg, #ecc677, #c58f3d); --th-gold-ink: #2a1b0a; --th-gold-edge: #93652a; --th-glow: rgba(190, 130, 40, .26);
+  --th-felt: radial-gradient(ellipse 90% 70% at 50% 40%, #527d66 0%, #3b604d 70%, #304f40 100%);
+  --th-felt-edge: #8a6a3c; --th-felt-in: #2c4a39; --th-stitch: rgba(240, 205, 140, .5);
+  --th-sh: rgba(90, 62, 25, .18); --th-sh-b: rgba(110, 80, 35, .3); --th-card-sh: rgba(40, 26, 10, .35);
+  --th-title: linear-gradient(180deg, #c99236 0%, #a06a1f 55%, #7a4c14 100%); --th-h1-sh: 0 1px 0 rgba(255, 255, 255, .6);
+  --th-bg: #e6d8bd; --th-bg-glow: rgba(255, 214, 140, .35); --th-bg-vig: rgba(120, 85, 40, .16); --th-track: rgba(90, 62, 25, .14);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-page-skin="none"]:not([data-theme="light"]) {
+    --table: #16110d; --table-2: #211913; --ink: #f3e7cf; --ink-soft: #b6a488; --line: #4b3b2b; --brass: #dcae5c;
+    --mat: #2c4c3b; --mat-2: #142820; --mat-line: rgba(238, 228, 200, .28);
+    --th-pnl: linear-gradient(180deg, #261d16, #1c1510); --th-pnl-edge: #4e3c29; --th-hi: rgba(255, 226, 170, .07);
+    --th-btn: linear-gradient(180deg, #30251c, #251c15); --th-btn-edge: #5a4530;
+    --th-gold-edge: #7c5521; --th-glow: rgba(220, 170, 80, .28);
+    --th-felt: radial-gradient(ellipse 90% 70% at 50% 40%, #2c4c3b 0%, #1b3428 70%, #142820 100%);
+    --th-felt-edge: #6f5532; --th-felt-in: #16291f; --th-stitch: rgba(220, 174, 92, .35);
+    --th-sh: rgba(0, 0, 0, .38); --th-sh-b: rgba(0, 0, 0, .45); --th-card-sh: rgba(0, 0, 0, .45);
+    --th-title: linear-gradient(180deg, #fff1cf 0%, #e9be6b 55%, #b98235 100%); --th-h1-sh: 0 2px 12px rgba(0, 0, 0, .4);
+    --th-bg: #15100c; --th-bg-glow: rgba(232, 170, 90, .16); --th-bg-vig: rgba(0, 0, 0, .6); --th-track: rgba(0, 0, 0, .35);
+  }
+}
+:root[data-page-skin="none"][data-theme="dark"] {
+  --table: #16110d; --table-2: #211913; --ink: #f3e7cf; --ink-soft: #b6a488; --line: #4b3b2b; --brass: #dcae5c;
+  --mat: #2c4c3b; --mat-2: #142820; --mat-line: rgba(238, 228, 200, .28);
+  --th-pnl: linear-gradient(180deg, #261d16, #1c1510); --th-pnl-edge: #4e3c29; --th-hi: rgba(255, 226, 170, .07);
+  --th-btn: linear-gradient(180deg, #30251c, #251c15); --th-btn-edge: #5a4530;
+  --th-gold-edge: #7c5521; --th-glow: rgba(220, 170, 80, .28);
+  --th-felt: radial-gradient(ellipse 90% 70% at 50% 40%, #2c4c3b 0%, #1b3428 70%, #142820 100%);
+  --th-felt-edge: #6f5532; --th-felt-in: #16291f; --th-stitch: rgba(220, 174, 92, .35);
+  --th-sh: rgba(0, 0, 0, .38); --th-sh-b: rgba(0, 0, 0, .45); --th-card-sh: rgba(0, 0, 0, .45);
+  --th-title: linear-gradient(180deg, #fff1cf 0%, #e9be6b 55%, #b98235 100%); --th-h1-sh: 0 2px 12px rgba(0, 0, 0, .4);
+  --th-bg: #15100c; --th-bg-glow: rgba(232, 170, 90, .16); --th-bg-vig: rgba(0, 0, 0, .6); --th-track: rgba(0, 0, 0, .35);
+}
+/* 배경: 위에서 비치는 등불 + 아래쪽 그늘 + 종이 결 */
+:where(:root[data-page-skin="none"]) body {
+  background:
+    radial-gradient(120% 70% at 50% -10%, var(--th-bg-glow) 0%, transparent 60%),
+    radial-gradient(140% 100% at 50% 120%, var(--th-bg-vig) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    var(--th-bg);
+  background-attachment: fixed;
+}
+:where(:root[data-page-skin="none"]) h1 { text-shadow: var(--th-h1-sh); }
+/* 패널: 둥근 상자 + 윗면 빛 + 아래 그림자 */
+:where(:root[data-page-skin="none"]) .panel, :where(:root[data-page-skin="none"]) .setup .panel, :where(:root[data-page-skin="none"]) section.tokens, :where(:root[data-page-skin="none"]) .front, :where(:root[data-page-skin="none"]) .info {
+  background: var(--th-pnl); border: 1px solid var(--th-pnl-edge); border-radius: 14px;
+  box-shadow: inset 0 1px 0 var(--th-hi), 0 8px 22px var(--th-sh); padding: .85rem .95rem;
+}
+:where(:root[data-page-skin="none"]) .panel, :where(:root[data-page-skin="none"]) .setup .panel { margin: 0 0 .9rem; }
+:where(:root[data-page-skin="none"]) .info { border-left: 3px solid var(--brass); }
+:where(:root[data-page-skin="none"]) .panel h2 { font-size: .95rem; letter-spacing: .06em; color: var(--brass); display: flex; align-items: center; gap: .5rem; }
+:where(:root[data-page-skin="none"]) .panel h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--th-pnl-edge), transparent); }
+/* 버튼: 살짝 솟은 면, 누르면 들어감. 주요 버튼은 금빛 */
+:where(:root[data-page-skin="none"]) .btn {
+  background: var(--th-btn); border: 1px solid var(--th-btn-edge); border-radius: 12px;
+  box-shadow: inset 0 1px 0 var(--th-hi), 0 2px 0 var(--th-sh-b), 0 4px 10px var(--th-sh); transition: transform .08s, box-shadow .08s;
+}
+:where(:root[data-page-skin="none"]) .btn.act { background: var(--th-btn); }
+:where(:root[data-page-skin="none"]) .btn:not(:disabled):active { transform: translateY(1px); box-shadow: inset 0 1px 0 var(--th-hi), 0 1px 0 var(--th-sh-b); }
+:where(:root[data-page-skin="none"]) .btn.primary { background: var(--th-gold); color: var(--th-gold-ink); border-color: var(--th-gold-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 3px 0 var(--th-gold-edge), 0 6px 16px var(--th-glow); }
+:where(:root[data-page-skin="none"]) .btn.primary :is(small, b) { color: var(--th-gold-ink); }
+:where(:root[data-page-skin="none"]) .btn:disabled { box-shadow: none; }
+:where(:root[data-page-skin="none"]) .btn.ghost, :where(:root[data-page-skin="none"]) .btn.danger { background: transparent; box-shadow: none; }
+:where(:root[data-page-skin="none"]) .nav { flex-wrap: wrap; justify-content: flex-start; }
+:where(:root[data-page-skin="none"]) .nav .btn { border-radius: 999px; min-height: 2.2rem; padding: .25rem .8rem; font-size: .8rem; white-space: nowrap; }
+/* 보드·지도: 황동 실로 박음질한 펠트 */
+:where(:root[data-page-skin="none"]) .board, :where(:root[data-page-skin="none"]) .map {
+  background: var(--th-felt); border-radius: 16px;
+  box-shadow: inset 0 0 0 1px var(--th-felt-edge), inset 0 0 0 5px var(--th-felt-in), inset 0 0 0 6px var(--th-stitch), inset 0 10px 30px rgba(0, 0, 0, .45), 0 8px 22px var(--th-sh);
+}
+:where(:root[data-page-skin="none"]) .battle.boss-fight .board { background: radial-gradient(ellipse 90% 80% at 50% 45%, #45302a 0%, #1f1512 100%); box-shadow: inset 0 0 0 1px #d9a84e, inset 0 0 0 5px #1a110d, inset 0 0 0 6px rgba(217, 168, 78, .45), inset 0 10px 30px rgba(0, 0, 0, .5), 0 8px 22px var(--th-sh); }
+/* 카드·토큰·노드: 탁자 위에 놓인 듯한 그림자(고른 카드, 보스, 표적 등 상태 표시는 그대로) */
+:where(:root[data-page-skin="none"]) .slot.unit:where(:not(.boss-unit, .elite-unit)), :where(:root[data-page-skin="none"]) .hcard { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 4px 10px var(--th-card-sh); border-radius: 9px; }
+:where(:root[data-page-skin="none"]) .slot.unit::before, :where(:root[data-page-skin="none"]) .hcard::before { border-radius: 7px; }
+:where(:root[data-page-skin="none"]) .tok { box-shadow: inset 0 2px 0 rgba(255, 255, 255, .28), inset 0 -2px 0 rgba(0, 0, 0, .18), 0 3px 6px var(--th-card-sh); }
+:where(:root[data-page-skin="none"]) .node { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 3px 6px var(--th-card-sh); }
+:where(:root[data-page-skin="none"]) .front-track > * { border-radius: 4px; }
+:where(:root[data-page-skin="none"]) .stress-bar { background: var(--th-track); border-color: var(--th-pnl-edge); }
+/* 타이틀 */
+:where(:root[data-page-skin="none"]) .title-mark h1 { font-size: 3rem; background: var(--th-title); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 3px 14px var(--th-glow)); }
+:where(:root[data-page-skin="none"]) .title-mark .tagline { color: var(--ink); letter-spacing: .04em; }
+:where(:root[data-page-skin="none"]) .title-mark::after { content: "✦"; color: var(--brass); opacity: .7; font-size: .8rem; letter-spacing: 1.2em; }
+:where(:root[data-page-skin="none"]) .btn.menu-btn { min-height: 3.6rem; }
+:where(:root[data-page-skin="none"]) .btn.menu-btn b { font-size: 1.15rem; }
 </style>
 </head>
 <body>
