@@ -987,7 +987,7 @@ a.btn.link-btn{display:block;text-align:center;text-decoration:none;color:inheri
 .expedition-report section{margin:24px 0}.expedition-report h3{font-size:16px;color:#82672f;margin:0 0 12px}.report-type h3{font-size:23px;color:#202731;line-height:1.6}.expedition-report small{font-size:11px}.report-type ul{padding-left:20px;font-size:12px}.expedition-report p{margin:8px 0;font-size:13px}.report-type{border-bottom:1px solid #d3c6a8;padding-bottom:22px}
 .report-award{border-left:3px solid #92763f;padding:10px 15px;margin:10px 0;background:#eae3d2}.report-award b{color:#725723}.report-stats{margin:0}.report-stats>div{display:grid;grid-template-columns:100px 1fr;gap:8px;padding:10px 0;border-bottom:1px solid #ddd5c4;font-size:12px}.report-stats dt{color:#69717a}.report-stats dd{margin:0}.report-party{margin:16px 0}.report-party small{display:block;color:#69717a}.expedition-report footer{border-top:1px solid #d3c6a8;padding-top:18px}.report-save-status{display:block;margin-top:8px}.expedition-report details{font-size:12px}.expedition-report summary{cursor:pointer}.report-notice{color:#8c583e}
 @media(max-width:480px){.expedition-report{padding:22px 16px}.report-type h3{font-size:20px}.report-stats>div{grid-template-columns:76px 1fr}.report-heading h2{font-size:25px}.retry-sheet .res-btns{flex-direction:column}}
-.retry-sheet .sheet-body{max-height:90dvh;overflow-y:auto;word-break:keep-all}.expedition-report footer .btn{max-width:100%;white-space:normal}
+.retry-sheet .sheet-body{max-height:90dvh;overflow-y:auto;word-break:keep-all}.reset-sheet .sheet-body{word-break:keep-all}.expedition-report footer .btn{max-width:100%;white-space:normal}
 /* Report v2: consistent visual hierarchy in screen and PNG. */
 .reserve-note{font-size:11px;color:var(--ink-soft);text-align:center;margin:10px 0}
 .expedition-report{padding:20px;background:#f2efe7;border-color:#d8ded5;color:#243a39;line-height:1.65}
@@ -5290,11 +5290,21 @@ function renderSettings() {
     </section>
     <section class="panel reset-panel"><h2>게임 초기화</h2>
       <p class="soft small">초기화하면 되돌릴 수 없습니다. 캐릭터를 지키고 싶다면 먼저 로스터에서 캐릭터 코드를 복사해 두세요.</p>
-      <button class="btn${UI.resetAsk === 'progress' ? ' danger' : ''}" data-act="reset-progress">${UI.resetAsk === 'progress' ? '정말 초기화할까요? 한 번 더 누르면 진행이 지워집니다' : '진행만 초기화'}<small>진행 중인 런, 기억 조각, 해금, 유품, 무게, 유대 기록이 지워집니다. 캐릭터와 관계는 남습니다</small></button>
-      <button class="btn${UI.resetAsk === 'all' ? ' danger' : ''}" data-act="reset-all">${UI.resetAsk === 'all' ? '정말 전부 지울까요? 한 번 더 누르면 처음 상태가 됩니다' : '전부 초기화'}<small>캐릭터까지 모두 지우고 처음 켠 상태로 돌아갑니다</small></button>
+      <button class="btn" data-act="reset-progress">진행만 초기화<small>진행 중인 런, 기억 조각, 해금, 유품, 무게, 유대 기록이 지워집니다. 캐릭터와 관계는 남습니다</small></button>
+      <button class="btn" data-act="reset-all">전부 초기화<small>캐릭터까지 모두 지우고 처음 켠 상태로 돌아갑니다</small></button>
     </section>
-    ${giftReceiptHtml()}
+    ${giftReceiptHtml()}${resetSheet()}
   </main>`;
+}
+/* 초기화 확인 창: 무엇이 지워지는지 보여 주고, 먼저 백업할 수 있게 합니다 */
+function resetSheet() {
+  const k = UI.resetAsk; if (k !== 'progress' && k !== 'all') return '';
+  const all = k === 'all';
+  return `<div class="sheet reset-sheet" role="dialog" aria-modal="true" aria-labelledby="reset-title"><div class="sheet-body"><h2 id="reset-title">${all ? '전부 초기화할까요?' : '진행만 초기화할까요?'}</h2>
+    <p>${all ? '캐릭터와 관계까지 모두 지우고 처음 켠 상태로 돌아갑니다.' : '진행 중인 런, 기억 조각, 해금, 유품, 무게, 유대 기록이 지워집니다. 캐릭터와 관계는 남습니다.'}</p>
+    <p class="note">초기화하면 되돌릴 수 없습니다. 걱정되면 먼저 저장 코드를 내보내 두세요.${all ? ' 캐릭터만 지키고 싶다면 로스터에서 캐릭터 코드를 복사해 두어도 됩니다.' : ''}</p>
+    <button class="btn ghost" data-act="reset-backup">먼저 백업하기</button>
+    <div class="res-btns"><button class="btn" data-act="reset-cancel">취소</button><button class="btn danger" data-act="reset-confirm">${all ? '전부 초기화' : '진행 초기화'}</button></div></div></div>`;
 }
 
 /* ---------- 훈련 전투 ---------- */
@@ -5515,9 +5525,11 @@ function onTutAct(act, d) {
       const r = saveImportCode(code); if (!r.ok) { flash(r.msg); render(); return true; }
       location.reload(); return true;
     }
-    case 'reset-progress': case 'reset-all': {
-      const kind = act === 'reset-all' ? 'all' : 'progress';
-      if (UI.resetAsk !== kind) { UI.resetAsk = kind; render(); return true; }
+    case 'reset-progress': case 'reset-all': UI.resetAsk = act === 'reset-all' ? 'all' : 'progress'; render(); return true;
+    case 'reset-cancel': UI.resetAsk = null; render(); return true;
+    case 'reset-backup': { UI.resetAsk = null; UI.saveCode = saveExportCode(); markBackup(); render(); const sp = app.querySelector('.save-panel'); if (sp) sp.scrollIntoView({ block: 'start' }); flash('저장 코드를 만들었습니다. 복사하거나 파일로 받아 두세요'); return true; }
+    case 'reset-confirm': {
+      const kind = UI.resetAsk; if (kind !== 'progress' && kind !== 'all') return true;
       try {
         localStorage.removeItem(RUN_KEY); localStorage.removeItem(META_KEY);
         if (kind === 'all') localStorage.removeItem(ROSTER_KEY);
