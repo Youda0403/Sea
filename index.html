@@ -217,6 +217,12 @@ h2 { font-size: 1.1rem; margin: 0 0 .6rem; }
   max-width: 34rem; width: 100%; margin: 0 auto; display: grid; gap: .6rem;
 }
 .sheet-body h2 { font-size: 1.35rem; margin: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .sheet:not(.still) { animation: sheet-fade .22s ease both; }
+  .sheet:not(.still) > .sheet-body { animation: sheet-up .3s cubic-bezier(.2, .8, .25, 1) both; }
+  @keyframes sheet-fade { from { background-color: transparent; } }
+  @keyframes sheet-up { from { transform: translateY(100%); } }
+}
 .sheet-body p { margin: 0; }
 .emo-pick { display: flex; gap: .5rem; }
 .emo-pick .tok { flex: 1; min-height: 3rem; }
@@ -699,6 +705,7 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
   position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + .8rem); transform: translateX(-50%);
   max-width: min(26rem, calc(100% - 2rem)); padding: .55rem .9rem; border-radius: 10px; font-size: .88rem; font-weight: 600;
   background: rgba(30, 22, 14, .94); color: #f3e6c4; border: 1px solid rgba(217, 168, 78, .6); box-shadow: 0 6px 18px rgba(0, 0, 0, .3); text-align: center;
+  word-break: keep-all; overflow-wrap: anywhere; width: max-content; box-sizing: border-box;
 }
 .toast-float.ult-toast { box-sizing: border-box; width: max-content; max-width: calc(100vw - 2rem); overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: no-preference) {
@@ -7119,6 +7126,7 @@ function renderBattle() {
 
 const SCREENS = { craft: () => renderCraft(), settings: () => renderSettings(), report: () => renderArchivedReport(), firstchar: () => renderFirstChar(), ending: () => renderEnding(), 'ending-preview': () => renderEnding(), stage: () => renderStage(), title: () => renderTitle(), story: () => renderStory(), howto: () => renderHowTo(), base: () => renderBase(), prep: () => renderPrep(), setup: () => renderSetup(), roster: () => renderRoster(), edit: () => renderEditor(), camp: () => renderCamp(),
   map: () => renderMap(), event: () => renderEvent(), trade: () => renderTrade(), reward: () => renderReward(), runend: () => renderRunEnd() };
+function sheetSig() { const sh = app && app.querySelector('.sheet'); if (!sh) return ''; const b = sh.querySelector('.sheet-body'), h = sh.querySelector('h2'); return sh.className.replace(/\s*still\b/, '') + '|' + (b ? b.className : '') + '|' + (h ? h.textContent : ''); }
 function render() {
   // 턴 재생 중에는 연출 타이머 등이 결과 화면을 끼워 그리지 않게 막습니다(재생이 끝나면 다시 그림)
   if (UI.playing && screen === 'battle') return;
@@ -7128,7 +7136,10 @@ function render() {
     const cm = meta().colorMode;
     if (cm === 'light' || cm === 'dark') document.documentElement.dataset.theme = cm; else delete document.documentElement.dataset.theme;
   }
+  const prevSheet = sheetSig();
   (SCREENS[screen] || renderBattle)();
+  // 이미 떠 있던 창을 다시 그린 경우에는 올라오는 연출을 다시 하지 않습니다
+  if (prevSheet) { const sh = app.querySelector('.sheet'); if (sh && sheetSig() === prevSheet) sh.classList.add('still'); }
   bgmUpdate();
   if (screen === 'battle' && S && !S.over && !S.startSnd) { S.startSnd = true; sfx(S.enc.boss ? 'startBoss' : 'start'); }
   if (screen === 'battle' && S && S.over && S.overSnd !== S.over) { S.overSnd = S.over; sfx(S.over === 'win' ? 'win' : 'lose'); }
