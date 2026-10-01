@@ -766,7 +766,7 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 
 /* ================= v0.15: 타이틀, 출정 준비 ================= */
 .title-screen {
-  min-height: 100vh; min-height: 100dvh; max-width: 26rem; margin: 0 auto; padding: 2.5rem 1.2rem;
+  min-height: 100vh; min-height: 100svh; max-width: 26rem; margin: 0 auto; padding: 2.5rem 1.2rem;
   display: grid; align-content: center; gap: 2.4rem;
 }
 .title-mark { display: grid; justify-items: center; gap: .6rem; text-align: center; }
@@ -817,7 +817,7 @@ body { background: radial-gradient(ellipse 120% 520px at 50% 0%, color-mix(in sr
 .tagline { font-family: "Gowun Batang", serif; font-size: 1.02rem !important; color: var(--ink); }
 .story-line { font-family: "Gowun Batang", serif; font-size: .95rem; line-height: 1.7; color: var(--ink-soft); margin: -.2rem 0 .2rem; }
 .story-screen {
-  min-height: 100vh; min-height: 100dvh; max-width: 30rem; margin: 0 auto; padding: 2rem 1.4rem 1.6rem;
+  min-height: 100vh; min-height: 100svh; max-width: 30rem; margin: 0 auto; padding: 2rem 1.4rem 1.6rem;
   display: grid; grid-template-rows: 1fr auto; cursor: pointer; user-select: none;
 }
 .story-page { align-self: center; display: grid; gap: 1rem; }
@@ -1840,6 +1840,30 @@ let UNDO = [];
 function pushUndo(entry) { const { events, ...rest } = S; UNDO.push({ ...entry, state: structuredClone(rest) }); }
 function canUndo() { return !!S && !S.over && UNDO.length > 0; }
 function undoTop() { return UNDO.length ? UNDO[UNDO.length - 1] : null; }
+/* 카드 거두기: 이번 턴에 낸 카드는 보급 교환·지휘 등 다른 행동을 한 뒤에도 그 카드만 거둘 수 있습니다.
+   그 카드를 낼 때 쓴 토큰을 돌려받고, 다른 행동은 그대로 둡니다. 바로 직전 행동이 그 카드였다면 예전처럼 통째로 되돌립니다 */
+function takeBackWhy(u) {
+  if (!u || S.over) return '거둘 카드가 없습니다';
+  if (u.newTurn !== S.turn) return '이번 턴에 낸 카드만 거둘 수 있습니다';
+  if (u.noBack) return u.noBack;
+  if (u.ultTurn === S.turn || (u.comp && S.ultUsed[u.comp] && u.ultTurnUsed === S.turn)) return '궁극기를 쓴 카드는 거둘 수 없습니다';
+  if (!u.paid) return '거둘 수 없는 카드입니다';
+  return '';
+}
+function takeBack(lane) {
+  const u = S.p[lane], why = takeBackWhy(u);
+  if (why) return { ok: false, msg: why };
+  const top = undoTop();
+  if (top && top.uid === u.uid) { undo(); return { ok: true }; }
+  S.p[lane] = null;
+  S.hand.push(u.card);
+  for (const t of u.paid) S.tokens.push(mkTok(t.t, t.extra));
+  if (u.keptGift) { const i = S.kept.lastIndexOf(u.keptGift); if (i >= 0) S.kept.splice(i, 1); }
+  refreshMend();
+  UNDO = [];
+  log(`${jo(u.name, '을', '를')} 거뒀습니다. 쓴 토큰 ${u.paid.length}개를 돌려받았습니다`, 'sys');
+  return { ok: true };
+}
 function undo() {
   if (!canUndo()) return null;
   const u = UNDO.pop();
@@ -2244,9 +2268,10 @@ function playCard(hi, lane) {
   } else if (info.comp) say(compById(info.comp), 'play', 0.35);
   S.p[lane] = mkUnit(card, info, bonus);
   S.p[lane].newTurn = S.turn;
+  S.p[lane].paid = used.map(t => ({ t: t.t, extra: !!t.extra })); // 거둘 때 돌려줄 토큰
   if (info.comp) {
     const c = compById(info.comp); const pl = proLink(c.id);
-    if (pl === 'comrade') { S.kept.push(KEYWORDS[c.core].emo); log(`${c.name}: 든든한 동료. ${EMO[KEYWORDS[c.core].emo]} 토큰을 보관함에 받습니다`, 'good'); }
+    if (pl === 'comrade') { S.kept.push(KEYWORDS[c.core].emo); S.p[lane].keptGift = KEYWORDS[c.core].emo; log(`${c.name}: 든든한 동료. ${EMO[KEYWORDS[c.core].emo]} 토큰을 보관함에 받습니다`, 'good'); }
     if ((pl || bondLevel(c) >= 1) && !(S.cutinSeen = S.cutinSeen || {})[c.id]) {
       S.cutinSeen[c.id] = true;
       const set = linesFor(c, 'play');
@@ -2257,8 +2282,8 @@ function playCard(hi, lane) {
   S.actionTaken = true;
   log(`${jo(info.name, '을', '를')} ${lane + 1}번 레인에 냈습니다`, 'sys');
   const mourn = used.filter(t => t.t === 'mourn').length;
-  if (mourn) { S.p[lane].bonus += 1; addStress(mourn * (3 + (partyHas('naive') ? 3 : 0)), '추모 토큰'); }
-  if (!brokeBefore && S.brokeOnce) UNDO = [];
+  if (mourn) { S.p[lane].bonus += 1; addStress(mourn * (3 + (partyHas('naive') ? 3 : 0)), '추모 토큰'); S.p[lane].noBack = '추모 토큰으로 낸 카드는 스트레스가 이미 올라 거둘 수 없습니다'; }
+  if (!brokeBefore && S.brokeOnce) { UNDO = []; S.p[lane].noBack = '정신력 한계가 온 뒤라 거둘 수 없습니다'; }
   refreshMend();
   return { ok: true };
 }
@@ -2617,7 +2642,7 @@ function useUlt(lane) {
   if (S.over || !ultReady(u)) return { ok: false, msg: '궁극기를 쓸 수 없습니다' };
   const c = compById(u.comp);
   pushUndo({ label: `궁극기: ${c.ultName || ULTS[c.role].def}` });
-  S.ultUsed[u.comp] = true; u.resolve = 0; S.actionTaken = true;
+  S.ultUsed[u.comp] = true; u.resolve = 0; u.ultTurnUsed = S.turn; S.actionTaken = true;
   const name = c.ultName || ULTS[c.role].def;
   log(`궁극기 ${name}!`, 'good');
   const set = linesFor(c, 'ult');
@@ -5755,7 +5780,7 @@ const FXT = {};
 const BGM_FILES = { main: 'bgm/normal.mp3', battle: 'bgm/normal.mp3', boss: 'bgm/boss.mp3' };
 const BGM_LOOP = 80 * 60 / 105;
 /* 곡마다 크기 보정: 보스 곡은 소리가 더 어둡고 중음에 몰려 있어 같은 크기여도 작게 들려서 조금 키웁니다 */
-const BGM_GAIN = { 'bgm/boss.mp3': 1.4 };
+const BGM_GAIN = { 'bgm/boss.mp3': 1.18 };
 const SND = { ctx: null, sfx: null, bgm: null, verb: null, cur: null, tracks: {}, last: {} };
 function sndPrefs() { const m = meta(); return { sfxOn: m.sfxOn !== false, sfxVol: m.sfxVol ?? 0.7, bgmOn: m.bgmOn !== false, bgmVol: m.bgmVol ?? 0.5 }; }
 function sndInit() {
@@ -6631,8 +6656,9 @@ function unitInfo(u, side, lane) {
   parts.push('<div class="soft small">보드에 표시된 칸이 이 카드가 닿는 범위입니다.</div>');
   if (side === 'p' && u.newTurn === S.turn) {
     const top = undoTop();
-    if (top && top.uid === u.uid) parts.push('<button class="btn takeback" data-act="undo">이 카드 거두기(토큰 돌려받음)</button>');
-    else if (canUndo()) parts.push('<div class="soft small">이 카드를 거두려면 그 뒤에 한 행동부터 되돌리기로 차례대로 취소하세요.</div>');
+    const why = takeBackWhy(u);
+    if (!why) parts.push(`<button class="btn takeback" data-act="takeback" data-lane="${lane}">이 카드 거두기(토큰 돌려받음)</button>${top && top.uid === u.uid ? '' : '<div class="soft small">다른 행동(보급 교환, 지휘 등)은 그대로 두고 이 카드만 손패로 돌아옵니다.</div>'}`);
+    else parts.push(`<div class="soft small">${esc(why)}</div>`);
   }
   if (u.comp) {
     const c = compById(u.comp);
@@ -6938,6 +6964,7 @@ app.addEventListener('click', e => {
       case 'setup': screen = 'setup'; render(); return;
       case 'cancel': resetUI(); render(); return;
       case 'undo': { const lb = undo(); resetUI(); if (lb) flash(`되돌림: ${lb}`); else render(); return; }
+      case 'takeback': { const r = takeBack(+d.lane); resetUI(); if (!r.ok) flash(r.msg); else { sfx('page'); flash('카드를 거둬 손패로 돌려놓았습니다'); } return; }
       case 'extra': {
         const r = extraDraw();
         if (r.ok) sfx(r.bust ? 'burst' : r.saved ? 'block' : 'token');
