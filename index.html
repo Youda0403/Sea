@@ -965,6 +965,10 @@ main.battle.tut { padding-bottom: 13rem; }
 /* 원정 기록 */
 .retry-bar{display:flex;flex-direction:column;align-items:center;gap:8px;margin:18px 0 10px;padding:12px;border-top:1px solid var(--line);text-align:center}
 .retry-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+a.btn.link-btn{display:block;text-align:center;text-decoration:none;color:inherit}
+.crash{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:1rem;background:rgba(10,8,6,.72)}
+.crash-body{width:min(100%,24rem);max-height:90vh;overflow:auto;display:grid;gap:.7rem;padding:1.1rem;border-radius:14px;background:var(--table);color:var(--ink);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.crash-body h2{margin:0}.crash-body p{margin:0}.crash-body textarea{width:100%;box-sizing:border-box;font:.72rem/1.4 ui-monospace,monospace;margin:.4rem 0}.crash-body a{color:var(--brass)}
 .retry-bar small{font-size:11px}.retry-sheet{z-index:120}.retry-cost{font-size:19px}
 .expedition-report{background:#f4f1e9;color:#353b43;border:1px solid #d3c6a8;border-radius:6px;margin:22px 0;padding:30px 26px;line-height:1.8;overflow-wrap:anywhere}
 .expedition-report .soft{color:#69717a}.report-heading{border-top:3px solid #92763f;border-bottom:1px solid #d3c6a8;padding:20px 0;margin-bottom:24px}
@@ -4691,6 +4695,8 @@ function renderBase() {
     <h1>거점</h1>
     ${m.lastReport ? '<button class="btn" data-act="report-open">지난 원정 보고서</button>' : ''}
     <p class="story-line">아직 잊지 않은 사람들이 모인 곳. 탑에서 되찾아 온 기억이 여기 쌓입니다.</p>
+    ${backupDue(m) ? `<section class="panel backup-nag"><h2>진행 백업하기</h2><p class="small">진행 상황은 지금 쓰는 브라우저에만 저장됩니다. 브라우저 기록을 지우거나 다른 앱에서 열면 사라질 수 있으니, 가끔 저장 코드를 내보내 두세요.</p>
+      <div class="res-btns"><button class="btn primary" data-act="backup-go">백업하러 가기</button><button class="btn ghost" data-act="backup-later">나중에</button></div></section>` : ''}
     ${!m.tutorialDone && !m.runs ? `<section class="panel tut-offer"><h2>처음이신가요?</h2><p class="small">훈련 전투에서 전선, 감정 토큰, 동료 카드를 한 단계씩 따라 해 볼 수 있습니다. 3분쯤 걸립니다.</p>
       <div class="res-btns"><button class="btn primary" data-act="tut-start">훈련 전투 시작</button><button class="btn ghost" data-act="tut-dismiss">바로 시작할게요</button></div></section>` : tipHtml('base')}
     <section class="panel shard-panel">
@@ -4869,6 +4875,33 @@ function renderTitle() {
   </main>${creditsSheet()}`;
 }
 /* 크레딧: 만든 사람, 쓴 글꼴·효과음, 영감을 받은 작품 */
+/* 의견·버그 제보(구글 폼) */
+const FEEDBACK_URL = 'https://forms.gle/zV1VojFp9ivBATGu9';
+/* 백업 권유: 저장은 이 브라우저에만 있으므로, 원정을 한 번 이상 했고 7일 넘게 백업(또는 '나중에')이 없으면 거점에서 한 번 권합니다 */
+const BACKUP_NAG_MS = 7 * 24 * 3600 * 1000;
+function backupDue(m) { return (m.runs || 0) >= 1 && Date.now() - Math.max(m.lastBackup || 0, m.backupNagAt || 0) > BACKUP_NAG_MS; }
+function markBackup() { const m = meta(); m.lastBackup = Date.now(); saveMeta(); }
+/* 예기치 못한 오류: 화면이 굳은 채로 두지 않고 저장 코드를 챙기고 새로고침할 수 있게 안내합니다(한 번만 띄움) */
+let CRASH_SHOWN = false;
+function showCrash(msg) {
+  if (CRASH_SHOWN || !document.body) return; CRASH_SHOWN = true;
+  let code = ''; try { code = saveExportCode(); } catch (e) { code = ''; }
+  const box = document.createElement('div'); box.className = 'crash'; box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-modal', 'true');
+  box.innerHTML = `<div class="crash-body"><h2>문제가 생겼어요</h2>
+    <p>예상하지 못한 오류가 났습니다. 진행은 마지막으로 화면이 바뀐 때까지 저장되어 있어서, 새로고침하면 대부분 이어서 할 수 있어요.</p>
+    ${code ? `<details><summary>혹시 모르니 저장 코드 챙기기</summary><textarea readonly rows="3">${esc(code)}</textarea><button class="btn" data-crash="copy">코드 복사</button><p class="soft small">설정 → 저장 옮기기 → 저장 불러오기에 넣으면 되살릴 수 있습니다.</p></details>` : ''}
+    <div class="res-btns"><button class="btn primary" data-crash="reload">새로고침</button><button class="btn" data-crash="close">닫고 계속하기</button></div>
+    <p class="soft small"><a href="${FEEDBACK_URL}" target="_blank" rel="noopener">오류 제보하기</a> · ${esc(String(msg || '알 수 없는 오류').slice(0, 140))}</p></div>`;
+  box.addEventListener('click', e => {
+    const k = e.target.closest('[data-crash]'); if (!k) return;
+    if (k.dataset.crash === 'reload') location.reload();
+    else if (k.dataset.crash === 'close') box.remove();
+    else if (k.dataset.crash === 'copy') { const t = box.querySelector('textarea'); t.select(); (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(() => { k.textContent = '복사했어요'; markBackup(); }, () => { document.execCommand('copy'); k.textContent = '복사했어요'; }); }
+  });
+  document.body.appendChild(box);
+}
+window.addEventListener('error', e => { if (!e.error && /^Script error/i.test(e.message || '')) return; showCrash(e.message || (e.error && e.error.message)); });
+window.addEventListener('unhandledrejection', e => { const r = e.reason; if (r instanceof Error && ['TypeError', 'ReferenceError', 'RangeError', 'SyntaxError'].includes(r.name)) showCrash(r.message); });
 const CREDITS = [
   ['만든 사람', ['유담 (@Yudam_vv)', '기획 · 세계관 · 음악']],
   ['글꼴', ['갈무리 Galmuri (파스텔 도트 스킨) · SIL Open Font License 1.1', 'Gowun Batang · IBM Plex Sans KR · SIL Open Font License 1.1']],
@@ -4880,6 +4913,7 @@ function creditsSheet() {
   return `<div class="sheet"><div class="sheet-body credits"><h2>크레딧</h2>
     ${CREDITS.map(([h, lines]) => `<section><small>${esc(h)}</small>${lines.map(l => `<p>${esc(l)}</p>`).join('')}</section>`).join('')}
     <p class="soft small">이 게임의 제작 과정에서 AI가 활용되었습니다.<br>참고한 작품들과 공식적인 관련은 없습니다. 감사합니다.</p>
+    <a class="btn link-btn" href="${FEEDBACK_URL}" target="_blank" rel="noopener">의견 · 버그 제보</a>
     <button class="btn" data-act="credits-close">닫기</button></div></div>`;
 }
 
@@ -5179,6 +5213,10 @@ function renderSettings() {
         <label class="small save-file">또는 파일 선택<input type="file" accept=".txt,text/plain" data-save-file>${UI.saveFileName ? `<span class="soft">선택한 파일: ${esc(UI.saveFileName)}</span>` : ''}</label>
         <button class="btn${UI.saveImportAsk ? ' danger' : ''}" data-act="save-import">${UI.saveImportAsk ? '지금 이 기기의 저장이 덮어써집니다. 한 번 더 누르면 불러옵니다' : '불러오기'}</button></details>
     </section>
+    <section class="panel feedback-panel"><h2>의견 · 버그 제보</h2>
+      <p class="soft small">불편한 점, 버그, 하고 싶은 말을 보내 주세요. 구글 폼이 새 창으로 열립니다.</p>
+      <a class="btn link-btn" href="${FEEDBACK_URL}" target="_blank" rel="noopener">의견 보내기</a>
+    </section>
     <section class="panel reset-panel"><h2>게임 초기화</h2>
       <p class="soft small">초기화하면 되돌릴 수 없습니다. 캐릭터를 지키고 싶다면 먼저 로스터에서 캐릭터 코드를 복사해 두세요.</p>
       <button class="btn${UI.resetAsk === 'progress' ? ' danger' : ''}" data-act="reset-progress">${UI.resetAsk === 'progress' ? '정말 초기화할까요? 한 번 더 누르면 진행이 지워집니다' : '진행만 초기화'}<small>진행 중인 런, 기억 조각, 해금, 유품, 무게, 유대 기록이 지워집니다. 캐릭터와 관계는 남습니다</small></button>
@@ -5393,9 +5431,9 @@ function onTutAct(act, d) {
     case 'fc-speech': fcSaveName(); UI.fc.speech = d.v; render(); return true;
     case 'fc-make': fcMake(); return true;
     case 'fc-skip': { const m = meta(); m.firstChar = true; saveMeta(); screen = 'base'; render(); window.scrollTo(0, 0); return true; }
-    case 'save-export': UI.saveCode = saveExportCode(); render(); return true;
+    case 'save-export': UI.saveCode = saveExportCode(); markBackup(); render(); return true;
     case 'save-copy': { const t = app.querySelector('.save-panel textarea[readonly]'); if (t) { t.select(); navigator.clipboard ? navigator.clipboard.writeText(t.value).then(() => flash('코드를 복사했습니다'), () => { document.execCommand('copy'); flash('코드를 복사했습니다'); }) : (document.execCommand('copy'), flash('코드를 복사했습니다')); } return true; }
-    case 'save-download': { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([saveExportCode()], { type: 'text/plain' })); a.download = 'tower-save-' + new Date().toISOString().slice(0, 10) + '.txt'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); return true; }
+    case 'save-download': { markBackup(); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([saveExportCode()], { type: 'text/plain' })); a.download = 'tower-save-' + new Date().toISOString().slice(0, 10) + '.txt'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); return true; }
     case 'save-import': {
       const box = app.querySelector('[data-save-in]'); const code = (box && box.value.trim()) || UI.saveImportText || '';
       UI.saveImportText = code;
@@ -5436,6 +5474,8 @@ function onTutAct(act, d) {
     case 'tut-hide': if (TUT) { TUT.guideHidden = true; render(); } return true;
     case 'tut-next': if (TUT) { TUT.step = Math.min(TUT.step + 1, TUT_STEPS.length - 1); resetUI(); tutEnter(); render(); } return true;
     case 'tut-quit': case 'tut-leave': exitTutorial(TUT && TUT.back === 'howto' ? 'howto' : 'base'); return true;
+    case 'backup-later': { const m = meta(); m.backupNagAt = Date.now(); saveMeta(); render(); return true; }
+    case 'backup-go': { UI.settingsBack = 'base'; screen = 'settings'; render(); const sp = app.querySelector('.save-panel'); if (sp) sp.scrollIntoView({ block: 'start' }); else window.scrollTo(0, 0); return true; }
     case 'tut-dismiss': { const m = meta(); m.tutorialDone = true; saveMeta(); render(); return true; }
     case 'tip-ok': { const m = meta(); m.tips = { ...(m.tips || {}), [d.k]: true }; saveMeta(); render(); return true; }
     case 'fx-toggle': { const m = meta(); m.fxOff = !m.fxOff; saveMeta(); render(); return true; }
