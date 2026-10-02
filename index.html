@@ -3883,7 +3883,10 @@ function presetRoster() {
 function loadRoster() {
   try {
     const raw = localStorage.getItem(ROSTER_KEY);
-    if (raw) { const d = JSON.parse(raw); if (d && Array.isArray(d.chars) && Array.isArray(d.rels)) { ROSTER = d; return; } }
+    if (raw) { const d = JSON.parse(raw); if (d && Array.isArray(d.chars) && Array.isArray(d.rels)) {
+      // 다른 사람이 준 저장 코드에 이상한 초상화 값이 섞여 있어도 화면에 그대로 넣지 않도록, 이미지 데이터만 남깁니다
+      d.chars.forEach(c => { if (c && c.portrait != null && !(typeof c.portrait === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+=*$/.test(c.portrait))) c.portrait = null; });
+      ROSTER = d; return; } }
   } catch (e) { storageOk = false; }
   ROSTER = presetRoster();
   saveRoster();
