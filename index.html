@@ -7152,7 +7152,7 @@ function overlayHtml() {
   }
   const title = { win: '승리', retreated: '후퇴했습니다', runover: '런 종료' }[S.over];
   const lines = [];
-  if (S.over === 'win') lines.push(`${S.turn}턴 만에 이겼습니다. 이 상대의 목표 길이는 ${S.enc.target}입니다.`);
+  if (S.over === 'win') lines.push(`${S.turn}턴 만에 이겼습니다.`);
   if (S.over === 'runover') lines.push(esc(S.overReason || ''));
   lines.push(`스트레스 ${S.stress}, 보급 ${S.supply}`);
   const cs = S.comps.map(c => `${esc(c.name)}: ${{ ok: '정상', saseon: '사선', dead: '사망' }[c.status]}, 유대 ${bondLevel(c)}단계`).join('<br>');
